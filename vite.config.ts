@@ -5,6 +5,7 @@ import react from '@vitejs/plugin-react';
 export default defineConfig({
   plugins: [react()],
   build: {
-    outDir: 'dist',
+    // Đổi tên thư mục xuất file thành 'build' để khớp với cài đặt của Vercel
+    outDir: 'build',
   },
 });
