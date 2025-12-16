@@ -8,8 +8,25 @@ const CURRENT_USER_KEY = 'fintrack_current_user';
 // Helper để xử lý response
 const handleResponse = async (response: Response) => {
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({}));
-    throw new Error(errorData.error || `HTTP Error: ${response.status}`);
+    let errorMsg = `HTTP Error: ${response.status}`;
+    try {
+      const text = await response.text();
+      try {
+        const errorData = JSON.parse(text);
+        if (errorData && errorData.error) {
+          errorMsg = errorData.error;
+        }
+      } catch {
+        // Nếu không phải JSON (ví dụ server crash trả về HTML hoặc text), lấy nội dung text
+        if (text) {
+          // Cắt ngắn để tránh hiện cả trang HTML lỗi dài dòng
+          errorMsg = `Server Error (${response.status}): ${text.slice(0, 100)}${text.length > 100 ? '...' : ''}`;
+        }
+      }
+    } catch (e) {
+      // Failed to read text
+    }
+    throw new Error(errorMsg);
   }
   return response.json();
 };
@@ -91,9 +108,9 @@ export const loginUser = async (username: string, password: string): Promise<Use
     }).then(handleResponse);
     
     return user as User;
-  } catch (error) {
+  } catch (error: any) {
     console.error("Login failed:", error);
-    return null;
+    throw error; // Re-throw to display error in UI
   }
 };
 
