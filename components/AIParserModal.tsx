@@ -2,20 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { X, Upload, Wand2, Loader2, Image as ImageIcon, Type } from 'lucide-react';
 import { parseBankNotification } from '../services/geminiService';
 import { ParsedTransactionData } from '../types';
+import { translations, Language } from '../utils/i18n';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: (data: ParsedTransactionData) => void;
   initialMode?: 'text' | 'image';
+  lang: Language;
 }
 
-export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, initialMode = 'text' }) => {
+export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, initialMode = 'text', lang }) => {
   const [mode, setMode] = useState<'text' | 'image'>('text');
   const [inputText, setInputText] = useState('');
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  const t = translations[lang];
 
   useEffect(() => {
     if (isOpen) {
@@ -51,7 +55,7 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
       setSelectedImage(null);
       onClose();
     } catch (err) {
-      setError("Unable to process content. Please try again.");
+      setError(t.modal.error);
     } finally {
       setIsLoading(false);
     }
@@ -65,10 +69,10 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
           <div>
             <h2 className="text-xl font-bold flex items-center gap-2">
               <Wand2 className="w-5 h-5" />
-              AI Assistant
+              {t.modal.title}
             </h2>
             <p className="text-violet-100 text-sm mt-1">
-              Paste SMS or upload receipt to auto-fill details.
+              {t.modal.subtitle}
             </p>
           </div>
           <button onClick={onClose} className="text-white/70 hover:text-white">
@@ -81,13 +85,13 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
             onClick={() => setMode('text')}
             className={`flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${mode === 'text' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}
           >
-            <Type size={16} /> Text / SMS
+            <Type size={16} /> {t.modal.textMode}
           </button>
           <button 
             onClick={() => setMode('image')}
             className={`flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${mode === 'image' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}
           >
-            <ImageIcon size={16} /> Receipt / QR
+            <ImageIcon size={16} /> {t.modal.imageMode}
           </button>
         </div>
 
@@ -101,7 +105,7 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
           {mode === 'text' ? (
             <textarea
               className="w-full h-32 p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none text-slate-700"
-              placeholder="Paste bank notification here..."
+              placeholder={t.modal.paste}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
             />
@@ -113,7 +117,7 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
                 ) : (
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
                     <Upload className="w-8 h-8 mb-3 text-slate-400" />
-                    <p className="text-sm text-slate-500">Upload Receipt / QR</p>
+                    <p className="text-sm text-slate-500">{t.modal.upload}</p>
                     <p className="text-xs text-slate-400">PNG, JPG (Max 5MB)</p>
                   </div>
                 )}
@@ -124,7 +128,7 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
                   onClick={() => setSelectedImage(null)}
                   className="mt-2 text-xs text-rose-500 hover:underline w-full text-center"
                 >
-                  Remove Image
+                  {t.modal.remove}
                 </button>
               )}
             </div>
@@ -137,11 +141,11 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
           >
             {isLoading ? (
               <>
-                <Loader2 className="animate-spin" /> Processing...
+                <Loader2 className="animate-spin" /> {t.auth.processing}
               </>
             ) : (
               <>
-                <Wand2 size={18} /> Extract Data
+                <Wand2 size={18} /> {t.modal.extract}
               </>
             )}
           </button>

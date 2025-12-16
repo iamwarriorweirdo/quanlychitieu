@@ -1,58 +1,70 @@
-import Groq from "groq-sdk";
+import { GoogleGenAI, Type } from "@google/genai";
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
-  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const { content, isImage } = req.body;
 
   try {
-    let messages = [];
-
     const systemPrompt = `
       You are a smart financial assistant. Task: Extract transaction details from bank SMS or receipt images.
-      
-      Output JSON format required (return JSON only, no markdown):
-      {
-        "amount": number (positive integer),
-        "type": "INCOME" | "EXPENSE",
-        "category": string (One of: "Food & Dining", "Transportation", "Utilities", "Shopping", "Salary", "Transfer", "Entertainment", "Health & Fitness", "Other"),
-        "description": string (Short description in English),
-        "date": string (ISO 8601 YYYY-MM-DD, use today if not found)
-      }
     `;
 
+    const parts = [];
+
     if (isImage) {
-      messages = [
-        {
-          role: "user",
-          content: [
-            { type: "text", text: systemPrompt + " Analyze this image." },
-            { type: "image_url", image_url: { url: content } }
-          ]
+      const matches = content.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+      if (!matches) {
+          throw new Error("Invalid image data");
+      }
+      const mimeType = matches[1];
+      const data = matches[2];
+
+      parts.push({
+        inlineData: {
+          mimeType: mimeType,
+          data: data
         }
-      ];
+      });
+      parts.push({ text: "Analyze this image and extract transaction details." });
     } else {
-      messages = [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: content }
-      ];
+      parts.push({ text: content });
     }
 
-    const completion = await groq.chat.completions.create({
-      messages: messages,
-      model: isImage ? "llama-3.2-11b-vision-preview" : "llama3-70b-8192",
-      temperature: 0.1,
-      response_format: { type: "json_object" }
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: { parts: parts },
+      config: {
+        systemInstruction: systemPrompt,
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            amount: { type: Type.NUMBER, description: "Transaction amount (positive number)" },
+            type: { type: Type.STRING, enum: ["INCOME", "EXPENSE"] },
+            category: { 
+              type: Type.STRING, 
+              enum: [
+                "Food & Dining", "Transportation", "Utilities", "Shopping", 
+                "Salary", "Transfer", "Entertainment", "Health & Fitness", "Other"
+              ]
+            },
+            description: { type: Type.STRING, description: "Short description in English" },
+            date: { type: Type.STRING, description: "ISO 8601 YYYY-MM-DD" }
+          },
+          required: ["amount", "type", "category", "description", "date"],
+        },
+      }
     });
 
-    const result = completion.choices[0]?.message?.content;
+    const result = response.text;
     if (!result) throw new Error("No content returned");
 
     res.status(200).json(JSON.parse(result));
 
   } catch (error) {
-    console.error("Groq Error:", error);
+    console.error("Gemini Parsing Error:", error);
     res.status(500).json({ error: "AI Processing Failed" });
   }
 }

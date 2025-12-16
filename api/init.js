@@ -3,6 +3,10 @@ import { neon } from '@neondatabase/serverless';
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
+  if (!process.env.DATABASE_URL) {
+    return res.status(500).json({ error: "Missing DATABASE_URL" });
+  }
+
   const sql = neon(process.env.DATABASE_URL);
 
   try {
@@ -25,9 +29,9 @@ export default async function handler(req, res) {
         created_at BIGINT NOT NULL
       );
     `;
-    res.status(200).json({ message: "Database initialized" });
+    res.status(200).json({ message: "Database initialized successfully" });
   } catch (error) {
-    console.error(error);
+    console.error("Init Error:", error);
     res.status(500).json({ error: "Init failed: " + error.message });
   }
 }

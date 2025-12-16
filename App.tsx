@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { getCurrentSession, loginUser, registerUser, setCurrentSession, initDB } from './services/storageService';
 import { User } from './types';
 import { Dashboard } from './components/Dashboard';
-import { Wallet, ArrowRight, Lock, User as UserIcon, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { Wallet, ArrowRight, Lock, User as UserIcon, Eye, EyeOff, Loader2, Globe } from 'lucide-react';
+import { translations, Language } from './utils/i18n';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -13,10 +14,15 @@ const App: React.FC = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
+  const [lang, setLang] = useState<Language>('vi'); // Default to Vietnamese
+
+  const t = translations[lang];
 
   useEffect(() => {
     const init = async () => {
-      await initDB();
+      // Attempt to initialize DB silently
+      await initDB().catch(console.error);
+      
       const session = getCurrentSession();
       if (session) {
         setUser(session);
@@ -37,13 +43,13 @@ const App: React.FC = () => {
     setError('');
     
     if (!usernameInput.trim() || !passwordInput.trim()) {
-      setError('Please enter both username and password.');
+      setError(t.auth.errorUser);
       return;
     }
 
     if (!isLoginView) {
       if (!validatePassword(passwordInput)) {
-        setError('Password must contain at least 1 uppercase letter and 1 number.');
+        setError(t.auth.errorPass);
         return;
       }
     }
@@ -57,7 +63,7 @@ const App: React.FC = () => {
           setUser(loggedInUser);
           setCurrentSession(loggedInUser);
         } else {
-          setError('Invalid username or password.');
+          setError(t.auth.errorLogin);
         }
       } else {
         const newUser = await registerUser(usernameInput, passwordInput);
@@ -80,36 +86,53 @@ const App: React.FC = () => {
     setShowPassword(false);
   };
 
+  const LanguageSwitcher = () => (
+    <div className="absolute top-4 right-4 flex items-center gap-2 bg-white/80 backdrop-blur rounded-full px-3 py-1.5 shadow-sm border border-slate-200 z-10">
+      <Globe size={14} className="text-slate-500" />
+      <select 
+        value={lang} 
+        onChange={(e) => setLang(e.target.value as Language)}
+        className="bg-transparent border-none text-xs font-semibold text-slate-700 focus:ring-0 cursor-pointer outline-none"
+      >
+        <option value="vi">Tiếng Việt</option>
+        <option value="en">English</option>
+        <option value="zh">中文</option>
+      </select>
+    </div>
+  );
+
   if (isInitializing) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="animate-spin text-indigo-600 w-10 h-10" />
-          <p className="text-slate-500 font-medium">Connecting to database...</p>
+          <p className="text-slate-500 font-medium">{t.app.connecting}</p>
         </div>
       </div>
     );
   }
 
   if (user) {
-    return <Dashboard user={user} onLogout={handleLogout} />;
+    return <Dashboard user={user} onLogout={handleLogout} lang={lang} setLang={setLang} />;
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 relative">
+      <LanguageSwitcher />
+      
       <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-slate-100">
         <div className="bg-indigo-600 p-8 text-center">
           <div className="bg-white/20 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
             <Wallet className="text-white w-8 h-8" />
           </div>
-          <h1 className="text-2xl font-bold text-white mb-2">Finance Manager</h1>
-          <p className="text-indigo-100">Smart Financial Tracking</p>
+          <h1 className="text-2xl font-bold text-white mb-2">{t.app.title}</h1>
+          <p className="text-indigo-100">{t.app.subtitle}</p>
         </div>
         
         <div className="p-8">
           <form onSubmit={handleAuth} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Username</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">{t.auth.username}</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <UserIcon size={18} className="text-slate-400" />
@@ -119,14 +142,14 @@ const App: React.FC = () => {
                   value={usernameInput}
                   onChange={(e) => setUsernameInput(e.target.value)}
                   className="w-full pl-10 px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-                  placeholder="Enter username"
+                  placeholder={t.auth.username}
                   disabled={isLoading}
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Password</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">{t.auth.password}</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Lock size={18} className="text-slate-400" />
@@ -136,7 +159,7 @@ const App: React.FC = () => {
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
                   className="w-full pl-10 pr-10 px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-                  placeholder="Enter password"
+                  placeholder={t.auth.password}
                   disabled={isLoading}
                 />
                 <button
@@ -149,7 +172,7 @@ const App: React.FC = () => {
                 </button>
               </div>
               {!isLoginView && (
-                <p className="text-xs text-slate-500 mt-1">Requires: 1 Uppercase & 1 Number</p>
+                <p className="text-xs text-slate-500 mt-1">{t.auth.passReq}</p>
               )}
             </div>
 
@@ -163,11 +186,11 @@ const App: React.FC = () => {
               {isLoading ? (
                 <>
                   <Loader2 className="animate-spin" size={18} />
-                  <span>Processing...</span>
+                  <span>{t.auth.processing}</span>
                 </>
               ) : (
                 <>
-                  <span>{isLoginView ? 'Login' : 'Create Account'}</span>
+                  <span>{isLoginView ? t.auth.login : t.auth.createAccount}</span>
                   <ArrowRight size={18} />
                 </>
               )}
@@ -185,7 +208,7 @@ const App: React.FC = () => {
               className="text-indigo-600 hover:text-indigo-800 text-sm font-medium hover:underline"
               disabled={isLoading}
             >
-              {isLoginView ? "New here? Register now" : "Already have an account? Login"}
+              {isLoginView ? t.auth.newHere : t.auth.haveAccount}
             </button>
           </div>
         </div>

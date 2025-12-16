@@ -3,15 +3,18 @@ import { User, Transaction, TransactionType, ParsedTransactionData, Category } f
 import { getTransactions, saveTransaction, deleteTransaction } from '../services/storageService';
 import { TransactionItem } from './TransactionItem';
 import { AIParserModal } from './AIParserModal';
-import { Plus, LogOut, Wallet, TrendingUp, TrendingDown, Wand2, Filter, Search, QrCode, Landmark, CheckCircle2, Loader2 } from 'lucide-react';
+import { Plus, LogOut, Wallet, TrendingUp, TrendingDown, Wand2, Filter, Search, QrCode, Landmark, CheckCircle2, Loader2, Globe } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as ReTooltip, Legend } from 'recharts';
+import { translations, Language } from '../utils/i18n';
 
 interface Props {
   user: User;
   onLogout: () => void;
+  lang: Language;
+  setLang: (lang: Language) => void;
 }
 
-export const Dashboard: React.FC<Props> = ({ user, onLogout }) => {
+export const Dashboard: React.FC<Props> = ({ user, onLogout, lang, setLang }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
@@ -23,6 +26,8 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout }) => {
   const [filterDate, setFilterDate] = useState<string>(() => {
     return new Date().toLocaleDateString('en-CA');
   });
+
+  const t = translations[lang];
 
   useEffect(() => {
     const fetchData = async () => {
@@ -51,14 +56,14 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout }) => {
       const updated = await saveTransaction(user.id, newTx);
       setTransactions(updated);
     } catch (error) {
-      alert("Failed to save transaction.");
+      alert(t.common.saveFailed);
     }
   };
 
   const handleManualAdd = async () => {
-    const desc = prompt("Enter transaction description:");
+    const desc = prompt(t.common.enterDesc);
     if (!desc) return;
-    const amountStr = prompt("Enter amount:");
+    const amountStr = prompt(t.common.enterAmount);
     if (!amountStr) return;
     const amount = parseFloat(amountStr);
     if (isNaN(amount)) return;
@@ -73,12 +78,12 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout }) => {
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Are you sure you want to delete this transaction?")) {
+    if (confirm(t.common.deleteConfirm)) {
       try {
         const updated = await deleteTransaction(user.id, id);
         setTransactions(updated);
       } catch (error) {
-        alert("Delete failed.");
+        alert(t.common.deleteFailed);
       }
     }
   };
@@ -116,11 +121,16 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout }) => {
 
   const chartData = useMemo(() => {
     const categoryMap: Record<string, number> = {};
-    filteredTransactions.filter(t => t.type === TransactionType.EXPENSE).forEach(t => {
-      categoryMap[t.category] = (categoryMap[t.category] || 0) + t.amount;
+    filteredTransactions.filter(tx => tx.type === TransactionType.EXPENSE).forEach(tx => {
+      // Map internal category name to translated name for display
+      const displayName = translations[lang].categories[tx.category as keyof typeof translations['en']['categories']] 
+        ? translations[lang].categories[tx.category as keyof typeof translations['en']['categories']]
+        : tx.category;
+        
+      categoryMap[displayName] = (categoryMap[displayName] || 0) + tx.amount;
     });
     return Object.keys(categoryMap).map(key => ({ name: key, value: categoryMap[key] }));
-  }, [filteredTransactions]);
+  }, [filteredTransactions, lang]);
 
   const COLORS = ['#6366f1', '#ec4899', '#10b981', '#f59e0b', '#8b5cf6', '#3b82f6'];
 
@@ -133,7 +143,7 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout }) => {
               <div className="bg-indigo-600 text-white p-2 rounded-lg">
                 <Wallet size={20} />
               </div>
-              <h1 className="text-xl font-bold text-slate-800 hidden sm:block">Finance Manager</h1>
+              <h1 className="text-xl font-bold text-slate-800 hidden sm:block">{t.app.title}</h1>
             </div>
 
             <div className="flex-1 w-full max-w-xl relative">
@@ -142,7 +152,7 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout }) => {
               </div>
               <input 
                 type="text" 
-                placeholder="Search transactions..." 
+                placeholder={t.dashboard.search}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="w-full pl-10 pr-4 py-2 bg-slate-100 border-none rounded-full focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-slate-800 text-sm"
@@ -153,10 +163,10 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout }) => {
               <button 
                 onClick={() => openAiScan('image')}
                 className="flex items-center gap-2 px-3 py-2 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 rounded-lg text-sm font-medium transition-colors"
-                title="Scan Receipt QR"
+                title={t.dashboard.scanQR}
               >
                 <QrCode size={18} />
-                <span className="hidden lg:inline">Scan QR</span>
+                <span className="hidden lg:inline">{t.dashboard.scanQR}</span>
               </button>
 
               <button 
@@ -166,20 +176,34 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout }) => {
                     ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
                     : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
                 }`}
-                title="Link Bank Account"
+                title={t.dashboard.linkBank}
               >
                 {isBankLinked ? <CheckCircle2 size={18} /> : <Landmark size={18} />}
-                <span className="hidden lg:inline">{isBankLinked ? 'Linked' : 'Link Bank'}</span>
+                <span className="hidden lg:inline">{isBankLinked ? t.dashboard.linked : t.dashboard.linkBank}</span>
               </button>
               
               <div className="h-6 w-px bg-slate-200 mx-1"></div>
+
+              {/* Language Switcher in Navbar */}
+              <div className="flex items-center gap-1 bg-slate-100 rounded-full px-2 py-1">
+                <Globe size={14} className="text-slate-500" />
+                <select 
+                  value={lang} 
+                  onChange={(e) => setLang(e.target.value as Language)}
+                  className="bg-transparent border-none text-xs font-semibold text-slate-700 focus:ring-0 cursor-pointer outline-none"
+                >
+                  <option value="vi">VI</option>
+                  <option value="en">EN</option>
+                  <option value="zh">ZH</option>
+                </select>
+              </div>
 
               <div className="flex items-center gap-2">
                 <span className="text-sm font-semibold text-slate-700 hidden lg:block truncate max-w-[100px]">{user.username}</span>
                 <button 
                   onClick={onLogout}
                   className="p-2 text-slate-400 hover:text-rose-500 hover:bg-rose-50 rounded-full transition-all"
-                  title="Logout"
+                  title={t.dashboard.logout}
                 >
                   <LogOut size={20} />
                 </button>
@@ -193,7 +217,7 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout }) => {
         
         {!searchQuery && (
           <div className="flex justify-between items-center animate-in fade-in slide-in-from-top-4 duration-300">
-            <h2 className="text-2xl font-bold text-slate-800">Daily Overview</h2>
+            <h2 className="text-2xl font-bold text-slate-800">{t.dashboard.overview}</h2>
             <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg shadow-sm border border-slate-200">
               <Filter size={16} className="text-slate-400" />
               <input 
@@ -214,10 +238,10 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout }) => {
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-gradient-to-br from-indigo-500 to-violet-600 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200">
-            <p className="text-indigo-100 text-sm font-medium mb-1">{searchQuery ? 'Filtered' : 'Current'} Balance</p>
+            <p className="text-indigo-100 text-sm font-medium mb-1">{searchQuery ? t.dashboard.filteredBalance : t.dashboard.balance}</p>
             <h3 className="text-3xl font-bold">{stats.balance.toLocaleString()} ₫</h3>
             <div className="mt-4 flex items-center gap-2 text-indigo-100 text-xs">
-              <Wallet size={14} /> Available
+              <Wallet size={14} /> {t.dashboard.available}
             </div>
           </div>
 
@@ -228,7 +252,7 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout }) => {
               </div>
               <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">Income</span>
             </div>
-            <p className="text-slate-500 text-sm">Total Income</p>
+            <p className="text-slate-500 text-sm">{t.dashboard.income}</p>
             <h3 className="text-2xl font-bold text-slate-800">{stats.income.toLocaleString()} ₫</h3>
           </div>
 
@@ -239,7 +263,7 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout }) => {
               </div>
               <span className="text-xs font-semibold text-rose-600 bg-rose-50 px-2 py-1 rounded-full">Expense</span>
             </div>
-            <p className="text-slate-500 text-sm">Total Expense</p>
+            <p className="text-slate-500 text-sm">{t.dashboard.expense}</p>
             <h3 className="text-2xl font-bold text-slate-800">{stats.expense.toLocaleString()} ₫</h3>
           </div>
         </div>
@@ -247,7 +271,7 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout }) => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           
           <div className="lg:col-span-1 bg-white rounded-2xl p-6 shadow-sm border border-slate-100 h-80">
-            <h3 className="font-semibold text-slate-800 mb-4">Spending Breakdown</h3>
+            <h3 className="font-semibold text-slate-800 mb-4">{t.dashboard.chartTitle}</h3>
             {chartData.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -270,16 +294,16 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout }) => {
               </ResponsiveContainer>
             ) : (
               <div className="flex flex-col items-center justify-center h-full text-slate-400">
-                <p>{isLoading ? 'Loading...' : 'No Data'}</p>
+                <p>{isLoading ? t.dashboard.loading : 'No Data'}</p>
               </div>
             )}
           </div>
 
           <div className="lg:col-span-2 space-y-4">
             <div className="flex justify-between items-center">
-              <h3 className="font-semibold text-slate-800">Transaction History</h3>
+              <h3 className="font-semibold text-slate-800">{t.dashboard.history}</h3>
               <button onClick={handleManualAdd} className="text-sm text-indigo-600 font-medium hover:underline">
-                Quick Add
+                {t.dashboard.quickAdd}
               </button>
             </div>
             
@@ -290,7 +314,7 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout }) => {
             ) : filteredTransactions.length > 0 ? (
               <div className="space-y-3">
                 {filteredTransactions.map(tx => (
-                  <TransactionItem key={tx.id} transaction={tx} onDelete={handleDelete} />
+                  <TransactionItem key={tx.id} transaction={tx} onDelete={handleDelete} lang={lang} />
                 ))}
               </div>
             ) : (
@@ -298,9 +322,9 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout }) => {
                 <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
                   <Search size={32} />
                 </div>
-                <h4 className="text-slate-800 font-medium">No transactions found</h4>
+                <h4 className="text-slate-800 font-medium">{t.dashboard.noTx}</h4>
                 <p className="text-slate-400 text-sm mt-1">
-                  {searchQuery ? 'Try a different keyword' : 'Start by adding one manually or scanning with AI.'}
+                  {t.dashboard.noTxSub}
                 </p>
               </div>
             )}
@@ -314,7 +338,7 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout }) => {
           className="group flex items-center gap-2 bg-gradient-to-r from-violet-600 to-indigo-600 text-white px-5 py-4 rounded-full shadow-lg shadow-indigo-300 hover:scale-105 transition-all"
         >
           <Wand2 size={24} className="group-hover:rotate-12 transition-transform" />
-          <span className="font-semibold pr-1">AI Scan</span>
+          <span className="font-semibold pr-1">{t.dashboard.aiScan}</span>
         </button>
 
         <button 
@@ -330,6 +354,7 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout }) => {
         onClose={() => setIsAiModalOpen(false)} 
         onSuccess={handleAddTransaction} 
         initialMode={aiModalMode}
+        lang={lang}
       />
     </div>
   );

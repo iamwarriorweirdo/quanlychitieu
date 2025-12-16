@@ -1,18 +1,28 @@
 import React from 'react';
 import { Transaction, TransactionType } from '../types';
 import { ArrowUpRight, ArrowDownLeft, Trash2 } from 'lucide-react';
+import { translations, Language } from '../utils/i18n';
 
 interface Props {
   transaction: Transaction;
   onDelete: (id: string) => void;
+  lang: Language;
 }
 
-export const TransactionItem: React.FC<Props> = ({ transaction, onDelete }) => {
+export const TransactionItem: React.FC<Props> = ({ transaction, onDelete, lang }) => {
   const isIncome = transaction.type === TransactionType.INCOME;
+  const t = translations[lang];
 
-  // Format date to English locale
+  // Map internal category to translated category
+  const translatedCategory = t.categories[transaction.category as keyof typeof t.categories] || transaction.category;
+
+  // Format date based on language
   const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString('en-GB', {
+    let locale = 'vi-VN';
+    if (lang === 'en') locale = 'en-GB';
+    if (lang === 'zh') locale = 'zh-CN';
+
+    return new Date(dateString).toLocaleString(locale, {
       hour: '2-digit',
       minute: '2-digit',
       day: '2-digit',
@@ -28,7 +38,7 @@ export const TransactionItem: React.FC<Props> = ({ transaction, onDelete }) => {
           {isIncome ? <ArrowDownLeft size={20} /> : <ArrowUpRight size={20} />}
         </div>
         <div>
-          <h4 className="font-semibold text-slate-800">{transaction.category}</h4>
+          <h4 className="font-semibold text-slate-800">{translatedCategory}</h4>
           <p className="text-sm text-slate-500">{transaction.description}</p>
           <p className="text-xs text-slate-400 mt-1">{formatDateTime(transaction.date)}</p>
         </div>
