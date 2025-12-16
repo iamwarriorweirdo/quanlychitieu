@@ -3,41 +3,36 @@ import Groq from "groq-sdk";
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
-  // Khởi tạo Groq SDK
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-
   const { content, isImage } = req.body;
 
   try {
     let messages = [];
 
     const systemPrompt = `
-      Bạn là trợ lý tài chính thông minh. Nhiệm vụ: Trích xuất thông tin giao dịch từ văn bản hoặc ảnh hóa đơn/chuyển khoản ngân hàng.
+      You are a smart financial assistant. Task: Extract transaction details from bank SMS or receipt images.
       
-      Yêu cầu đầu ra JSON (chỉ trả về JSON, không markdown):
+      Output JSON format required (return JSON only, no markdown):
       {
-        "amount": number (số tiền, luôn dương),
-        "type": "INCOME" | "EXPENSE" (thu hoặc chi),
-        "category": string (Ăn uống, Di chuyển, Mua sắm, Lương, Khác...),
-        "description": string (Mô tả ngắn gọn tiếng Việt),
-        "date": string (ISO 8601 YYYY-MM-DD)
+        "amount": number (positive integer),
+        "type": "INCOME" | "EXPENSE",
+        "category": string (One of: "Food & Dining", "Transportation", "Utilities", "Shopping", "Salary", "Transfer", "Entertainment", "Health & Fitness", "Other"),
+        "description": string (Short description in English),
+        "date": string (ISO 8601 YYYY-MM-DD, use today if not found)
       }
     `;
 
     if (isImage) {
-      // Groq Vision (llama-3.2-11b-vision-preview)
-      // Content input expected to include base64 data url
       messages = [
         {
           role: "user",
           content: [
-            { type: "text", text: systemPrompt + " Hãy phân tích ảnh này." },
+            { type: "text", text: systemPrompt + " Analyze this image." },
             { type: "image_url", image_url: { url: content } }
           ]
         }
       ];
     } else {
-      // Text Mode
       messages = [
         { role: "system", content: systemPrompt },
         { role: "user", content: content }

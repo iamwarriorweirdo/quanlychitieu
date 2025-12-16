@@ -4,15 +4,15 @@ export enum TransactionType {
 }
 
 export enum Category {
-  FOOD = 'Ăn uống',
-  TRANSPORT = 'Di chuyển',
-  UTILITIES = 'Hóa đơn & Tiện ích',
-  SHOPPING = 'Mua sắm',
-  SALARY = 'Lương',
-  TRANSFER = 'Chuyển khoản',
-  ENTERTAINMENT = 'Giải trí',
-  HEALTH = 'Sức khỏe',
-  OTHER = 'Khác'
+  FOOD = 'Food & Dining',
+  TRANSPORT = 'Transportation',
+  UTILITIES = 'Utilities',
+  SHOPPING = 'Shopping',
+  SALARY = 'Salary',
+  TRANSFER = 'Transfer',
+  ENTERTAINMENT = 'Entertainment',
+  HEALTH = 'Health & Fitness',
+  OTHER = 'Other'
 }
 
 export interface Transaction {
@@ -29,7 +29,7 @@ export interface Transaction {
 export interface User {
   id: string;
   username: string;
-  password?: string; // Added password field
+  password?: string;
 }
 
 export interface ParsedTransactionData {

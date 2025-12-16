@@ -10,14 +10,13 @@ interface Props {
 export const TransactionItem: React.FC<Props> = ({ transaction, onDelete }) => {
   const isIncome = transaction.type === TransactionType.INCOME;
 
-  // Format date to Vietnamese locale with time
+  // Format date to English locale
   const formatDateTime = (dateString: string) => {
-    return new Date(dateString).toLocaleString('vi-VN', {
-      timeZone: 'Asia/Ho_Chi_Minh',
+    return new Date(dateString).toLocaleString('en-GB', {
       hour: '2-digit',
       minute: '2-digit',
       day: '2-digit',
-      month: '2-digit',
+      month: 'short',
       year: 'numeric'
     });
   };
@@ -36,12 +35,12 @@ export const TransactionItem: React.FC<Props> = ({ transaction, onDelete }) => {
       </div>
       <div className="flex items-center gap-4">
         <span className={`font-bold text-lg ${isIncome ? 'text-emerald-600' : 'text-slate-800'}`}>
-          {isIncome ? '+' : '-'}{Math.abs(transaction.amount).toLocaleString('vi-VN')} đ
+          {isIncome ? '+' : '-'}{Math.abs(transaction.amount).toLocaleString()} ₫
         </span>
         <button 
           onClick={() => onDelete(transaction.id)}
           className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
-          title="Xóa giao dịch"
+          title="Delete Transaction"
         >
           <Trash2 size={16} />
         </button>

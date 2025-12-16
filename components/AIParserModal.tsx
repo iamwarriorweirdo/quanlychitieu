@@ -17,7 +17,6 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Update mode when modal opens with a specific initialMode
   useEffect(() => {
     if (isOpen) {
       setMode(initialMode);
@@ -48,12 +47,11 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
       const input = mode === 'text' ? inputText : selectedImage!;
       const result = await parseBankNotification(input, mode === 'image');
       onSuccess(result);
-      // Reset form
       setInputText('');
       setSelectedImage(null);
       onClose();
     } catch (err) {
-      setError("Không thể phân tích nội dung. Vui lòng thử lại.");
+      setError("Unable to process content. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -63,15 +61,14 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
       <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
         
-        {/* Header */}
         <div className="bg-gradient-to-r from-violet-600 to-indigo-600 p-6 text-white flex justify-between items-start">
           <div>
             <h2 className="text-xl font-bold flex items-center gap-2">
               <Wand2 className="w-5 h-5" />
-              Trợ lý AI
+              AI Assistant
             </h2>
             <p className="text-violet-100 text-sm mt-1">
-              Dán tin nhắn SMS hoặc tải ảnh lên để tự động điền thông tin.
+              Paste SMS or upload receipt to auto-fill details.
             </p>
           </div>
           <button onClick={onClose} className="text-white/70 hover:text-white">
@@ -79,23 +76,21 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
           </button>
         </div>
 
-        {/* Tabs */}
         <div className="flex border-b border-slate-100">
           <button 
             onClick={() => setMode('text')}
             className={`flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${mode === 'text' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}
           >
-            <Type size={16} /> Văn bản / SMS
+            <Type size={16} /> Text / SMS
           </button>
           <button 
             onClick={() => setMode('image')}
             className={`flex-1 py-3 text-sm font-medium flex items-center justify-center gap-2 transition-colors ${mode === 'image' ? 'text-indigo-600 border-b-2 border-indigo-600' : 'text-slate-500 hover:bg-slate-50'}`}
           >
-            <ImageIcon size={16} /> Hóa đơn / QR
+            <ImageIcon size={16} /> Receipt / QR
           </button>
         </div>
 
-        {/* Content */}
         <div className="p-6">
           {error && (
             <div className="mb-4 p-3 bg-rose-50 text-rose-600 text-sm rounded-lg">
@@ -106,7 +101,7 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
           {mode === 'text' ? (
             <textarea
               className="w-full h-32 p-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-transparent resize-none text-slate-700"
-              placeholder="Dán nội dung tin nhắn ngân hàng vào đây..."
+              placeholder="Paste bank notification here..."
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
             />
@@ -118,8 +113,8 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
                 ) : (
                   <div className="flex flex-col items-center justify-center pt-5 pb-6">
                     <Upload className="w-8 h-8 mb-3 text-slate-400" />
-                    <p className="text-sm text-slate-500">Tải ảnh hóa đơn / QR</p>
-                    <p className="text-xs text-slate-400">PNG, JPG (Tối đa 5MB)</p>
+                    <p className="text-sm text-slate-500">Upload Receipt / QR</p>
+                    <p className="text-xs text-slate-400">PNG, JPG (Max 5MB)</p>
                   </div>
                 )}
                 <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
@@ -129,7 +124,7 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
                   onClick={() => setSelectedImage(null)}
                   className="mt-2 text-xs text-rose-500 hover:underline w-full text-center"
                 >
-                  Xóa ảnh
+                  Remove Image
                 </button>
               )}
             </div>
@@ -142,11 +137,11 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
           >
             {isLoading ? (
               <>
-                <Loader2 className="animate-spin" /> Đang phân tích...
+                <Loader2 className="animate-spin" /> Processing...
               </>
             ) : (
               <>
-                <Wand2 size={18} /> Trích xuất dữ liệu
+                <Wand2 size={18} /> Extract Data
               </>
             )}
           </button>

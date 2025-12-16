@@ -16,9 +16,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const init = async () => {
-      // Initialize DB tables
       await initDB();
-      // Check session
       const session = getCurrentSession();
       if (session) {
         setUser(session);
@@ -29,7 +27,6 @@ const App: React.FC = () => {
   }, []);
 
   const validatePassword = (password: string) => {
-    // Requires at least 1 Uppercase and 1 Digit
     const hasUpperCase = /[A-Z]/.test(password);
     const hasDigit = /\d/.test(password);
     return hasUpperCase && hasDigit;
@@ -40,14 +37,13 @@ const App: React.FC = () => {
     setError('');
     
     if (!usernameInput.trim() || !passwordInput.trim()) {
-      setError('Vui lòng nhập đầy đủ tên đăng nhập và mật khẩu');
+      setError('Please enter both username and password.');
       return;
     }
 
     if (!isLoginView) {
-      // Registration validation
       if (!validatePassword(passwordInput)) {
-        setError('Mật khẩu phải chứa ít nhất một chữ IN HOA và một chữ số.');
+        setError('Password must contain at least 1 uppercase letter and 1 number.');
         return;
       }
     }
@@ -61,7 +57,7 @@ const App: React.FC = () => {
           setUser(loggedInUser);
           setCurrentSession(loggedInUser);
         } else {
-          setError('Tên đăng nhập hoặc mật khẩu không đúng.');
+          setError('Invalid username or password.');
         }
       } else {
         const newUser = await registerUser(usernameInput, passwordInput);
@@ -69,7 +65,7 @@ const App: React.FC = () => {
         setCurrentSession(newUser);
       }
     } catch (err: any) {
-      setError(err.message || "Có lỗi xảy ra");
+      setError(err.message || "An error occurred");
     } finally {
       setIsLoading(false);
     }
@@ -89,7 +85,7 @@ const App: React.FC = () => {
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
           <Loader2 className="animate-spin text-indigo-600 w-10 h-10" />
-          <p className="text-slate-500 font-medium">Đang kết nối cơ sở dữ liệu...</p>
+          <p className="text-slate-500 font-medium">Connecting to database...</p>
         </div>
       </div>
     );
@@ -106,14 +102,14 @@ const App: React.FC = () => {
           <div className="bg-white/20 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
             <Wallet className="text-white w-8 h-8" />
           </div>
-          <h1 className="text-2xl font-bold text-white mb-2">Quản lý chi tiêu</h1>
-          <p className="text-indigo-100">Quản lý tài chính thông minh</p>
+          <h1 className="text-2xl font-bold text-white mb-2">Finance Manager</h1>
+          <p className="text-indigo-100">Smart Financial Tracking</p>
         </div>
         
         <div className="p-8">
           <form onSubmit={handleAuth} className="space-y-6">
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Tên đăng nhập</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Username</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <UserIcon size={18} className="text-slate-400" />
@@ -123,14 +119,14 @@ const App: React.FC = () => {
                   value={usernameInput}
                   onChange={(e) => setUsernameInput(e.target.value)}
                   className="w-full pl-10 px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-                  placeholder="Nhập tên đăng nhập"
+                  placeholder="Enter username"
                   disabled={isLoading}
                 />
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">Mật khẩu</label>
+              <label className="block text-sm font-medium text-slate-700 mb-2">Password</label>
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Lock size={18} className="text-slate-400" />
@@ -140,7 +136,7 @@ const App: React.FC = () => {
                   value={passwordInput}
                   onChange={(e) => setPasswordInput(e.target.value)}
                   className="w-full pl-10 pr-10 px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-                  placeholder="Nhập mật khẩu"
+                  placeholder="Enter password"
                   disabled={isLoading}
                 />
                 <button
@@ -153,7 +149,7 @@ const App: React.FC = () => {
                 </button>
               </div>
               {!isLoginView && (
-                <p className="text-xs text-slate-500 mt-1">Yêu cầu: Ít nhất 1 chữ in hoa và 1 số.</p>
+                <p className="text-xs text-slate-500 mt-1">Requires: 1 Uppercase & 1 Number</p>
               )}
             </div>
 
@@ -167,11 +163,11 @@ const App: React.FC = () => {
               {isLoading ? (
                 <>
                   <Loader2 className="animate-spin" size={18} />
-                  <span>Đang xử lý...</span>
+                  <span>Processing...</span>
                 </>
               ) : (
                 <>
-                  <span>{isLoginView ? 'Đăng nhập' : 'Tạo tài khoản'}</span>
+                  <span>{isLoginView ? 'Login' : 'Create Account'}</span>
                   <ArrowRight size={18} />
                 </>
               )}
@@ -189,7 +185,7 @@ const App: React.FC = () => {
               className="text-indigo-600 hover:text-indigo-800 text-sm font-medium hover:underline"
               disabled={isLoading}
             >
-              {isLoginView ? "Chưa có tài khoản? Đăng ký ngay" : "Đã có tài khoản? Đăng nhập"}
+              {isLoginView ? "New here? Register now" : "Already have an account? Login"}
             </button>
           </div>
         </div>
