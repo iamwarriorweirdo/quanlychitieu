@@ -1,13 +1,23 @@
 import { neon } from '@neondatabase/serverless';
 
 export default async function handler(req, res) {
+  // Set CORS headers just in case (though usually handled by Vercel for same-origin)
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   try {
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
     // Kiểm tra biến môi trường
     if (!process.env.DATABASE_URL) {
       console.error("Missing DATABASE_URL");
-      return res.status(500).json({ error: "Missing DATABASE_URL. Please configure it in Vercel." });
+      // Use 500 but ensure JSON is sent
+      return res.status(500).json({ error: "Configuration Error: DATABASE_URL is missing in environment variables." });
     }
 
     const sql = neon(process.env.DATABASE_URL);
@@ -31,7 +41,7 @@ export default async function handler(req, res) {
       `;
     } catch (dbInitError) {
       console.error("DB Init Error:", dbInitError);
-      // Tiếp tục thử insert, có thể bảng đã tồn tại hoặc lỗi kết nối sẽ được bắt ở dưới
+      // Proceed, assuming table might exist or connection error will be caught next
     }
 
     // Kiểm tra trùng lặp
@@ -49,11 +59,11 @@ export default async function handler(req, res) {
       return res.status(200).json({ id, username });
     } catch (sqlError) {
       console.error("SQL Error:", sqlError);
-      return res.status(500).json({ error: "Database operation failed: " + sqlError.message });
+      return res.status(500).json({ error: "Database Error: " + sqlError.message });
     }
 
   } catch (error) {
-    console.error("Register Handler Crash:", error);
-    return res.status(500).json({ error: "Internal Server Error: " + error.message });
+    console.error("Register Handler Fatal Crash:", error);
+    return res.status(500).json({ error: "Server Error: " + error.message });
   }
 }

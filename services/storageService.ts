@@ -1,7 +1,9 @@
 import { Transaction, User } from '../types';
 
-// Sử dụng đường dẫn tương đối để Vercel tự điều hướng về API route cùng domain
-const API_URL = '/api';
+// Determine API base URL based on deployment path
+const BASE_URL = import.meta.env.BASE_URL || '/';
+const CLEAN_BASE_URL = BASE_URL.endsWith('/') ? BASE_URL.slice(0, -1) : BASE_URL;
+const API_URL = `${CLEAN_BASE_URL}/api`;
 
 const CURRENT_USER_KEY = 'fintrack_current_user';
 
@@ -11,20 +13,29 @@ const handleResponse = async (response: Response) => {
     let errorMsg = `HTTP Error: ${response.status}`;
     try {
       const text = await response.text();
+      // Try parsing JSON error
       try {
         const errorData = JSON.parse(text);
         if (errorData && errorData.error) {
           errorMsg = errorData.error;
+        } else {
+          // If JSON but no 'error' field, fallback to status
+          console.warn("API Error JSON missing 'error' field:", errorData);
         }
       } catch {
-        // Nếu không phải JSON (ví dụ server crash trả về HTML hoặc text), lấy nội dung text
+        // Not JSON, use raw text if available
         if (text) {
-          // Cắt ngắn để tránh hiện cả trang HTML lỗi dài dòng
-          errorMsg = `Server Error (${response.status}): ${text.slice(0, 100)}${text.length > 100 ? '...' : ''}`;
+           // Clean up HTML tags if present (simple check)
+           if (text.trim().startsWith('<')) {
+             errorMsg = `Server Error (${response.status}). See console for details.`;
+             console.error("Server HTML Error:", text);
+           } else {
+             errorMsg = text.slice(0, 150) + (text.length > 150 ? '...' : '');
+           }
         }
       }
     } catch (e) {
-      // Failed to read text
+      console.error("Error reading response text:", e);
     }
     throw new Error(errorMsg);
   }
@@ -34,7 +45,7 @@ const handleResponse = async (response: Response) => {
 export const initDB = async () => {
   try {
     await fetch(`${API_URL}/init`, { method: 'POST' });
-    console.log("Database check/init requested");
+    console.log("Database check/init requested to:", `${API_URL}/init`);
   } catch (error) {
     console.error("Failed to connect to backend.", error);
   }
@@ -90,13 +101,17 @@ export const registerUser = async (username: string, password: string): Promise<
     password 
   };
 
-  const registeredUser = await fetch(`${API_URL}/register`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(newUser)
-  }).then(handleResponse);
-
-  return registeredUser as User;
+  try {
+    const registeredUser = await fetch(`${API_URL}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(newUser)
+    }).then(handleResponse);
+    return registeredUser as User;
+  } catch (error) {
+    console.error("Registration failed:", error);
+    throw error;
+  }
 };
 
 export const loginUser = async (username: string, password: string): Promise<User | null> => {
@@ -110,7 +125,7 @@ export const loginUser = async (username: string, password: string): Promise<Use
     return user as User;
   } catch (error: any) {
     console.error("Login failed:", error);
-    throw error; // Re-throw to display error in UI
+    throw error;
   }
 };
 
