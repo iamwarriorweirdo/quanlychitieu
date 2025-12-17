@@ -205,11 +205,11 @@ export const verifySecondaryPassword = async (userId: string, password: string):
 };
 
 // Returns an object containing { success: boolean, demoOtpCode?: string, message?: string }
-export const requestOtp = async (userId: string): Promise<any> => {
+export const requestOtp = async (userId: string, targetEmail?: string): Promise<any> => {
     const res = await fetch(`${API_URL}/security`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ action: 'request_otp', userId })
+        body: JSON.stringify({ action: 'request_otp', userId, targetEmail })
     }).then(handleResponse);
     return res;
 };

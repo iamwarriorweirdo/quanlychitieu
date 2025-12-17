@@ -7,7 +7,7 @@ export default async function handler(req, res) {
     const sql = neon(process.env.DATABASE_URL);
     
     // Action types: 'check_status', 'setup', 'verify_password', 'request_otp', 'verify_otp'
-    const { action, userId, password, email, otp } = req.body;
+    const { action, userId, password, email, otp, targetEmail } = req.body;
 
     // 1. Check if user has security setup
     if (action === 'check_status') {
@@ -16,17 +16,42 @@ export default async function handler(req, res) {
       return res.status(200).json({ hasPassword: true, isOtpEnabled: rows[0].is_otp_enabled, email: rows[0].email });
     }
 
-    // 2. Setup Security (First time or Update)
+    // 2. Setup Security (Save Password or Save Email after Verification)
     if (action === 'setup') {
         const isOtp = !!email;
-        await sql`
-            INSERT INTO investment_security (user_id, secondary_password, is_otp_enabled, email)
-            VALUES (${userId}, ${password}, ${isOtp}, ${email})
-            ON CONFLICT (user_id) DO UPDATE SET
-            secondary_password = ${password},
-            is_otp_enabled = ${isOtp},
-            email = ${email}
-        `;
+        
+        // If updating email/otp, we assume password is provided or preserved.
+        // For partial updates, we might need a more complex logic, but here we assume the client sends the current password if it exists.
+        
+        // Check if user exists to handle UPSERT correctly or decide insert/update
+        const existing = await sql`SELECT user_id FROM investment_security WHERE user_id = ${userId}`;
+        
+        if (existing.length === 0) {
+             // Create new
+             await sql`
+                INSERT INTO investment_security (user_id, secondary_password, is_otp_enabled, email)
+                VALUES (${userId}, ${password}, ${isOtp}, ${email})
+            `;
+        } else {
+             // Update
+             // If email is provided, we update it. If not, we keep it.
+             // If password provided, update it.
+             if (email) {
+                 await sql`
+                    UPDATE investment_security 
+                    SET email = ${email}, is_otp_enabled = ${true}
+                    WHERE user_id = ${userId}
+                 `;
+             }
+             if (password) {
+                 await sql`
+                    UPDATE investment_security 
+                    SET secondary_password = ${password}
+                    WHERE user_id = ${userId}
+                 `;
+             }
+        }
+        
         return res.status(200).json({ success: true });
     }
 
@@ -48,18 +73,33 @@ export default async function handler(req, res) {
         const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
         // Save OTP to Database (Server-side verification)
-        await sql`
+        // We need to ensure the row exists. If it's a new user trying to Link Email immediately (rare but possible), we might fail.
+        // Usually, 'setup' with password runs first.
+        
+        // Try update, if 0 rows affected, it implies user hasn't set up password yet.
+        const updateResult = await sql`
             UPDATE investment_security 
             SET otp_code = ${otpCode} 
             WHERE user_id = ${userId}
+            RETURNING user_id
         `;
+        
+        if (updateResult.length === 0) {
+             // Create a temporary row? No, enforce password setup first.
+             return res.status(400).json({ error: "Please set up a security password first." });
+        }
 
-        // Get user's email
-        const userRows = await sql`SELECT email FROM investment_security WHERE user_id = ${userId}`;
-        const userEmail = userRows[0]?.email;
+        // Determine email recipient
+        let emailToSend = targetEmail; 
 
-        if (!userEmail) {
-             return res.status(400).json({ error: "No email configured for this user." });
+        // If no target email provided (e.g. login flow), get from DB
+        if (!emailToSend) {
+            const userRows = await sql`SELECT email FROM investment_security WHERE user_id = ${userId}`;
+            emailToSend = userRows[0]?.email;
+        }
+
+        if (!emailToSend) {
+             return res.status(400).json({ error: "No email address found or provided." });
         }
 
         // --- EMAIL SENDING LOGIC ---
@@ -76,19 +116,19 @@ export default async function handler(req, res) {
 
                 await transporter.sendMail({
                     from: `"Finance Manager" <${process.env.EMAIL_USER}>`,
-                    to: userEmail,
+                    to: emailToSend,
                     subject: 'Mã xác thực OTP - Đầu tư',
-                    text: `Mã xác thực (OTP) của bạn là: ${otpCode}. Mã này có hiệu lực để truy cập danh mục đầu tư.`,
+                    text: `Mã xác thực (OTP) của bạn là: ${otpCode}.`,
                     html: `<div style="font-family: sans-serif; padding: 20px; border: 1px solid #e2e8f0; border-radius: 10px;">
                             <h2 style="color: #4f46e5;">Mã xác thực bảo mật</h2>
                             <p>Xin chào,</p>
-                            <p>Bạn vừa yêu cầu truy cập vào danh mục đầu tư. Đây là mã OTP của bạn:</p>
+                            <p>Đây là mã OTP để xác thực tài khoản của bạn:</p>
                             <h1 style="background: #f3f4f6; padding: 10px 20px; display: inline-block; border-radius: 8px; letter-spacing: 5px;">${otpCode}</h1>
-                            <p>Vui lòng không chia sẻ mã này cho bất kỳ ai.</p>
+                            <p>Mã này có hiệu lực trong thời gian ngắn.</p>
                            </div>`
                 });
 
-                return res.status(200).json({ success: true, message: "OTP sent to your email!" });
+                return res.status(200).json({ success: true, message: "OTP sent to " + emailToSend });
 
             } catch (emailError) {
                 console.error("Email send failed:", emailError);
@@ -96,7 +136,7 @@ export default async function handler(req, res) {
                 return res.status(200).json({ 
                     success: true, 
                     demoOtpCode: otpCode, 
-                    message: "Email failed. Showing OTP for simulation." 
+                    message: "Email sending failed. Showing OTP for simulation." 
                 });
             }
         } else {
@@ -104,7 +144,7 @@ export default async function handler(req, res) {
             return res.status(200).json({ 
                 success: true, 
                 demoOtpCode: otpCode, 
-                message: "Simulation Mode: OTP shown because EMAIL_USER/PASS are missing in env." 
+                message: "Simulation: EMAIL_USER not set. OTP generated." 
             });
         }
     }

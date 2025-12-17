@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Investment, InvestmentSecurity } from '../types';
 import { translations, Language } from '../utils/i18n';
-import { Lock, Unlock, ShieldCheck, Plus, TrendingUp, TrendingDown, DollarSign, Activity, Trash2, RefreshCw, Settings, X, Calculator } from 'lucide-react';
+import { Lock, Unlock, ShieldCheck, Plus, TrendingUp, TrendingDown, DollarSign, Activity, Trash2, RefreshCw, Settings, X, Calculator, Mail, CheckCircle2, Send } from 'lucide-react';
 import { 
   checkSecurityStatus, setupSecurity, verifySecondaryPassword, requestOtp, verifyOtp,
   getInvestments, saveInvestment, deleteInvestment 
@@ -19,12 +19,19 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
   const [isLocked, setIsLocked] = useState(true);
   const [hasSetup, setHasSetup] = useState(false);
   const [securityLoading, setSecurityLoading] = useState(true);
+  
+  // Unlock / Login Inputs
   const [passwordInput, setPasswordInput] = useState('');
-  const [emailInput, setEmailInput] = useState('');
-  const [useOtp, setUseOtp] = useState(false);
-  const [otpSent, setOtpSent] = useState(false);
   const [otpInput, setOtpInput] = useState('');
-  // No longer storing serverOtp client-side for security
+  const [otpSent, setOtpSent] = useState(false);
+
+  // Settings Modal Inputs
+  const [newPassword, setNewPassword] = useState('');
+  const [linkEmailInput, setLinkEmailInput] = useState('');
+  const [linkOtpInput, setLinkOtpInput] = useState('');
+  const [isLinkingEmail, setIsLinkingEmail] = useState(false);
+  const [currentEmail, setCurrentEmail] = useState<string | undefined>(undefined);
+
   const [error, setError] = useState('');
 
   // Data State
@@ -37,15 +44,18 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
   });
 
   // 1. Initial Check
+  const checkStatus = async () => {
+    const status = await checkSecurityStatus(user.id);
+    setHasSetup(status.hasPassword);
+    if (status.email) {
+        setCurrentEmail(status.email);
+        setLinkEmailInput(status.email);
+    }
+    setSecurityLoading(false);
+  };
+
   useEffect(() => {
-    const check = async () => {
-      const status = await checkSecurityStatus(user.id);
-      setHasSetup(status.hasPassword);
-      setUseOtp(status.isOtpEnabled || !status.hasPassword); 
-      if (status.email) setEmailInput(status.email);
-      setSecurityLoading(false);
-    };
-    check();
+    checkStatus();
   }, [user.id]);
 
   // 2. Load Investments when unlocked
@@ -66,13 +76,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
       interval = setInterval(() => {
         setInvestments(prev => prev.map(inv => {
           let change = (Math.random() - 0.5) * 0.02; // Default 2%
-          
-          // Special simulation for Gold (SJC approx 80M - 82M)
-          if (inv.type === 'Gold') {
-            // Smaller fluctuation for gold
-            change = (Math.random() - 0.5) * 0.005; 
-          }
-
+          if (inv.type === 'Gold') change = (Math.random() - 0.5) * 0.005; 
           const newPrice = inv.currentPrice * (1 + change);
           return { ...inv, currentPrice: newPrice };
         }));
@@ -81,36 +85,19 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
     return () => clearInterval(interval);
   }, [isLocked, simulationEnabled, investments.length]);
 
-  // Form handling logic for special types
-  useEffect(() => {
-    // If Gold is selected, default to 'Lượng'
-    if (form.type === 'Gold' && !form.unit) {
-      setForm(prev => ({ ...prev, unit: 'Lượng', symbol: 'GOLD' }));
-    }
-    // If user changes from Gold to something else, clear unit
-    if (form.type !== 'Gold' && (form.unit === 'Lượng' || form.unit === 'Chỉ')) {
-      setForm(prev => ({ ...prev, unit: '', symbol: '' }));
-    }
-  }, [form.type]);
+  // --- Handlers ---
 
-
-  // Security Handlers
-  const handleSetup = async () => {
+  // Initial Setup (Just Password)
+  const handleInitialSetup = async () => {
     if (!passwordInput) return setError("Password required");
-    await setupSecurity(user.id, passwordInput, useOtp ? emailInput : undefined);
+    await setupSecurity(user.id, passwordInput);
     setHasSetup(true);
     setPasswordInput('');
     setIsLocked(true); 
+    checkStatus();
   };
 
-  const handleUpdateSecurity = async () => {
-    if (!passwordInput) return setError("Password required");
-    await setupSecurity(user.id, passwordInput, useOtp ? emailInput : undefined);
-    setIsSecurityModalOpen(false);
-    setPasswordInput('');
-    alert(t.investment.securityUpdated);
-  };
-
+  // Unlock Process
   const handleUnlock = async () => {
     setError('');
     
@@ -118,17 +105,17 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
     if (!otpSent) {
         const isValid = await verifySecondaryPassword(user.id, passwordInput);
         if (isValid) {
-            if (useOtp) {
+            // Check if user has Email OTP enabled
+            const status = await checkSecurityStatus(user.id);
+            if (status.isOtpEnabled && status.email) {
                 // Request OTP from Server
                 setSecurityLoading(true);
-                const res = await requestOtp(user.id);
+                const res = await requestOtp(user.id); // Send to stored email
                 setSecurityLoading(false);
                 setOtpSent(true);
                 
                 if (res.demoOtpCode) {
-                    alert(`[SIMULATION MODE] OTP: ${res.demoOtpCode}\n(Configure EMAIL_USER/PASS in .env to send real emails)`);
-                } else {
-                    alert(res.message || "OTP sent to your email!");
+                    alert(`[SIMULATION MODE] OTP: ${res.demoOtpCode}`);
                 }
             } else {
                 setIsLocked(false);
@@ -139,8 +126,8 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
         return;
     }
 
-    // Step 2: OTP Check (if applicable)
-    if (useOtp && otpSent) {
+    // Step 2: OTP Check
+    if (otpSent) {
         setSecurityLoading(true);
         const isValidOtp = await verifyOtp(user.id, otpInput);
         setSecurityLoading(false);
@@ -152,6 +139,42 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
         }
     }
   };
+
+  // --- Security Settings: Update Password ---
+  const handleUpdatePassword = async () => {
+      if(!newPassword) return;
+      await setupSecurity(user.id, newPassword);
+      setNewPassword('');
+      alert("Password updated!");
+  };
+
+  // --- Security Settings: Link Email (The new flow) ---
+  const handleSendLinkOtp = async () => {
+      if (!linkEmailInput) return;
+      setIsLinkingEmail(true);
+      const res = await requestOtp(user.id, linkEmailInput); // Send to NEW email input
+      if (res.demoOtpCode) {
+         alert(`[SIMULATION MODE] OTP: ${res.demoOtpCode}`);
+      } else {
+         alert(t.investment.otpSent);
+      }
+  };
+
+  const handleVerifyLinkOtp = async () => {
+      const isValid = await verifyOtp(user.id, linkOtpInput);
+      if (isValid) {
+          // Save the email and enable OTP
+          await setupSecurity(user.id, undefined, linkEmailInput);
+          setCurrentEmail(linkEmailInput);
+          setIsLinkingEmail(false);
+          setLinkOtpInput('');
+          alert("Email linked & OTP Enabled!");
+          checkStatus();
+      } else {
+          alert("Invalid OTP");
+      }
+  };
+
 
   // Investment CRUD Handlers
   const handleSave = async () => {
@@ -181,13 +204,11 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
     }
   };
 
-  // Calculations
   const totalValue = investments.reduce((sum, i) => sum + (i.quantity * i.currentPrice), 0);
   const totalCost = investments.reduce((sum, i) => sum + (i.quantity * i.buyPrice), 0);
   const totalProfit = totalValue - totalCost;
   const profitPercent = totalCost > 0 ? (totalProfit / totalCost) * 100 : 0;
-
-  // Helper for Calculator in Modal
+  
   const getEstimatedTotal = () => {
     const qty = Number(form.quantity) || 0;
     const price = Number(form.buyPrice) || 0;
@@ -212,23 +233,6 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
            {error && <div className="bg-rose-50 text-rose-600 p-2 text-sm rounded-lg mb-4">{error}</div>}
 
            <div className="space-y-4">
-             {!hasSetup && (
-               <>
-                 <label className="flex items-center gap-2 text-sm text-slate-600 justify-center cursor-pointer bg-slate-50 p-2 rounded-lg border border-slate-200">
-                   <input type="checkbox" checked={useOtp} onChange={e => setUseOtp(e.target.checked)} />
-                   {t.investment.useOtp}
-                 </label>
-                 {useOtp && (
-                   <input 
-                     className="w-full p-3 border rounded-lg bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none"
-                     placeholder={t.investment.email}
-                     value={emailInput}
-                     onChange={e => setEmailInput(e.target.value)}
-                   />
-                 )}
-               </>
-             )}
-
              {(!hasSetup || !otpSent) && (
                <input 
                  type="password"
@@ -240,20 +244,23 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
              )}
 
              {hasSetup && otpSent && (
-               <input 
-                 className="w-full p-3 border rounded-lg bg-slate-50 text-center tracking-widest text-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                 placeholder="######"
-                 value={otpInput}
-                 onChange={e => setOtpInput(e.target.value)}
-               />
+               <div className="animate-in fade-in slide-in-from-bottom-2">
+                 <p className="text-sm text-slate-500 mb-2">{t.investment.enterCode}: <br/><span className="font-bold text-slate-700">{currentEmail}</span></p>
+                 <input 
+                   className="w-full p-3 border rounded-lg bg-slate-50 text-center tracking-widest text-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                   placeholder="######"
+                   value={otpInput}
+                   onChange={e => setOtpInput(e.target.value)}
+                 />
+               </div>
              )}
 
              <button 
-               onClick={hasSetup ? handleUnlock : handleSetup}
+               onClick={hasSetup ? handleUnlock : handleInitialSetup}
                className="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
              >
                {hasSetup ? <Unlock size={18} /> : <ShieldCheck size={18} />}
-               {hasSetup ? (otpSent ? 'Verify OTP' : t.investment.unlock) : t.investment.setup}
+               {hasSetup ? (otpSent ? t.investment.verifyAndLink : t.investment.unlock) : t.investment.setup}
              </button>
            </div>
         </div>
@@ -454,7 +461,6 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
                  />
                </div>
                
-               {/* Value Calculator / Conversion Table */}
                {(Number(form.quantity) > 0 && Number(form.buyPrice) > 0) && (
                  <div className="bg-slate-50 p-3 rounded-lg flex items-center justify-between border border-slate-200">
                     <div className="flex items-center gap-2 text-slate-500 text-xs">
@@ -476,7 +482,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
         </div>
       )}
 
-      {/* Modal: Security Settings */}
+      {/* Modal: Security Settings (Revamped for Gmail Linking) */}
       {isSecurityModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm p-6">
@@ -485,41 +491,79 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
               <button onClick={() => setIsSecurityModalOpen(false)} className="text-slate-400 hover:text-slate-600"><X size={20}/></button>
             </div>
             
-            <div className="space-y-4">
-              <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer bg-slate-50 p-3 rounded-lg border border-slate-200">
-                <input type="checkbox" checked={useOtp} onChange={e => setUseOtp(e.target.checked)} />
-                {t.investment.useOtp}
-              </label>
+            <div className="space-y-6">
+              
+              {/* SECTION: Email Linking */}
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                 <div className="flex items-center gap-2 mb-3">
+                    <div className={`p-2 rounded-full ${currentEmail ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-500'}`}>
+                       <Mail size={18} />
+                    </div>
+                    <div>
+                        <h4 className="text-sm font-bold text-slate-800">{t.investment.linkGmail}</h4>
+                        <p className="text-xs text-slate-500">{currentEmail || 'Not linked'}</p>
+                    </div>
+                    {currentEmail && <CheckCircle2 size={16} className="text-emerald-500 ml-auto" />}
+                 </div>
 
-              {useOtp && (
-                <div>
-                   <label className="text-xs font-semibold text-slate-500 mb-1 block">{t.investment.email}</label>
-                   <input 
-                     className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                     placeholder="example@gmail.com"
-                     value={emailInput}
-                     onChange={e => setEmailInput(e.target.value)}
-                   />
-                </div>
-              )}
-
-              <div>
-                <label className="text-xs font-semibold text-slate-500 mb-1 block">New/Current Password</label>
-                <input 
-                  type="password"
-                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
-                  placeholder={t.investment.setupPass}
-                  value={passwordInput}
-                  onChange={e => setPasswordInput(e.target.value)}
-                />
+                 {/* Input Area */}
+                 <div className="space-y-2">
+                    {!isLinkingEmail ? (
+                        <div className="flex gap-2">
+                           <input 
+                              className="flex-1 p-2 text-sm border rounded-lg outline-none focus:ring-1 focus:ring-indigo-500"
+                              placeholder="abc@gmail.com"
+                              value={linkEmailInput}
+                              onChange={e => setLinkEmailInput(e.target.value)}
+                           />
+                           <button 
+                             onClick={handleSendLinkOtp}
+                             className="bg-indigo-600 text-white p-2 rounded-lg hover:bg-indigo-700"
+                           >
+                              <Send size={16} />
+                           </button>
+                        </div>
+                    ) : (
+                        <div className="space-y-2 animate-in fade-in">
+                           <p className="text-xs text-indigo-600 font-medium text-center">{t.investment.otpSent}</p>
+                           <input 
+                              className="w-full p-2 text-center text-sm border rounded-lg outline-none focus:ring-1 focus:ring-indigo-500 tracking-widest"
+                              placeholder="000000"
+                              value={linkOtpInput}
+                              onChange={e => setLinkOtpInput(e.target.value)}
+                           />
+                           <button 
+                             onClick={handleVerifyLinkOtp}
+                             className="w-full bg-emerald-600 text-white p-2 rounded-lg hover:bg-emerald-700 text-sm font-bold"
+                           >
+                              {t.investment.verifyAndLink}
+                           </button>
+                           <button onClick={() => setIsLinkingEmail(false)} className="w-full text-xs text-slate-400 hover:underline">Cancel</button>
+                        </div>
+                    )}
+                 </div>
               </div>
 
-              <button 
-                onClick={handleUpdateSecurity}
-                className="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 transition-colors mt-2"
-              >
-                {t.investment.updateSecurity}
-              </button>
+              {/* SECTION: Update Password */}
+              <div className="border-t border-slate-100 pt-4">
+                <label className="text-xs font-semibold text-slate-500 mb-1 block">Update Password</label>
+                <div className="flex gap-2">
+                  <input 
+                    type="password"
+                    className="flex-1 p-2 border rounded-lg focus:ring-1 focus:ring-indigo-500 outline-none text-sm"
+                    placeholder="New password"
+                    value={newPassword}
+                    onChange={e => setNewPassword(e.target.value)}
+                  />
+                  <button 
+                    onClick={handleUpdatePassword}
+                    className="bg-slate-200 text-slate-600 px-3 rounded-lg hover:bg-slate-300 text-xs font-bold"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
