@@ -88,14 +88,18 @@ export default async function handler(req, res) {
         secondary_password TEXT NOT NULL,
         is_otp_enabled BOOLEAN DEFAULT FALSE,
         email TEXT,
-        otp_code TEXT
+        otp_code TEXT,
+        smtp_email TEXT,
+        smtp_password TEXT
       );
     `;
     
     try {
       await sql`ALTER TABLE investment_security ADD COLUMN IF NOT EXISTS otp_code TEXT`;
+      await sql`ALTER TABLE investment_security ADD COLUMN IF NOT EXISTS smtp_email TEXT`;
+      await sql`ALTER TABLE investment_security ADD COLUMN IF NOT EXISTS smtp_password TEXT`;
     } catch (e) {
-      console.log("Migration note: otp_code column check skipped", e.message);
+      console.log("Migration note: security columns check skipped", e.message);
     }
 
     res.status(200).json({ message: "Database initialized successfully" });

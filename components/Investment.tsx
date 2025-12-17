@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Investment, InvestmentSecurity } from '../types';
 import { translations, Language } from '../utils/i18n';
-import { Lock, Unlock, ShieldCheck, Plus, TrendingUp, TrendingDown, DollarSign, Activity, Trash2, RefreshCw, Settings, X, Calculator, Mail, CheckCircle2, Send } from 'lucide-react';
+import { Lock, Unlock, ShieldCheck, Plus, TrendingUp, TrendingDown, DollarSign, Activity, Trash2, RefreshCw, Settings, X, Calculator, Mail, CheckCircle2, Send, Server, AlertCircle, HelpCircle } from 'lucide-react';
 import { 
   checkSecurityStatus, setupSecurity, verifySecondaryPassword, requestOtp, verifyOtp,
   getInvestments, saveInvestment, deleteInvestment 
@@ -19,6 +19,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
   const [isLocked, setIsLocked] = useState(true);
   const [hasSetup, setHasSetup] = useState(false);
   const [securityLoading, setSecurityLoading] = useState(true);
+  const [hasSmtp, setHasSmtp] = useState(false);
   
   // Unlock / Login Inputs
   const [passwordInput, setPasswordInput] = useState('');
@@ -31,6 +32,11 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
   const [linkOtpInput, setLinkOtpInput] = useState('');
   const [isLinkingEmail, setIsLinkingEmail] = useState(false);
   const [currentEmail, setCurrentEmail] = useState<string | undefined>(undefined);
+  
+  // SMTP Config Inputs
+  const [smtpEmail, setSmtpEmail] = useState('');
+  const [smtpPass, setSmtpPass] = useState('');
+  const [showSmtpConfig, setShowSmtpConfig] = useState(false);
 
   const [error, setError] = useState('');
 
@@ -43,14 +49,28 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
     symbol: '', name: '', type: 'Stock', quantity: 0, buyPrice: 0, currentPrice: 0, unit: ''
   });
 
+  // Base API URL for fetch calls
+  const BASE_URL = (import.meta as any).env?.BASE_URL || '/';
+  const CLEAN_BASE_URL = BASE_URL.endsWith('/') ? BASE_URL.slice(0, -1) : BASE_URL;
+  const API_URL = `${CLEAN_BASE_URL}/api`;
+
   // 1. Initial Check
   const checkStatus = async () => {
-    const status = await checkSecurityStatus(user.id);
-    setHasSetup(status.hasPassword);
-    if (status.email) {
-        setCurrentEmail(status.email);
-        setLinkEmailInput(status.email);
-    }
+    // We fetch raw here to get extra fields not in type yet or update type
+    try {
+        const res = await fetch(`${API_URL}/security`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ action: 'check_status', userId: user.id })
+        });
+        const status = await res.json();
+        setHasSetup(status.hasPassword);
+        setHasSmtp(status.hasSmtp);
+        if (status.email) {
+            setCurrentEmail(status.email);
+            setLinkEmailInput(status.email);
+        }
+    } catch (e) { console.error(e); }
     setSecurityLoading(false);
   };
 
@@ -116,6 +136,13 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
                    alert(`Mã OTP đã được gửi đến email ${status.email}. Vui lòng kiểm tra hộp thư.`);
                 } catch (err: any) {
                    setError(err.message || "Failed to send OTP");
+                   // If error is 503 (Not Configured), suggest setup
+                   if (err.message && err.message.includes("cấu hình")) {
+                       if(confirm("Hệ thống chưa có email gửi. Bạn có muốn cấu hình email gửi cá nhân không?")) {
+                           setIsSecurityModalOpen(true);
+                           setShowSmtpConfig(true);
+                       }
+                   }
                 } finally {
                    setSecurityLoading(false);
                 }
@@ -150,6 +177,24 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
       alert("Password updated!");
   };
 
+  // --- Security Settings: Update SMTP ---
+  const handleSaveSmtp = async () => {
+      if(!smtpEmail || !smtpPass) return alert("Vui lòng nhập đầy đủ Email và Mật khẩu ứng dụng.");
+      try {
+        const res = await fetch(`${API_URL}/security`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ action: 'setup_smtp', userId: user.id, smtpEmail, smtpPassword: smtpPass })
+        });
+        if(!res.ok) throw new Error("Failed to save");
+        alert("Cấu hình Email gửi thành công!");
+        setShowSmtpConfig(false);
+        checkStatus();
+      } catch(e) {
+        alert("Lưu thất bại.");
+      }
+  };
+
   // --- Security Settings: Link Email (The new flow) ---
   const handleSendLinkOtp = async () => {
       if (!linkEmailInput) return;
@@ -161,6 +206,9 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
       } catch (err: any) {
          setIsLinkingEmail(false);
          alert(err.message || "Failed to send OTP");
+         if (err.message && err.message.includes("cấu hình")) {
+             setShowSmtpConfig(true);
+         }
       }
   };
 
@@ -486,10 +534,10 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
         </div>
       )}
 
-      {/* Modal: Security Settings (Revamped for Gmail Linking) */}
+      {/* Modal: Security Settings (Revamped for Gmail Linking & Sender Config) */}
       {isSecurityModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 max-h-[90vh] overflow-y-auto">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-bold">{t.investment.manageSecurity}</h3>
               <button onClick={() => setIsSecurityModalOpen(false)} className="text-slate-400 hover:text-slate-600"><X size={20}/></button>
@@ -497,7 +545,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
             
             <div className="space-y-6">
               
-              {/* SECTION: Email Linking */}
+              {/* SECTION: Email Linking (Receiver) */}
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
                  <div className="flex items-center gap-2 mb-3">
                     <div className={`p-2 rounded-full ${currentEmail ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-500'}`}>
@@ -547,10 +595,65 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
                     )}
                  </div>
               </div>
+              
+              {/* SECTION: SMTP Config (Sender) - Only show if toggle or if needed */}
+              <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
+                 <button 
+                    onClick={() => setShowSmtpConfig(!showSmtpConfig)}
+                    className="flex items-center justify-between w-full text-left"
+                 >
+                    <div className="flex items-center gap-2">
+                        <div className={`p-2 rounded-full ${hasSmtp ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-500'}`}>
+                           <Server size={18} />
+                        </div>
+                        <div>
+                            <h4 className="text-sm font-bold text-slate-800">Cấu hình Email gửi (Tùy chọn)</h4>
+                            <p className="text-xs text-slate-500">{hasSmtp ? 'Đã cấu hình' : 'Mặc định: Hệ thống'}</p>
+                        </div>
+                    </div>
+                    {hasSmtp && <CheckCircle2 size={16} className="text-indigo-500" />}
+                 </button>
+
+                 {showSmtpConfig && (
+                     <div className="mt-3 space-y-3 animate-in fade-in slide-in-from-top-2">
+                        <div className="bg-amber-50 p-2 rounded text-[10px] text-amber-700 flex items-start gap-2">
+                            <AlertCircle size={14} className="shrink-0 mt-0.5" />
+                            <p>Sử dụng Gmail cá nhân để gửi OTP. Bắt buộc dùng <b>Mật khẩu ứng dụng</b> (App Password), không phải mật khẩu đăng nhập.</p>
+                        </div>
+                        <input 
+                          className="w-full p-2 text-sm border rounded-lg"
+                          placeholder="Your Gmail (sender)"
+                          value={smtpEmail}
+                          onChange={e => setSmtpEmail(e.target.value)}
+                        />
+                        <input 
+                          type="password"
+                          className="w-full p-2 text-sm border rounded-lg"
+                          placeholder="Google App Password (16 chars)"
+                          value={smtpPass}
+                          onChange={e => setSmtpPass(e.target.value)}
+                        />
+                         <a 
+                           href="https://support.google.com/accounts/answer/185833" 
+                           target="_blank" 
+                           rel="noreferrer"
+                           className="text-[10px] text-indigo-600 flex items-center gap-1 hover:underline"
+                         >
+                            <HelpCircle size={10} /> Hướng dẫn lấy Mật khẩu ứng dụng
+                         </a>
+                        <button 
+                           onClick={handleSaveSmtp}
+                           className="w-full bg-slate-800 text-white py-2 rounded-lg text-xs font-bold hover:bg-slate-900"
+                        >
+                           Lưu cấu hình
+                        </button>
+                     </div>
+                 )}
+              </div>
 
               {/* SECTION: Update Password */}
               <div className="border-t border-slate-100 pt-4">
-                <label className="text-xs font-semibold text-slate-500 mb-1 block">Update Password</label>
+                <label className="text-xs font-semibold text-slate-500 mb-1 block">Update Secondary Password</label>
                 <div className="flex gap-2">
                   <input 
                     type="password"
