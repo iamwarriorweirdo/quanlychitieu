@@ -58,11 +58,20 @@ export default async function handler(req, res) {
         name TEXT NOT NULL,
         type TEXT NOT NULL,
         quantity NUMERIC NOT NULL,
+        unit TEXT, 
         buy_price NUMERIC NOT NULL,
         current_price NUMERIC NOT NULL,
         date TEXT NOT NULL
       );
     `;
+    
+    // Add unit column if it doesn't exist (Migration for existing users)
+    try {
+      await sql`ALTER TABLE investments ADD COLUMN IF NOT EXISTS unit TEXT`;
+    } catch (e) {
+      console.log("Migration note: unit column check skipped or failed", e.message);
+    }
+
     await sql`
       CREATE TABLE IF NOT EXISTS investment_security (
         user_id TEXT PRIMARY KEY REFERENCES users(id),

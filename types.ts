@@ -65,6 +65,7 @@ export interface Investment {
   name: string;
   type: 'Stock' | 'Crypto' | 'RealEstate' | 'Gold' | 'Fund' | 'Other';
   quantity: number;
+  unit?: string; // e.g., 'Lượng', 'Chỉ', 'Cổ phiếu', 'Coin'
   buyPrice: number; // Giá mua trung bình
   currentPrice: number; // Giá thị trường hiện tại
   date: string; // Ngày mua ban đầu

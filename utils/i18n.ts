@@ -103,14 +103,29 @@ export const translations = {
       buyPrice: 'Giá mua',
       currentPrice: 'Giá hiện tại',
       type: 'Loại',
-      stock: 'Cổ phiếu',
-      crypto: 'Tiền số',
-      gold: 'Vàng',
-      realEstate: 'Bất động sản',
-      fund: 'Chứng chỉ quỹ',
-      other: 'Khác',
       marketUpdate: 'Thị trường (Giả lập)',
-      simulate: 'Bật biến động giá'
+      simulate: 'Bật biến động giá',
+      settings: 'Cài đặt Bảo mật',
+      updateSecurity: 'Cập nhật Bảo mật',
+      securityUpdated: 'Đã cập nhật bảo mật thành công!',
+      manageSecurity: 'Quản lý bảo mật & OTP',
+      unit: 'Đơn vị',
+      conversion: 'Quy đổi giá trị',
+      refPrice: 'Giá tham khảo',
+      types: {
+        Stock: 'Cổ phiếu',
+        Crypto: 'Tiền điện tử',
+        Gold: 'Vàng',
+        RealEstate: 'Bất động sản',
+        Fund: 'Chứng chỉ quỹ',
+        Other: 'Khác'
+      },
+      units: {
+        Gold: {
+          luong: 'Lượng (Cây)',
+          chi: 'Chỉ'
+        }
+      }
     },
     manual: {
       title: 'Thêm Giao Dịch Mới',
@@ -264,7 +279,28 @@ export const translations = {
       fund: 'Fund',
       other: 'Other',
       marketUpdate: 'Market (Simulated)',
-      simulate: 'Enable Volatility'
+      simulate: 'Enable Volatility',
+      settings: 'Security Settings',
+      updateSecurity: 'Update Security',
+      securityUpdated: 'Security settings updated!',
+      manageSecurity: 'Manage Password & OTP',
+      unit: 'Unit',
+      conversion: 'Value Conversion',
+      refPrice: 'Reference Price',
+      types: {
+        Stock: 'Stock',
+        Crypto: 'Crypto',
+        Gold: 'Gold',
+        RealEstate: 'Real Estate',
+        Fund: 'Fund',
+        Other: 'Other'
+      },
+      units: {
+        Gold: {
+          luong: 'Tael (Lượng)',
+          chi: 'Mace (Chỉ)'
+        }
+      }
     },
     manual: {
       title: 'Add New Transaction',
@@ -411,14 +447,29 @@ export const translations = {
       buyPrice: '买入价',
       currentPrice: '当前价',
       type: '类型',
-      stock: '股票',
-      crypto: '加密货币',
-      gold: '黄金',
-      realEstate: '房地产',
-      fund: '基金',
-      other: '其他',
       marketUpdate: '市场 (模拟)',
-      simulate: '启用波动'
+      simulate: '启用波动',
+      settings: '安全设置',
+      updateSecurity: '更新安全设置',
+      securityUpdated: '安全设置已更新！',
+      manageSecurity: '管理密码和OTP',
+      unit: '单位',
+      conversion: '价值换算',
+      refPrice: '参考价格',
+      types: {
+        Stock: '股票',
+        Crypto: '加密货币',
+        Gold: '黄金',
+        RealEstate: '房地产',
+        Fund: '基金',
+        Other: '其他'
+      },
+      units: {
+        Gold: {
+          luong: '两 (Lượng)',
+          chi: '钱 (Chỉ)'
+        }
+      }
     },
     manual: {
       title: '添加新交易',

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Investment, InvestmentSecurity } from '../types';
 import { translations, Language } from '../utils/i18n';
-import { Lock, Unlock, ShieldCheck, Plus, TrendingUp, TrendingDown, DollarSign, Activity, Trash2, RefreshCw } from 'lucide-react';
+import { Lock, Unlock, ShieldCheck, Plus, TrendingUp, TrendingDown, DollarSign, Activity, Trash2, RefreshCw, Settings, X, Calculator } from 'lucide-react';
 import { 
   checkSecurityStatus, setupSecurity, verifySecondaryPassword, requestOtp, 
   getInvestments, saveInvestment, deleteInvestment 
@@ -24,15 +24,16 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
   const [useOtp, setUseOtp] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [otpInput, setOtpInput] = useState('');
-  const [serverOtp, setServerOtp] = useState(''); // To verify client side for demo
+  const [serverOtp, setServerOtp] = useState(''); 
   const [error, setError] = useState('');
 
   // Data State
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
   const [simulationEnabled, setSimulationEnabled] = useState(false);
   const [form, setForm] = useState<Partial<Investment>>({
-    symbol: '', name: '', type: 'Stock', quantity: 0, buyPrice: 0, currentPrice: 0
+    symbol: '', name: '', type: 'Stock', quantity: 0, buyPrice: 0, currentPrice: 0, unit: ''
   });
 
   // 1. Initial Check
@@ -40,7 +41,8 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
     const check = async () => {
       const status = await checkSecurityStatus(user.id);
       setHasSetup(status.hasPassword);
-      setUseOtp(status.isOtpEnabled);
+      setUseOtp(status.isOtpEnabled || !status.hasPassword); 
+      if (status.email) setEmailInput(status.email);
       setSecurityLoading(false);
     };
     check();
@@ -63,15 +65,34 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
     if (!isLocked && simulationEnabled && investments.length > 0) {
       interval = setInterval(() => {
         setInvestments(prev => prev.map(inv => {
-          // Random fluctuation between -1% and +1%
-          const change = (Math.random() - 0.5) * 0.02; 
+          let change = (Math.random() - 0.5) * 0.02; // Default 2%
+          
+          // Special simulation for Gold (SJC approx 80M - 82M)
+          if (inv.type === 'Gold') {
+            // Smaller fluctuation for gold
+            change = (Math.random() - 0.5) * 0.005; 
+          }
+
           const newPrice = inv.currentPrice * (1 + change);
           return { ...inv, currentPrice: newPrice };
         }));
-      }, 5000); // Update every 5 seconds
+      }, 5000); 
     }
     return () => clearInterval(interval);
   }, [isLocked, simulationEnabled, investments.length]);
+
+  // Form handling logic for special types
+  useEffect(() => {
+    // If Gold is selected, default to 'Lượng'
+    if (form.type === 'Gold' && !form.unit) {
+      setForm(prev => ({ ...prev, unit: 'Lượng', symbol: 'GOLD' }));
+    }
+    // If user changes from Gold to something else, clear unit
+    if (form.type !== 'Gold' && (form.unit === 'Lượng' || form.unit === 'Chỉ')) {
+      setForm(prev => ({ ...prev, unit: '', symbol: '' }));
+    }
+  }, [form.type]);
+
 
   // Security Handlers
   const handleSetup = async () => {
@@ -79,7 +100,15 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
     await setupSecurity(user.id, passwordInput, useOtp ? emailInput : undefined);
     setHasSetup(true);
     setPasswordInput('');
-    setIsLocked(true); // Require login immediately
+    setIsLocked(true); 
+  };
+
+  const handleUpdateSecurity = async () => {
+    if (!passwordInput) return setError("Password required");
+    await setupSecurity(user.id, passwordInput, useOtp ? emailInput : undefined);
+    setIsSecurityModalOpen(false);
+    setPasswordInput('');
+    alert(t.investment.securityUpdated);
   };
 
   const handleUnlock = async () => {
@@ -88,20 +117,17 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
     
     if (isValid) {
       if (useOtp && !otpSent) {
-        // Trigger OTP flow
         const code = await requestOtp(user.id);
         setServerOtp(code);
         setOtpSent(true);
-        alert(`DEMO OTP CODE: ${code}`); // Demo only
+        alert(`DEMO OTP CODE: ${code}`); 
       } else if (useOtp && otpSent) {
-        // Verify OTP
         if (otpInput === serverOtp) {
           setIsLocked(false);
         } else {
           setError("Invalid OTP");
         }
       } else {
-        // No OTP needed
         setIsLocked(false);
       }
     } else {
@@ -119,6 +145,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
       name: form.name || form.symbol!,
       type: form.type as any,
       quantity: Number(form.quantity),
+      unit: form.unit,
       buyPrice: Number(form.buyPrice),
       currentPrice: Number(form.currentPrice || form.buyPrice),
       date: new Date().toISOString()
@@ -126,7 +153,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
     const updated = await saveInvestment(user.id, newInv);
     setInvestments(updated);
     setIsModalOpen(false);
-    setForm({ symbol: '', name: '', type: 'Stock', quantity: 0, buyPrice: 0, currentPrice: 0 });
+    setForm({ symbol: '', name: '', type: 'Stock', quantity: 0, buyPrice: 0, currentPrice: 0, unit: '' });
   };
 
   const handleDelete = async (id: string) => {
@@ -142,9 +169,16 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
   const totalProfit = totalValue - totalCost;
   const profitPercent = totalCost > 0 ? (totalProfit / totalCost) * 100 : 0;
 
+  // Helper for Calculator in Modal
+  const getEstimatedTotal = () => {
+    const qty = Number(form.quantity) || 0;
+    const price = Number(form.buyPrice) || 0;
+    return qty * price;
+  };
+
   if (securityLoading) return <div className="p-10 text-center"><RefreshCw className="animate-spin mx-auto"/></div>;
 
-  // --- LOCKED VIEW (SETUP or LOGIN) ---
+  // --- LOCKED VIEW ---
   if (isLocked) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] text-center p-4">
@@ -162,13 +196,13 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
            <div className="space-y-4">
              {!hasSetup && (
                <>
-                 <label className="flex items-center gap-2 text-sm text-slate-600 justify-center">
+                 <label className="flex items-center gap-2 text-sm text-slate-600 justify-center cursor-pointer bg-slate-50 p-2 rounded-lg border border-slate-200">
                    <input type="checkbox" checked={useOtp} onChange={e => setUseOtp(e.target.checked)} />
                    {t.investment.useOtp}
                  </label>
                  {useOtp && (
                    <input 
-                     className="w-full p-3 border rounded-lg bg-slate-50"
+                     className="w-full p-3 border rounded-lg bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none"
                      placeholder={t.investment.email}
                      value={emailInput}
                      onChange={e => setEmailInput(e.target.value)}
@@ -180,7 +214,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
              {(!hasSetup || !otpSent) && (
                <input 
                  type="password"
-                 className="w-full p-3 border rounded-lg bg-slate-50"
+                 className="w-full p-3 border rounded-lg bg-slate-50 focus:ring-2 focus:ring-indigo-500 outline-none"
                  placeholder={hasSetup ? t.investment.enterPass : t.investment.setupPass}
                  value={passwordInput}
                  onChange={e => setPasswordInput(e.target.value)}
@@ -189,7 +223,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
 
              {hasSetup && otpSent && (
                <input 
-                 className="w-full p-3 border rounded-lg bg-slate-50 text-center tracking-widest text-lg"
+                 className="w-full p-3 border rounded-lg bg-slate-50 text-center tracking-widest text-lg focus:ring-2 focus:ring-indigo-500 outline-none"
                  placeholder="######"
                  value={otpInput}
                  onChange={e => setOtpInput(e.target.value)}
@@ -228,9 +262,14 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
              </button>
           </div>
         </div>
-        <button onClick={() => setIsModalOpen(true)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-lg shadow-indigo-200 hover:bg-indigo-700">
-           <Plus size={18} /> {t.investment.addAsset}
-        </button>
+        <div className="flex gap-2">
+           <button onClick={() => setIsSecurityModalOpen(true)} className="bg-slate-100 text-slate-600 px-3 py-2 rounded-lg flex items-center gap-2 hover:bg-slate-200">
+               <Settings size={18} />
+           </button>
+           <button onClick={() => setIsModalOpen(true)} className="bg-indigo-600 text-white px-4 py-2 rounded-lg flex items-center gap-2 shadow-lg shadow-indigo-200 hover:bg-indigo-700">
+              <Plus size={18} /> {t.investment.addAsset}
+           </button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -283,14 +322,19 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
                 const pl = val - cost;
                 const plPer = cost > 0 ? (pl / cost) * 100 : 0;
                 
+                // Get display text from types map
+                const typeLabel = t.investment.types[inv.type] || inv.type;
+
                 return (
                   <tr key={inv.id} className="hover:bg-slate-50 transition-colors">
                     <td className="p-4">
                       <div className="font-bold text-slate-800">{inv.symbol}</div>
                       <div className="text-xs text-slate-500">{inv.name}</div>
-                      <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">{inv.type}</span>
+                      <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">{typeLabel}</span>
                     </td>
-                    <td className="p-4 text-sm font-medium text-slate-700">{inv.quantity.toLocaleString()}</td>
+                    <td className="p-4 text-sm font-medium text-slate-700">
+                      {inv.quantity.toLocaleString()} <span className="text-slate-400 text-xs">{inv.unit}</span>
+                    </td>
                     <td className="p-4 text-sm">
                        <div className="font-medium">{inv.currentPrice.toLocaleString()}</div>
                        <div className="text-xs text-slate-400">Avg: {inv.buyPrice.toLocaleString()}</div>
@@ -320,12 +364,48 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
         </div>
       </div>
 
-      {/* Modal */}
+      {/* Modal: Add Asset */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6 max-h-[90vh] overflow-y-auto">
             <h3 className="text-lg font-bold mb-4">{t.investment.addAsset}</h3>
             <div className="space-y-3">
+               
+               <select 
+                 className="w-full p-2 border rounded-lg"
+                 value={form.type}
+                 onChange={e => setForm({...form, type: e.target.value as any})}
+               >
+                 {Object.entries(t.investment.types).map(([key, label]) => (
+                   <option key={key} value={key}>{label}</option>
+                 ))}
+               </select>
+
+               {/* Unit Selector for Gold */}
+               {form.type === 'Gold' && (
+                 <div className="bg-amber-50 p-3 rounded-lg border border-amber-100">
+                   <label className="text-xs font-semibold text-amber-700 block mb-1">{t.investment.unit}</label>
+                   <div className="flex gap-2">
+                     <button 
+                       onClick={() => setForm({...form, unit: 'Lượng'})}
+                       className={`flex-1 py-1 text-sm rounded transition-colors ${form.unit === 'Lượng' ? 'bg-amber-500 text-white shadow' : 'bg-white text-amber-700 border border-amber-200'}`}
+                     >
+                       {t.investment.units.Gold.luong}
+                     </button>
+                     <button 
+                       onClick={() => setForm({...form, unit: 'Chỉ'})}
+                       className={`flex-1 py-1 text-sm rounded transition-colors ${form.unit === 'Chỉ' ? 'bg-amber-500 text-white shadow' : 'bg-white text-amber-700 border border-amber-200'}`}
+                     >
+                       {t.investment.units.Gold.chi}
+                     </button>
+                   </div>
+                   <div className="mt-2 text-[10px] text-amber-600 flex items-center gap-1">
+                      <Activity size={10} />
+                      {t.investment.refPrice}: ~{form.unit === 'Chỉ' ? '8,000,000' : '80,000,000'} / {form.unit}
+                   </div>
+                 </div>
+               )}
+
                <input 
                  className="w-full p-2 border rounded-lg" 
                  placeholder={t.investment.symbol}
@@ -338,18 +418,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
                  value={form.name} 
                  onChange={e => setForm({...form, name: e.target.value})} 
                />
-               <select 
-                 className="w-full p-2 border rounded-lg"
-                 value={form.type}
-                 onChange={e => setForm({...form, type: e.target.value as any})}
-               >
-                 <option value="Stock">Stock</option>
-                 <option value="Crypto">Crypto</option>
-                 <option value="Gold">Gold</option>
-                 <option value="RealEstate">Real Estate</option>
-                 <option value="Fund">Fund</option>
-                 <option value="Other">Other</option>
-               </select>
+               
                <div className="flex gap-2">
                  <input 
                    type="number" 
@@ -367,6 +436,19 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
                  />
                </div>
                
+               {/* Value Calculator / Conversion Table */}
+               {(Number(form.quantity) > 0 && Number(form.buyPrice) > 0) && (
+                 <div className="bg-slate-50 p-3 rounded-lg flex items-center justify-between border border-slate-200">
+                    <div className="flex items-center gap-2 text-slate-500 text-xs">
+                       <Calculator size={14} />
+                       {t.investment.conversion}:
+                    </div>
+                    <div className="font-bold text-slate-800 text-sm">
+                       {getEstimatedTotal().toLocaleString()} ₫
+                    </div>
+                 </div>
+               )}
+               
                <div className="flex gap-2 mt-4">
                  <button onClick={() => setIsModalOpen(false)} className="flex-1 py-2 text-slate-500 bg-slate-100 rounded-lg">{t.manual.cancel}</button>
                  <button onClick={handleSave} className="flex-1 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">{t.manual.save}</button>
@@ -375,6 +457,56 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
           </div>
         </div>
       )}
+
+      {/* Modal: Security Settings */}
+      {isSecurityModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-bold">{t.investment.manageSecurity}</h3>
+              <button onClick={() => setIsSecurityModalOpen(false)} className="text-slate-400 hover:text-slate-600"><X size={20}/></button>
+            </div>
+            
+            <div className="space-y-4">
+              <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer bg-slate-50 p-3 rounded-lg border border-slate-200">
+                <input type="checkbox" checked={useOtp} onChange={e => setUseOtp(e.target.checked)} />
+                {t.investment.useOtp}
+              </label>
+
+              {useOtp && (
+                <div>
+                   <label className="text-xs font-semibold text-slate-500 mb-1 block">{t.investment.email}</label>
+                   <input 
+                     className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                     placeholder="example@gmail.com"
+                     value={emailInput}
+                     onChange={e => setEmailInput(e.target.value)}
+                   />
+                </div>
+              )}
+
+              <div>
+                <label className="text-xs font-semibold text-slate-500 mb-1 block">New/Current Password</label>
+                <input 
+                  type="password"
+                  className="w-full p-3 border rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none"
+                  placeholder={t.investment.setupPass}
+                  value={passwordInput}
+                  onChange={e => setPasswordInput(e.target.value)}
+                />
+              </div>
+
+              <button 
+                onClick={handleUpdateSecurity}
+                className="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 transition-colors mt-2"
+              >
+                {t.investment.updateSecurity}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 };

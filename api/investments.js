@@ -16,6 +16,7 @@ export default async function handler(req, res) {
         name: row.name,
         type: row.type,
         quantity: Number(row.quantity),
+        unit: row.unit,
         buyPrice: Number(row.buy_price),
         currentPrice: Number(row.current_price),
         date: row.date
@@ -26,13 +27,14 @@ export default async function handler(req, res) {
     if (req.method === 'POST') {
       const { investment } = req.body;
       await sql`
-        INSERT INTO investments (id, user_id, symbol, name, type, quantity, buy_price, current_price, date)
-        VALUES (${investment.id}, ${investment.userId}, ${investment.symbol}, ${investment.name}, ${investment.type}, ${investment.quantity}, ${investment.buyPrice}, ${investment.currentPrice}, ${investment.date})
+        INSERT INTO investments (id, user_id, symbol, name, type, quantity, unit, buy_price, current_price, date)
+        VALUES (${investment.id}, ${investment.userId}, ${investment.symbol}, ${investment.name}, ${investment.type}, ${investment.quantity}, ${investment.unit}, ${investment.buyPrice}, ${investment.currentPrice}, ${investment.date})
         ON CONFLICT (id) DO UPDATE SET
           symbol = EXCLUDED.symbol,
           name = EXCLUDED.name,
           type = EXCLUDED.type,
           quantity = EXCLUDED.quantity,
+          unit = EXCLUDED.unit,
           buy_price = EXCLUDED.buy_price,
           current_price = EXCLUDED.current_price,
           date = EXCLUDED.date
