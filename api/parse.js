@@ -19,7 +19,7 @@ export default async function handler(req, res) {
       You are a smart financial assistant.
       Task: Extract a list of financial transactions from the provided input (Image/Text).
       
-      SCENARIO: SUMMARY TABLES (Like the user image):
+      SCENARIO: SUMMARY TABLES (Like salary slips):
       - If you see a table with "Lương" (Salary/Income) and "Tổng Chi" (Total Expense), create TWO separate transactions:
         1. One INCOME transaction for the Salary amount.
         2. One EXPENSE transaction for the Total Expense amount.

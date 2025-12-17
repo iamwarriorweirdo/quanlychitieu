@@ -8,7 +8,7 @@ import { InvestmentPage } from './components/Investment';
 import { AIParserModal } from './components/AIParserModal';
 import { ManualTransactionModal } from './components/ManualTransactionModal';
 import { FilterMode } from './components/DateFilter';
-import { Wallet, ArrowRight, Lock, User as UserIcon, Eye, EyeOff, Loader2, Globe, LayoutDashboard, PieChart, LogOut, Plus, Wand2, QrCode, ClipboardList, TrendingUp, Mail, Phone, ShieldCheck, Lightbulb } from 'lucide-react';
+import { Wallet, ArrowRight, Lock, User as UserIcon, Eye, EyeOff, Loader2, Globe, LayoutDashboard, PieChart, LogOut, Plus, Wand2, ClipboardList, TrendingUp, Mail, Phone, ShieldCheck, Lightbulb } from 'lucide-react';
 import { translations, Language } from './utils/i18n';
 
 type View = 'dashboard' | 'analysis' | 'planning' | 'investment' | 'settings';
@@ -94,7 +94,7 @@ const App: React.FC = () => {
     }
   }, [user?.id]);
 
-  // Transaction Handlers
+  // Transaction Handlers - UPDATED to accept ARRAY
   const handleAddTransactions = async (dataList: ParsedTransactionData[]) => {
     if (!user) return;
     
@@ -110,11 +110,10 @@ const App: React.FC = () => {
           return saveTransaction(user.id, newTx);
       });
       
-      // Wait for all to save. Note: saveTransaction returns the updated list, 
-      // so we take the result of the last one or refetch. 
-      // For simplicity/safety, we await all then refetch locally or use the last result.
+      // Wait for all to save.
       const results = await Promise.all(promises);
       if (results.length > 0) {
+          // Update state with the result of the last save operation (which returns full list)
           setTransactions(results[results.length - 1]);
       }
     } catch (error) {
@@ -544,7 +543,7 @@ const App: React.FC = () => {
       <AIParserModal 
         isOpen={isAiModalOpen} 
         onClose={() => setIsAiModalOpen(false)} 
-        onSuccess={handleAddTransactions} // CHANGED to handle list
+        onSuccess={handleAddTransactions} // Changed to accept array
         initialMode={aiModalMode}
         lang={lang}
       />
@@ -552,7 +551,7 @@ const App: React.FC = () => {
       <ManualTransactionModal
         isOpen={isManualModalOpen}
         onClose={() => setIsManualModalOpen(false)}
-        onSave={(data) => handleAddTransactions([data])} // CHANGED to wrap single in array
+        onSave={(data) => handleAddTransactions([data])} // Wrapped single data in array
         lang={lang}
       />
 

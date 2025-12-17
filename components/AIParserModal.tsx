@@ -6,7 +6,7 @@ import { translations, Language } from '../utils/i18n';
 import { parseWithRegex } from '../utils/regexParser';
 import Tesseract from 'tesseract.js';
 
-// CẤU HÌNH CLOUDINARY (Để demo hoạt động, tôi thêm logic kiểm tra)
+// CẤU HÌNH CLOUDINARY
 const CLOUDINARY_UPLOAD_PRESET = 'ml_default'; 
 const CLOUDINARY_CLOUD_NAME = 'demo'; 
 
@@ -39,7 +39,6 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
 
   if (!isOpen) return null;
 
-  // Hàm nén ảnh để giảm dung lượng trước khi gửi (Max 1024px)
   const resizeImage = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -67,7 +66,7 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           ctx?.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', 0.8)); // Nén JPEG chất lượng 80%
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
         };
         img.src = event.target?.result as string;
       };
@@ -80,7 +79,6 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
     const file = e.target.files?.[0];
     if (file) {
       setImageFile(file);
-      // Hiển thị preview ngay lập tức
       const reader = new FileReader();
       reader.onloadend = () => {
         setSelectedImage(reader.result as string);
@@ -113,7 +111,6 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
     }
   };
 
-  // Hàm xử lý Offline (Regex + OCR Client side)
   const handleOfflineExtract = async () => {
       if (mode === 'text' && !inputText.trim()) return;
       if (mode === 'image' && !imageFile) return;
@@ -142,8 +139,7 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
           const result = parseWithRegex(textToParse);
           result.description += " (Offline Mode)";
           
-          // Wrap single result in array for consistency
-          onSuccess([result]);
+          onSuccess([result]); // Wrap in array
           onClose();
 
       } catch (err: any) {
@@ -173,26 +169,21 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
       }
 
       if (mode === 'image' && imageFile) {
-        // BƯỚC 0: Nén ảnh (QUAN TRỌNG ĐỂ TRÁNH LỖI 500/PAYLOAD LARGE)
         setStatusText("Đang xử lý ảnh...");
         compressedBase64 = await resizeImage(imageFile);
 
-        // BƯỚC 1: OCR với Tesseract
         setStatusText("Đang đọc chữ từ ảnh (OCR)...");
         try {
-          // Sử dụng ảnh đã nén cho OCR để nhanh hơn
           const { data: { text } } = await Tesseract.recognize(
             compressedBase64,
             'eng+vie', 
-            { logger: m => console.log(m) } // Optional: xem log tiến độ
+            { logger: m => console.log(m) }
           );
           ocrTextResult = text;
-          console.log("OCR Success:", text.substring(0, 100) + "...");
         } catch (ocrError) {
           console.warn("OCR Failed, falling back to image-only analysis:", ocrError);
         }
 
-        // BƯỚC 2: Upload Cloudinary (Chạy ngầm hoặc song song nếu muốn, ở đây đợi để lấy link)
         setStatusText("Đang lưu trữ ảnh...");
         const uploadedUrl = await uploadToCloudinary(imageFile);
         if (uploadedUrl) {
@@ -200,19 +191,16 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
         }
       }
 
-      // BƯỚC 3: Gửi cho AI
       setStatusText(t.auth.processing);
       
-      // Gửi: Text (nhập tay hoặc OCR) + Ảnh nén (nếu có) + Link ảnh (nếu có)
       const results = await parseBankNotification(
         ocrTextResult, 
         mode === 'image' ? compressedBase64 : null, 
         finalImageUrl
       );
       
-      onSuccess(results);
+      onSuccess(results); // results is now an Array
       
-      // Reset
       setInputText('');
       setSelectedImage(null);
       setImageFile(null);
@@ -344,5 +332,6 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
           </div>
         </div>
       </div>
-    );
-  };
+    </div>
+  );
+};
