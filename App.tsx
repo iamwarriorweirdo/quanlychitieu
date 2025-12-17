@@ -1,28 +1,55 @@
 import React, { useState, useEffect } from 'react';
-import { getCurrentSession, loginUser, registerUser, setCurrentSession, initDB } from './services/storageService';
-import { User } from './types';
+import { getCurrentSession, loginUser, registerUser, setCurrentSession, initDB, getTransactions, saveTransaction, deleteTransaction } from './services/storageService';
+import { User, Transaction, ParsedTransactionData } from './types';
 import { Dashboard } from './components/Dashboard';
-import { Wallet, ArrowRight, Lock, User as UserIcon, Eye, EyeOff, Loader2, Globe } from 'lucide-react';
+import { Analysis } from './components/Analysis';
+import { AIParserModal } from './components/AIParserModal';
+import { ManualTransactionModal } from './components/ManualTransactionModal';
+import { FilterMode } from './components/DateFilter';
+import { Wallet, ArrowRight, Lock, User as UserIcon, Eye, EyeOff, Loader2, Globe, LayoutDashboard, PieChart, LogOut, Plus, Wand2, QrCode } from 'lucide-react';
 import { translations, Language } from './utils/i18n';
+
+type View = 'dashboard' | 'analysis' | 'settings';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
+  
+  // App Global State for Data
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [isLoadingTx, setIsLoadingTx] = useState(false);
+
+  // App Global State for Filters (Lifted from Dashboard to share with Analysis)
+  const [filterMode, setFilterMode] = useState<FilterMode>('all');
+  const [filterDate, setFilterDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
+  const [rangeStart, setRangeStart] = useState<string>(() => {
+     const d = new Date(); d.setDate(1); return d.toLocaleDateString('en-CA');
+  });
+  const [rangeEnd, setRangeEnd] = useState<string>(new Date().toLocaleDateString('en-CA'));
+
+  // Auth State
   const [usernameInput, setUsernameInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoginView, setIsLoginView] = useState(true);
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
-  const [lang, setLang] = useState<Language>('vi'); // Default to Vietnamese
+  
+  // UI State
+  const [lang, setLang] = useState<Language>('vi');
+  const [currentView, setCurrentView] = useState<View>('dashboard');
+  
+  // Modals
+  const [isAiModalOpen, setIsAiModalOpen] = useState(false);
+  const [aiModalMode, setAiModalMode] = useState<'text' | 'image'>('text');
+  const [isManualModalOpen, setIsManualModalOpen] = useState(false);
 
   const t = translations[lang];
 
+  // Initialize
   useEffect(() => {
     const init = async () => {
-      // Attempt to initialize DB silently
       await initDB().catch(console.error);
-      
       const session = getCurrentSession();
       if (session) {
         setUser(session);
@@ -32,12 +59,56 @@ const App: React.FC = () => {
     init();
   }, []);
 
-  const validatePassword = (password: string) => {
-    const hasUpperCase = /[A-Z]/.test(password);
-    const hasDigit = /\d/.test(password);
-    return hasUpperCase && hasDigit;
+  // Fetch transactions when user changes
+  useEffect(() => {
+    if (user?.id) {
+      const fetchData = async () => {
+        setIsLoadingTx(true);
+        try {
+          const data = await getTransactions(user.id);
+          setTransactions(data);
+        } catch (error) {
+          console.error("Failed to load transactions", error);
+        } finally {
+          setIsLoadingTx(false);
+        }
+      };
+      fetchData();
+    } else {
+      setTransactions([]);
+    }
+  }, [user?.id]);
+
+  // Transaction Handlers
+  const handleAddTransaction = async (data: ParsedTransactionData) => {
+    if (!user) return;
+    const newTx: Transaction = {
+      id: crypto.randomUUID(),
+      userId: user.id,
+      createdAt: Date.now(),
+      ...data
+    };
+    try {
+      const updated = await saveTransaction(user.id, newTx);
+      setTransactions(updated);
+    } catch (error) {
+      alert(t.common.saveFailed);
+    }
   };
 
+  const handleDelete = async (id: string) => {
+    if (!user) return;
+    if (confirm(t.common.deleteConfirm)) {
+      try {
+        const updated = await deleteTransaction(user.id, id);
+        setTransactions(updated);
+      } catch (error) {
+        alert(t.common.deleteFailed);
+      }
+    }
+  };
+
+  // Auth Handlers
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -46,16 +117,12 @@ const App: React.FC = () => {
       setError(t.auth.errorUser);
       return;
     }
-
-    if (!isLoginView) {
-      if (!validatePassword(passwordInput)) {
-        setError(t.auth.errorPass);
-        return;
-      }
+    if (!isLoginView && !(/[A-Z]/.test(passwordInput) && /\d/.test(passwordInput))) {
+      setError(t.auth.errorPass);
+      return;
     }
 
-    setIsLoading(true);
-
+    setIsAuthLoading(true);
     try {
       if (isLoginView) {
         const loggedInUser = await loginUser(usernameInput, passwordInput);
@@ -73,7 +140,7 @@ const App: React.FC = () => {
     } catch (err: any) {
       setError(err.message || "An error occurred");
     } finally {
-      setIsLoading(false);
+      setIsAuthLoading(false);
     }
   };
 
@@ -83,136 +150,287 @@ const App: React.FC = () => {
     setUsernameInput('');
     setPasswordInput('');
     setIsLoginView(true);
-    setShowPassword(false);
+    setCurrentView('dashboard');
   };
 
-  const LanguageSwitcher = () => (
-    <div className="absolute top-4 right-4 flex items-center gap-2 bg-white/80 backdrop-blur rounded-full px-3 py-1.5 shadow-sm border border-slate-200 z-10">
-      <Globe size={14} className="text-slate-500" />
-      <select 
-        value={lang} 
-        onChange={(e) => setLang(e.target.value as Language)}
-        className="bg-transparent border-none text-xs font-semibold text-slate-700 focus:ring-0 cursor-pointer outline-none"
-      >
-        <option value="vi">Tiếng Việt</option>
-        <option value="en">English</option>
-        <option value="zh">中文</option>
-      </select>
-    </div>
-  );
+  const openAiScan = (mode: 'text' | 'image' = 'text') => {
+    setAiModalMode(mode);
+    setIsAiModalOpen(true);
+  };
 
+  // Views
   if (isInitializing) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4">
-          <Loader2 className="animate-spin text-indigo-600 w-10 h-10" />
-          <p className="text-slate-500 font-medium">{t.app.connecting}</p>
+        <Loader2 className="animate-spin text-indigo-600 w-10 h-10" />
+      </div>
+    );
+  }
+
+  // --- LOGIN SCREEN ---
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 relative">
+        {/* Language Switcher Login */}
+        <div className="absolute top-4 right-4 flex items-center gap-2 bg-white/80 backdrop-blur rounded-full px-3 py-1.5 shadow-sm border border-slate-200 z-10">
+          <Globe size={14} className="text-slate-500" />
+          <select 
+            value={lang} 
+            onChange={(e) => setLang(e.target.value as Language)}
+            className="bg-transparent border-none text-xs font-semibold text-slate-700 focus:ring-0 cursor-pointer outline-none"
+          >
+            <option value="vi">Tiếng Việt</option>
+            <option value="en">English</option>
+            <option value="zh">中文</option>
+          </select>
+        </div>
+
+        <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-slate-100">
+          <div className="bg-indigo-600 p-8 text-center">
+            <div className="bg-white/20 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
+              <Wallet className="text-white w-8 h-8" />
+            </div>
+            <h1 className="text-2xl font-bold text-white mb-2">{t.app.title}</h1>
+            <p className="text-indigo-100">{t.app.subtitle}</p>
+          </div>
+          
+          <div className="p-8">
+            <form onSubmit={handleAuth} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">{t.auth.username}</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <UserIcon size={18} className="text-slate-400" />
+                  </div>
+                  <input
+                    type="text"
+                    value={usernameInput}
+                    onChange={(e) => setUsernameInput(e.target.value)}
+                    className="w-full pl-10 px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                    placeholder={t.auth.username}
+                    disabled={isAuthLoading}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-2">{t.auth.password}</label>
+                <div className="relative">
+                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <Lock size={18} className="text-slate-400" />
+                  </div>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={passwordInput}
+                    onChange={(e) => setPasswordInput(e.target.value)}
+                    className="w-full pl-10 pr-10 px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none transition-all"
+                    placeholder={t.auth.password}
+                    disabled={isAuthLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+              </div>
+
+              {error && <p className="text-rose-500 text-sm bg-rose-50 p-3 rounded-lg">{error}</p>}
+
+              <button
+                type="submit"
+                disabled={isAuthLoading}
+                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+              >
+                {isAuthLoading ? <Loader2 className="animate-spin" size={18} /> : (
+                  <><span>{isLoginView ? t.auth.login : t.auth.createAccount}</span><ArrowRight size={18} /></>
+                )}
+              </button>
+            </form>
+            <div className="mt-6 text-center">
+              <button
+                onClick={() => { setIsLoginView(!isLoginView); setError(''); }}
+                className="text-indigo-600 font-medium hover:underline text-sm"
+              >
+                {isLoginView ? t.auth.newHere : t.auth.haveAccount}
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     );
   }
 
-  if (user) {
-    return <Dashboard user={user} onLogout={handleLogout} lang={lang} setLang={setLang} />;
-  }
-
+  // --- MAIN APP LAYOUT ---
   return (
-    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 relative">
-      <LanguageSwitcher />
+    <div className="flex h-screen bg-slate-50 overflow-hidden">
       
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-slate-100">
-        <div className="bg-indigo-600 p-8 text-center">
-          <div className="bg-white/20 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 backdrop-blur-sm">
-            <Wallet className="text-white w-8 h-8" />
-          </div>
-          <h1 className="text-2xl font-bold text-white mb-2">{t.app.title}</h1>
-          <p className="text-indigo-100">{t.app.subtitle}</p>
+      {/* DESKTOP SIDEBAR */}
+      <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 h-full fixed left-0 top-0 z-30">
+        <div className="p-6 flex items-center gap-3 border-b border-slate-100">
+           <div className="bg-indigo-600 text-white p-2 rounded-lg">
+             <Wallet size={24} />
+           </div>
+           <h1 className="font-bold text-slate-800 text-lg">FinTrack</h1>
         </div>
-        
-        <div className="p-8">
-          <form onSubmit={handleAuth} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">{t.auth.username}</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <UserIcon size={18} className="text-slate-400" />
-                </div>
-                <input
-                  type="text"
-                  value={usernameInput}
-                  onChange={(e) => setUsernameInput(e.target.value)}
-                  className="w-full pl-10 px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-                  placeholder={t.auth.username}
-                  disabled={isLoading}
-                />
-              </div>
-            </div>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-2">{t.auth.password}</label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Lock size={18} className="text-slate-400" />
-                </div>
-                <input
-                  type={showPassword ? "text" : "password"}
-                  value={passwordInput}
-                  onChange={(e) => setPasswordInput(e.target.value)}
-                  className="w-full pl-10 pr-10 px-4 py-3 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 focus:border-transparent outline-none transition-all"
-                  placeholder={t.auth.password}
-                  disabled={isLoading}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center text-slate-400 hover:text-slate-600 transition-colors"
-                  tabIndex={-1}
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-              {!isLoginView && (
-                <p className="text-xs text-slate-500 mt-1">{t.auth.passReq}</p>
-              )}
-            </div>
+        <nav className="flex-1 p-4 space-y-2">
+          <button 
+            onClick={() => setCurrentView('dashboard')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium ${currentView === 'dashboard' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}
+          >
+            <LayoutDashboard size={20} />
+            {t.nav.dashboard}
+          </button>
+          
+          <button 
+            onClick={() => setCurrentView('analysis')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium ${currentView === 'analysis' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}
+          >
+            <PieChart size={20} />
+            {t.nav.analysis}
+          </button>
+        </nav>
 
-            {error && <p className="text-rose-500 text-sm bg-rose-50 p-3 rounded-lg">{error}</p>}
-
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="animate-spin" size={18} />
-                  <span>{t.auth.processing}</span>
-                </>
-              ) : (
-                <>
-                  <span>{isLoginView ? t.auth.login : t.auth.createAccount}</span>
-                  <ArrowRight size={18} />
-                </>
-              )}
-            </button>
-          </form>
-
-          <div className="mt-6 text-center">
-            <button
-              onClick={() => {
-                setIsLoginView(!isLoginView);
-                setError('');
-                setPasswordInput('');
-                setShowPassword(false);
-              }}
-              className="text-indigo-600 hover:text-indigo-800 text-sm font-medium hover:underline"
-              disabled={isLoading}
-            >
-              {isLoginView ? t.auth.newHere : t.auth.haveAccount}
-            </button>
+        <div className="p-4 border-t border-slate-100 space-y-4">
+          <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-2 justify-center">
+             <Globe size={14} className="text-slate-500" />
+             <select 
+               value={lang} 
+               onChange={(e) => setLang(e.target.value as Language)}
+               className="bg-transparent border-none text-xs font-semibold text-slate-700 focus:ring-0 outline-none cursor-pointer"
+             >
+               <option value="vi">Tiếng Việt</option>
+               <option value="en">English</option>
+               <option value="zh">中文</option>
+             </select>
+          </div>
+          <div className="flex items-center justify-between px-2">
+             <span className="text-sm font-semibold text-slate-700 truncate max-w-[100px]">{user.username}</span>
+             <button onClick={handleLogout} className="text-slate-400 hover:text-rose-500"><LogOut size={20} /></button>
           </div>
         </div>
+      </aside>
+
+      {/* MOBILE HEADER (Top Bar) */}
+      <header className="md:hidden fixed top-0 left-0 right-0 h-16 bg-white shadow-sm z-20 flex items-center justify-between px-4">
+         <div className="flex items-center gap-2">
+           <div className="bg-indigo-600 text-white p-1.5 rounded-lg">
+             <Wallet size={18} />
+           </div>
+           <span className="font-bold text-slate-800">{currentView === 'dashboard' ? t.nav.dashboard : t.nav.analysis}</span>
+         </div>
+         <div className="flex items-center gap-3">
+             <select 
+               value={lang} 
+               onChange={(e) => setLang(e.target.value as Language)}
+               className="bg-slate-100 rounded-full px-2 py-1 text-xs font-semibold text-slate-700 border-none focus:ring-0 outline-none"
+             >
+               <option value="vi">VI</option>
+               <option value="en">EN</option>
+             </select>
+            <button onClick={handleLogout} className="text-slate-400"><LogOut size={18} /></button>
+         </div>
+      </header>
+
+      {/* MAIN CONTENT AREA */}
+      <main className="flex-1 md:ml-64 h-full overflow-y-auto pt-20 md:pt-6 px-4 md:px-8 pb-24 md:pb-6 bg-slate-50">
+         <div className="max-w-5xl mx-auto">
+            {currentView === 'dashboard' && (
+              <Dashboard 
+                user={user}
+                transactions={transactions}
+                isLoading={isLoadingTx}
+                onDelete={handleDelete}
+                lang={lang}
+                openAiScan={openAiScan}
+                openManualModal={() => setIsManualModalOpen(true)}
+                filterMode={filterMode} setFilterMode={setFilterMode}
+                filterDate={filterDate} setFilterDate={setFilterDate}
+                rangeStart={rangeStart} setRangeStart={setRangeStart}
+                rangeEnd={rangeEnd} setRangeEnd={setRangeEnd}
+              />
+            )}
+            
+            {currentView === 'analysis' && (
+              <Analysis 
+                transactions={transactions}
+                lang={lang}
+                filterMode={filterMode} setFilterMode={setFilterMode}
+                filterDate={filterDate} setFilterDate={setFilterDate}
+                rangeStart={rangeStart} setRangeStart={setRangeStart}
+                rangeEnd={rangeEnd} setRangeEnd={setRangeEnd}
+              />
+            )}
+         </div>
+      </main>
+
+      {/* MOBILE BOTTOM NAV */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-30 px-6 py-3 flex justify-between items-center">
+         <button 
+           onClick={() => setCurrentView('dashboard')}
+           className={`flex flex-col items-center gap-1 ${currentView === 'dashboard' ? 'text-indigo-600' : 'text-slate-400'}`}
+         >
+           <LayoutDashboard size={24} />
+           <span className="text-[10px] font-medium">{t.nav.dashboard}</span>
+         </button>
+
+         {/* Floating Action Button for Mobile */}
+         <div className="relative -top-6">
+           <button 
+             onClick={() => setIsManualModalOpen(true)}
+             className="bg-indigo-600 text-white p-4 rounded-full shadow-lg shadow-indigo-200 hover:scale-105 transition-transform"
+           >
+             <Plus size={24} />
+           </button>
+         </div>
+
+         <button 
+           onClick={() => setCurrentView('analysis')}
+           className={`flex flex-col items-center gap-1 ${currentView === 'analysis' ? 'text-indigo-600' : 'text-slate-400'}`}
+         >
+           <PieChart size={24} />
+           <span className="text-[10px] font-medium">{t.nav.analysis}</span>
+         </button>
+      </nav>
+
+      {/* DESKTOP FABs */}
+      <div className="hidden md:flex fixed bottom-8 right-8 flex-col gap-4">
+         <button 
+          onClick={() => openAiScan('text')}
+          className="group flex items-center gap-2 bg-white text-indigo-600 border border-indigo-100 px-5 py-3 rounded-full shadow-lg hover:bg-indigo-50 transition-all"
+        >
+          <Wand2 size={20} className="group-hover:rotate-12 transition-transform" />
+          <span className="font-semibold">{t.dashboard.aiScan}</span>
+        </button>
+
+        <button 
+          onClick={() => setIsManualModalOpen(true)}
+          className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-4 rounded-full shadow-lg shadow-indigo-300 hover:bg-indigo-700 transition-all"
+        >
+          <Plus size={24} />
+          <span className="font-semibold">{t.dashboard.quickAdd}</span>
+        </button>
       </div>
+
+      {/* MODALS */}
+      <AIParserModal 
+        isOpen={isAiModalOpen} 
+        onClose={() => setIsAiModalOpen(false)} 
+        onSuccess={handleAddTransaction} 
+        initialMode={aiModalMode}
+        lang={lang}
+      />
+      
+      <ManualTransactionModal
+        isOpen={isManualModalOpen}
+        onClose={() => setIsManualModalOpen(false)}
+        onSave={handleAddTransaction}
+        lang={lang}
+      />
+
     </div>
   );
 };

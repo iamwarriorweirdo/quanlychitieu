@@ -7,6 +7,11 @@ export const translations = {
       subtitle: 'Theo dõi tài chính thông minh',
       connecting: 'Đang kết nối cơ sở dữ liệu...',
     },
+    nav: {
+      dashboard: 'Tổng quan',
+      analysis: 'Phân tích',
+      settings: 'Cài đặt',
+    },
     auth: {
       username: 'Tên đăng nhập',
       password: 'Mật khẩu',
@@ -49,6 +54,15 @@ export const translations = {
         from: 'Từ',
         to: 'Đến'
       }
+    },
+    analysis: {
+      title: 'Phân Tích Tài Chính',
+      netIncome: 'Thu nhập ròng',
+      savingsRate: 'Tỷ lệ tiết kiệm',
+      expenseRatio: 'Tỷ lệ chi tiêu',
+      incomeBreakdown: 'Cơ cấu thu nhập',
+      expenseBreakdown: 'Cơ cấu chi tiêu',
+      noData: 'Chưa có dữ liệu cho khoảng thời gian này',
     },
     manual: {
       title: 'Thêm Giao Dịch Mới',
@@ -99,6 +113,11 @@ export const translations = {
       subtitle: 'Smart Financial Tracking',
       connecting: 'Connecting to database...',
     },
+    nav: {
+      dashboard: 'Dashboard',
+      analysis: 'Analysis',
+      settings: 'Settings',
+    },
     auth: {
       username: 'Username',
       password: 'Password',
@@ -141,6 +160,15 @@ export const translations = {
         from: 'From',
         to: 'To'
       }
+    },
+    analysis: {
+      title: 'Financial Analysis',
+      netIncome: 'Net Income',
+      savingsRate: 'Savings Rate',
+      expenseRatio: 'Expense Ratio',
+      incomeBreakdown: 'Income Breakdown',
+      expenseBreakdown: 'Expense Breakdown',
+      noData: 'No data for this period',
     },
     manual: {
       title: 'Add New Transaction',
@@ -191,6 +219,11 @@ export const translations = {
       subtitle: '智能财务追踪',
       connecting: '正在连接数据库...',
     },
+    nav: {
+      dashboard: '仪表盘',
+      analysis: '分析',
+      settings: '设置',
+    },
     auth: {
       username: '用户名',
       password: '密码',
@@ -233,6 +266,15 @@ export const translations = {
         from: '从',
         to: '到'
       }
+    },
+    analysis: {
+      title: '财务分析',
+      netIncome: '净收入',
+      savingsRate: '储蓄率',
+      expenseRatio: '支出比率',
+      incomeBreakdown: '收入明细',
+      expenseBreakdown: '支出明细',
+      noData: '在此期间没有数据',
     },
     manual: {
       title: '添加新交易',
