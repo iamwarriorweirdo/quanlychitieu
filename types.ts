@@ -39,3 +39,21 @@ export interface ParsedTransactionData {
   description: string;
   date: string;
 }
+
+export interface Goal {
+  id: string;
+  userId: string;
+  name: string;
+  targetAmount: number;
+  currentAmount: number;
+  deadline: string; // ISO Date String
+  icon: string; // e.g., 'plane', 'home'
+}
+
+export interface Budget {
+  id: string;
+  userId: string;
+  category: string;
+  amount: number; // Planned amount
+  period: string; // e.g., 'monthly'
+}

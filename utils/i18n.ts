@@ -10,6 +10,7 @@ export const translations = {
     nav: {
       dashboard: 'Tổng quan',
       analysis: 'Phân tích',
+      planning: 'Lập kế hoạch',
       settings: 'Cài đặt',
     },
     auth: {
@@ -64,6 +65,25 @@ export const translations = {
       expenseBreakdown: 'Cơ cấu chi tiêu',
       noData: 'Chưa có dữ liệu cho khoảng thời gian này',
     },
+    planning: {
+      title: 'Lập Kế Hoạch',
+      goals: 'Mục Tiêu Tài Chính',
+      budgets: 'Ngân Sách Tháng',
+      addGoal: 'Thêm Mục Tiêu',
+      addBudget: 'Đặt Ngân Sách',
+      target: 'Mục tiêu',
+      current: 'Hiện có',
+      deadline: 'Hạn chót',
+      daysLeft: 'ngày nữa',
+      planned: 'Dự kiến',
+      actual: 'Thực tế',
+      remaining: 'Còn lại',
+      modalGoalTitle: 'Thiết Lập Mục Tiêu',
+      modalBudgetTitle: 'Thiết Lập Ngân Sách',
+      goalName: 'Tên mục tiêu (VD: Mua xe)',
+      icon: 'Biểu tượng',
+      deposit: 'Nạp thêm'
+    },
     manual: {
       title: 'Thêm Giao Dịch Mới',
       amount: 'Số tiền',
@@ -116,6 +136,7 @@ export const translations = {
     nav: {
       dashboard: 'Dashboard',
       analysis: 'Analysis',
+      planning: 'Planning',
       settings: 'Settings',
     },
     auth: {
@@ -170,6 +191,25 @@ export const translations = {
       expenseBreakdown: 'Expense Breakdown',
       noData: 'No data for this period',
     },
+    planning: {
+      title: 'Financial Planning',
+      goals: 'Financial Goals',
+      budgets: 'Monthly Budgets',
+      addGoal: 'Add Goal',
+      addBudget: 'Set Budget',
+      target: 'Target',
+      current: 'Saved',
+      deadline: 'Deadline',
+      daysLeft: 'days left',
+      planned: 'Planned',
+      actual: 'Actual',
+      remaining: 'Remaining',
+      modalGoalTitle: 'Set New Goal',
+      modalBudgetTitle: 'Set Budget Limit',
+      goalName: 'Goal Name (e.g. New Car)',
+      icon: 'Icon',
+      deposit: 'Deposit'
+    },
     manual: {
       title: 'Add New Transaction',
       amount: 'Amount',
@@ -222,6 +262,7 @@ export const translations = {
     nav: {
       dashboard: '仪表盘',
       analysis: '分析',
+      planning: '计划',
       settings: '设置',
     },
     auth: {
@@ -275,6 +316,25 @@ export const translations = {
       incomeBreakdown: '收入明细',
       expenseBreakdown: '支出明细',
       noData: '在此期间没有数据',
+    },
+    planning: {
+      title: '财务计划',
+      goals: '财务目标',
+      budgets: '月度预算',
+      addGoal: '添加目标',
+      addBudget: '设置预算',
+      target: '目标',
+      current: '已存',
+      deadline: '截止日期',
+      daysLeft: '天剩余',
+      planned: '计划',
+      actual: '实际',
+      remaining: '剩余',
+      modalGoalTitle: '设定新目标',
+      modalBudgetTitle: '设定预算上限',
+      goalName: '目标名称 (例如: 买车)',
+      icon: '图标',
+      deposit: '存入'
     },
     manual: {
       title: '添加新交易',

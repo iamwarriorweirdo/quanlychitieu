@@ -1,21 +1,24 @@
 import React, { useState, useEffect } from 'react';
-import { getCurrentSession, loginUser, registerUser, setCurrentSession, initDB, getTransactions, saveTransaction, deleteTransaction } from './services/storageService';
-import { User, Transaction, ParsedTransactionData } from './types';
+import { getCurrentSession, loginUser, registerUser, setCurrentSession, initDB, getTransactions, saveTransaction, deleteTransaction, getGoals, saveGoal, deleteGoal, getBudgets, saveBudget, deleteBudget } from './services/storageService';
+import { User, Transaction, ParsedTransactionData, Goal, Budget } from './types';
 import { Dashboard } from './components/Dashboard';
 import { Analysis } from './components/Analysis';
+import { Planning } from './components/Planning';
 import { AIParserModal } from './components/AIParserModal';
 import { ManualTransactionModal } from './components/ManualTransactionModal';
 import { FilterMode } from './components/DateFilter';
-import { Wallet, ArrowRight, Lock, User as UserIcon, Eye, EyeOff, Loader2, Globe, LayoutDashboard, PieChart, LogOut, Plus, Wand2, QrCode } from 'lucide-react';
+import { Wallet, ArrowRight, Lock, User as UserIcon, Eye, EyeOff, Loader2, Globe, LayoutDashboard, PieChart, LogOut, Plus, Wand2, QrCode, ClipboardList } from 'lucide-react';
 import { translations, Language } from './utils/i18n';
 
-type View = 'dashboard' | 'analysis' | 'settings';
+type View = 'dashboard' | 'analysis' | 'planning' | 'settings';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
   
   // App Global State for Data
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
   const [isLoadingTx, setIsLoadingTx] = useState(false);
 
   // App Global State for Filters (Lifted from Dashboard to share with Analysis)
@@ -65,10 +68,16 @@ const App: React.FC = () => {
       const fetchData = async () => {
         setIsLoadingTx(true);
         try {
-          const data = await getTransactions(user.id);
-          setTransactions(data);
+          const [txData, goalData, budgetData] = await Promise.all([
+            getTransactions(user.id),
+            getGoals(user.id),
+            getBudgets(user.id)
+          ]);
+          setTransactions(txData);
+          setGoals(goalData);
+          setBudgets(budgetData);
         } catch (error) {
-          console.error("Failed to load transactions", error);
+          console.error("Failed to load data", error);
         } finally {
           setIsLoadingTx(false);
         }
@@ -76,6 +85,8 @@ const App: React.FC = () => {
       fetchData();
     } else {
       setTransactions([]);
+      setGoals([]);
+      setBudgets([]);
     }
   }, [user?.id]);
 
@@ -107,6 +118,39 @@ const App: React.FC = () => {
       }
     }
   };
+
+  // Goal Handlers
+  const handleAddGoal = async (goal: Goal) => {
+    if (!user) return;
+    try {
+      const updated = await saveGoal(user.id, goal);
+      setGoals(updated);
+    } catch(e) { console.error(e); }
+  };
+  const handleDeleteGoal = async (id: string) => {
+    if (!user) return;
+    if (confirm('Delete goal?')) {
+      const updated = await deleteGoal(user.id, id);
+      setGoals(updated);
+    }
+  };
+
+  // Budget Handlers
+  const handleAddBudget = async (budget: Budget) => {
+    if (!user) return;
+    try {
+      const updated = await saveBudget(user.id, budget);
+      setBudgets(updated);
+    } catch(e) { console.error(e); }
+  };
+  const handleDeleteBudget = async (id: string) => {
+    if (!user) return;
+    if (confirm('Remove budget?')) {
+      const updated = await deleteBudget(user.id, id);
+      setBudgets(updated);
+    }
+  };
+
 
   // Auth Handlers
   const handleAuth = async (e: React.FormEvent) => {
@@ -292,6 +336,14 @@ const App: React.FC = () => {
             <PieChart size={20} />
             {t.nav.analysis}
           </button>
+
+          <button 
+            onClick={() => setCurrentView('planning')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium ${currentView === 'planning' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}
+          >
+            <ClipboardList size={20} />
+            {t.nav.planning}
+          </button>
         </nav>
 
         <div className="p-4 border-t border-slate-100 space-y-4">
@@ -320,7 +372,9 @@ const App: React.FC = () => {
            <div className="bg-indigo-600 text-white p-1.5 rounded-lg">
              <Wallet size={18} />
            </div>
-           <span className="font-bold text-slate-800">{currentView === 'dashboard' ? t.nav.dashboard : t.nav.analysis}</span>
+           <span className="font-bold text-slate-800">
+             {currentView === 'dashboard' ? t.nav.dashboard : currentView === 'analysis' ? t.nav.analysis : t.nav.planning}
+           </span>
          </div>
          <div className="flex items-center gap-3">
              <select 
@@ -364,11 +418,26 @@ const App: React.FC = () => {
                 rangeEnd={rangeEnd} setRangeEnd={setRangeEnd}
               />
             )}
+
+            {currentView === 'planning' && (
+              <Planning
+                user={user}
+                transactions={transactions}
+                goals={goals}
+                budgets={budgets}
+                onAddGoal={handleAddGoal}
+                onDeleteGoal={handleDeleteGoal}
+                onUpdateGoal={handleAddGoal} // Reuse create as update (upsert in DB)
+                onAddBudget={handleAddBudget}
+                onDeleteBudget={handleDeleteBudget}
+                lang={lang}
+              />
+            )}
          </div>
       </main>
 
       {/* MOBILE BOTTOM NAV */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-30 px-6 py-3 flex justify-between items-center">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-30 px-4 py-3 flex justify-around items-center">
          <button 
            onClick={() => setCurrentView('dashboard')}
            className={`flex flex-col items-center gap-1 ${currentView === 'dashboard' ? 'text-indigo-600' : 'text-slate-400'}`}
@@ -377,16 +446,6 @@ const App: React.FC = () => {
            <span className="text-[10px] font-medium">{t.nav.dashboard}</span>
          </button>
 
-         {/* Floating Action Button for Mobile */}
-         <div className="relative -top-6">
-           <button 
-             onClick={() => setIsManualModalOpen(true)}
-             className="bg-indigo-600 text-white p-4 rounded-full shadow-lg shadow-indigo-200 hover:scale-105 transition-transform"
-           >
-             <Plus size={24} />
-           </button>
-         </div>
-
          <button 
            onClick={() => setCurrentView('analysis')}
            className={`flex flex-col items-center gap-1 ${currentView === 'analysis' ? 'text-indigo-600' : 'text-slate-400'}`}
@@ -394,6 +453,24 @@ const App: React.FC = () => {
            <PieChart size={24} />
            <span className="text-[10px] font-medium">{t.nav.analysis}</span>
          </button>
+
+         <button 
+           onClick={() => setCurrentView('planning')}
+           className={`flex flex-col items-center gap-1 ${currentView === 'planning' ? 'text-indigo-600' : 'text-slate-400'}`}
+         >
+           <ClipboardList size={24} />
+           <span className="text-[10px] font-medium">{t.nav.planning}</span>
+         </button>
+
+         {/* Floating Action Button for Mobile */}
+         <div className="absolute -top-5 left-1/2 -translate-x-1/2">
+           <button 
+             onClick={() => setIsManualModalOpen(true)}
+             className="bg-indigo-600 text-white p-3 rounded-full shadow-lg shadow-indigo-200 hover:scale-105 transition-transform"
+           >
+             <Plus size={24} />
+           </button>
+         </div>
       </nav>
 
       {/* DESKTOP FABs */}

@@ -1,4 +1,4 @@
-import { Transaction, User } from '../types';
+import { Transaction, User, Goal, Budget } from '../types';
 
 // Determine API base URL based on deployment path
 const BASE_URL = (import.meta as any).env?.BASE_URL || '/';
@@ -13,19 +13,15 @@ const handleResponse = async (response: Response) => {
     let errorMsg = `HTTP Error: ${response.status}`;
     try {
       const text = await response.text();
-      // Try parsing JSON error
       try {
         const errorData = JSON.parse(text);
         if (errorData && errorData.error) {
           errorMsg = errorData.error;
         } else {
-          // If JSON but no 'error' field, fallback to status
           console.warn("API Error JSON missing 'error' field:", errorData);
         }
       } catch {
-        // Not JSON, use raw text if available
         if (text) {
-           // Clean up HTML tags if present (simple check)
            if (text.trim().startsWith('<')) {
              errorMsg = `Server Error (${response.status}). See console for details.`;
              console.error("Server HTML Error:", text);
@@ -70,7 +66,6 @@ export const saveTransaction = async (userId: string, transaction: Transaction):
       body: JSON.stringify({ userId, transaction })
     }).then(handleResponse);
 
-    // Refresh list
     return await getTransactions(userId);
   } catch (error) {
     console.error("Error saving transaction:", error);
@@ -80,17 +75,73 @@ export const saveTransaction = async (userId: string, transaction: Transaction):
 
 export const deleteTransaction = async (userId: string, transactionId: string): Promise<Transaction[]> => {
   try {
-    // Sử dụng query param id thay vì path param để đơn giản hóa routing trên Vercel functions
     await fetch(`${API_URL}/transactions?id=${transactionId}&userId=${userId}`, {
       method: 'DELETE',
     }).then(handleResponse);
 
-    // Refresh list
     return await getTransactions(userId);
   } catch (error) {
     console.error("Error deleting transaction:", error);
     throw error;
   }
+};
+
+// Goals
+export const getGoals = async (userId: string): Promise<Goal[]> => {
+  try {
+    const response = await fetch(`${API_URL}/goals?userId=${userId}`);
+    return await handleResponse(response);
+  } catch (error) {
+    console.error("Error fetching goals:", error);
+    return [];
+  }
+};
+
+export const saveGoal = async (userId: string, goal: Goal): Promise<Goal[]> => {
+  try {
+    await fetch(`${API_URL}/goals`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ goal })
+    }).then(handleResponse);
+    return await getGoals(userId);
+  } catch (error) { throw error; }
+};
+
+export const deleteGoal = async (userId: string, goalId: string): Promise<Goal[]> => {
+  try {
+    await fetch(`${API_URL}/goals?id=${goalId}&userId=${userId}`, { method: 'DELETE' }).then(handleResponse);
+    return await getGoals(userId);
+  } catch (error) { throw error; }
+};
+
+// Budgets
+export const getBudgets = async (userId: string): Promise<Budget[]> => {
+  try {
+    const response = await fetch(`${API_URL}/budgets?userId=${userId}`);
+    return await handleResponse(response);
+  } catch (error) {
+    console.error("Error fetching budgets:", error);
+    return [];
+  }
+};
+
+export const saveBudget = async (userId: string, budget: Budget): Promise<Budget[]> => {
+  try {
+    await fetch(`${API_URL}/budgets`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ budget })
+    }).then(handleResponse);
+    return await getBudgets(userId);
+  } catch (error) { throw error; }
+};
+
+export const deleteBudget = async (userId: string, budgetId: string): Promise<Budget[]> => {
+  try {
+    await fetch(`${API_URL}/budgets?id=${budgetId}&userId=${userId}`, { method: 'DELETE' }).then(handleResponse);
+    return await getBudgets(userId);
+  } catch (error) { throw error; }
 };
 
 // User Auth
