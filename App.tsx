@@ -8,7 +8,7 @@ import { InvestmentPage } from './components/Investment';
 import { AIParserModal } from './components/AIParserModal';
 import { ManualTransactionModal } from './components/ManualTransactionModal';
 import { FilterMode } from './components/DateFilter';
-import { Wallet, ArrowRight, Lock, User as UserIcon, Eye, EyeOff, Loader2, Globe, LayoutDashboard, PieChart, LogOut, Plus, Wand2, QrCode, ClipboardList, TrendingUp } from 'lucide-react';
+import { Wallet, ArrowRight, Lock, User as UserIcon, Eye, EyeOff, Loader2, Globe, LayoutDashboard, PieChart, LogOut, Plus, Wand2, QrCode, ClipboardList, TrendingUp, Mail, Phone, ShieldCheck, Lightbulb } from 'lucide-react';
 import { translations, Language } from './utils/i18n';
 
 type View = 'dashboard' | 'analysis' | 'planning' | 'investment' | 'settings';
@@ -33,6 +33,9 @@ const App: React.FC = () => {
   // Auth State
   const [usernameInput, setUsernameInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
+  const [emailInput, setEmailInput] = useState('');
+  const [phoneInput, setPhoneInput] = useState('');
+  
   const [showPassword, setShowPassword] = useState(false);
   const [isLoginView, setIsLoginView] = useState(true);
   const [error, setError] = useState('');
@@ -151,7 +154,7 @@ const App: React.FC = () => {
           setError(t.auth.errorLogin);
         }
       } else {
-        const newUser = await registerUser(usernameInput, passwordInput);
+        const newUser = await registerUser(usernameInput, passwordInput, emailInput, phoneInput);
         setUser(newUser);
         setCurrentSession(newUser);
       }
@@ -167,6 +170,8 @@ const App: React.FC = () => {
     setCurrentSession(null);
     setUsernameInput('');
     setPasswordInput('');
+    setEmailInput('');
+    setPhoneInput('');
     setIsLoginView(true);
     setCurrentView('dashboard');
   };
@@ -212,7 +217,7 @@ const App: React.FC = () => {
           </div>
           
           <div className="p-8">
-            <form onSubmit={handleAuth} className="space-y-6">
+            <form onSubmit={handleAuth} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">{t.auth.username}</label>
                 <div className="relative">
@@ -254,15 +259,70 @@ const App: React.FC = () => {
                 </div>
               </div>
 
+              {/* Enhanced Registration Fields (Optional) */}
+              {!isLoginView && (
+                <div className="space-y-4 animate-in fade-in slide-in-from-top-4">
+                  <div className="relative">
+                     <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t border-slate-200" />
+                     </div>
+                     <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-white px-2 text-slate-500">Bảo mật (Tùy chọn)</span>
+                     </div>
+                  </div>
+
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-sm text-slate-600">
+                     <div className="flex items-start gap-3 mb-2">
+                        <Lightbulb size={18} className="text-amber-500 shrink-0 mt-0.5" />
+                        <p>
+                          <span className="font-semibold text-slate-800">Gợi ý:</span> Liên kết Email hoặc Số điện thoại giúp bạn khôi phục mật khẩu và nhận mã OTP bảo vệ tài sản đầu tư.
+                        </p>
+                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 gap-3">
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">Email (Gmail)</label>
+                      <div className="relative">
+                        <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                          type="email"
+                          value={emailInput}
+                          onChange={(e) => setEmailInput(e.target.value)}
+                          className="w-full pl-9 px-3 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                          placeholder="name@gmail.com"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-500 mb-1">Số điện thoại</label>
+                      <div className="relative">
+                        <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <input
+                          type="tel"
+                          value={phoneInput}
+                          onChange={(e) => setPhoneInput(e.target.value)}
+                          className="w-full pl-9 px-3 py-2.5 rounded-lg border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
+                          placeholder="0912..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {error && <p className="text-rose-500 text-sm bg-rose-50 p-3 rounded-lg">{error}</p>}
 
               <button
                 type="submit"
                 disabled={isAuthLoading}
-                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+                className="w-full bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-400 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2 mt-4"
               >
                 {isAuthLoading ? <Loader2 className="animate-spin" size={18} /> : (
-                  <><span>{isLoginView ? t.auth.login : t.auth.createAccount}</span><ArrowRight size={18} /></>
+                  <>
+                    <span>{isLoginView ? t.auth.login : t.auth.createAccount}</span>
+                    <ArrowRight size={18} />
+                  </>
                 )}
               </button>
             </form>
@@ -341,7 +401,10 @@ const App: React.FC = () => {
              </select>
           </div>
           <div className="flex items-center justify-between px-2">
-             <span className="text-sm font-semibold text-slate-700 truncate max-w-[100px]">{user.username}</span>
+             <div className="overflow-hidden">
+                <span className="text-sm font-semibold text-slate-700 truncate max-w-[100px] block">{user.username}</span>
+                {(user.email || user.phone) && <span className="text-[10px] text-emerald-600 flex items-center gap-1"><ShieldCheck size={10}/> Secured</span>}
+             </div>
              <button onClick={handleLogout} className="text-slate-400 hover:text-rose-500"><LogOut size={20} /></button>
           </div>
         </div>

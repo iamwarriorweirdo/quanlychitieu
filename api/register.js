@@ -16,47 +16,47 @@ export default async function handler(req, res) {
     // Kiểm tra biến môi trường
     if (!process.env.DATABASE_URL) {
       console.error("Missing DATABASE_URL");
-      // Use 500 but ensure JSON is sent
       return res.status(500).json({ error: "Configuration Error: DATABASE_URL is missing in environment variables." });
     }
 
     const sql = neon(process.env.DATABASE_URL);
     
-    // Safely access body
     const body = req.body || {};
-    const { id, username, password } = body;
+    const { id, username, password, email, phone } = body;
 
     if (!id || !username || !password) {
       return res.status(400).json({ error: "Missing required fields (id, username, password)" });
     }
 
-    // Đảm bảo bảng tồn tại trước khi insert
+    // Đảm bảo bảng tồn tại trước khi insert (Optional check here as init usually handles it)
     try {
       await sql`
         CREATE TABLE IF NOT EXISTS users (
           id TEXT PRIMARY KEY,
           username TEXT UNIQUE NOT NULL,
-          password TEXT NOT NULL
+          password TEXT NOT NULL,
+          email TEXT,
+          phone TEXT
         );
       `;
     } catch (dbInitError) {
       console.error("DB Init Error:", dbInitError);
-      // Proceed, assuming table might exist or connection error will be caught next
     }
 
-    // Kiểm tra trùng lặp
+    // Kiểm tra trùng lặp username
     try {
       const existing = await sql`SELECT id FROM users WHERE username = ${username}`;
       if (existing.length > 0) {
         return res.status(400).json({ error: "Username already exists / Tài khoản đã tồn tại" });
       }
       
+      // Insert with email and phone
       await sql`
-        INSERT INTO users (id, username, password)
-        VALUES (${id}, ${username}, ${password})
+        INSERT INTO users (id, username, password, email, phone)
+        VALUES (${id}, ${username}, ${password}, ${email || null}, ${phone || null})
       `;
       
-      return res.status(200).json({ id, username });
+      return res.status(200).json({ id, username, email, phone });
     } catch (sqlError) {
       console.error("SQL Error:", sqlError);
       return res.status(500).json({ error: "Database Error: " + sqlError.message });

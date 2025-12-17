@@ -14,9 +14,20 @@ export default async function handler(req, res) {
       CREATE TABLE IF NOT EXISTS users (
         id TEXT PRIMARY KEY,
         username TEXT UNIQUE NOT NULL,
-        password TEXT NOT NULL
+        password TEXT NOT NULL,
+        email TEXT,
+        phone TEXT
       );
     `;
+
+    // Migration: Add email and phone columns if they don't exist (for existing databases)
+    try {
+        await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT`;
+        await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT`;
+    } catch (e) {
+        console.log("Migration note: users column check skipped", e.message);
+    }
+
     await sql`
       CREATE TABLE IF NOT EXISTS transactions (
         id TEXT PRIMARY KEY,
@@ -65,7 +76,6 @@ export default async function handler(req, res) {
       );
     `;
     
-    // Migration: Add unit column
     try {
       await sql`ALTER TABLE investments ADD COLUMN IF NOT EXISTS unit TEXT`;
     } catch (e) {
@@ -82,7 +92,6 @@ export default async function handler(req, res) {
       );
     `;
     
-    // Migration: Add otp_code column
     try {
       await sql`ALTER TABLE investment_security ADD COLUMN IF NOT EXISTS otp_code TEXT`;
     } catch (e) {

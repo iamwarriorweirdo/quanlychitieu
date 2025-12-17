@@ -226,11 +226,13 @@ export const verifyOtp = async (userId: string, otp: string): Promise<boolean> =
 };
 
 // User Auth
-export const registerUser = async (username: string, password: string): Promise<User> => {
+export const registerUser = async (username: string, password: string, email?: string, phone?: string): Promise<User> => {
   const newUser = {
     id: crypto.randomUUID(),
     username,
-    password 
+    password,
+    email,
+    phone
   };
 
   try {

@@ -12,8 +12,21 @@ export default async function handler(req, res) {
     // 1. Check if user has security setup
     if (action === 'check_status') {
       const rows = await sql`SELECT is_otp_enabled, email FROM investment_security WHERE user_id = ${userId}`;
-      if (rows.length === 0) return res.status(200).json({ hasPassword: false, isOtpEnabled: false });
-      return res.status(200).json({ hasPassword: true, isOtpEnabled: rows[0].is_otp_enabled, email: rows[0].email });
+      
+      // If no explicit security row, check if user has main account email to suggest
+      let mainEmail = null;
+      if (rows.length === 0 || !rows[0].email) {
+          const userRows = await sql`SELECT email FROM users WHERE id = ${userId}`;
+          if (userRows.length > 0) mainEmail = userRows[0].email;
+      }
+
+      if (rows.length === 0) return res.status(200).json({ hasPassword: false, isOtpEnabled: false, email: mainEmail });
+      
+      return res.status(200).json({ 
+          hasPassword: true, 
+          isOtpEnabled: rows[0].is_otp_enabled, 
+          email: rows[0].email || mainEmail // Return main email if specific one is missing
+      });
     }
 
     // 2. Setup Security (Save Password or Save Email after Verification)
@@ -71,6 +84,9 @@ export default async function handler(req, res) {
         const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
         // Save OTP to Database
+        // We first check if security row exists. If not, we might need to rely on Main Account Email 
+        // BUT for 'request_otp' to work for unlocking, a password MUST exist first (implied by workflow).
+        
         const updateResult = await sql`
             UPDATE investment_security 
             SET otp_code = ${otpCode} 
@@ -84,13 +100,24 @@ export default async function handler(req, res) {
 
         // Determine email recipient
         let emailToSend = targetEmail; 
+        
+        // If no specific target (e.g. login flow), get from DB
         if (!emailToSend) {
-            const userRows = await sql`SELECT email FROM investment_security WHERE user_id = ${userId}`;
-            emailToSend = userRows[0]?.email;
+            // Priority 1: Investment Security specific email
+            const secRows = await sql`SELECT email FROM investment_security WHERE user_id = ${userId}`;
+            if (secRows.length > 0 && secRows[0].email) {
+                emailToSend = secRows[0].email;
+            } else {
+                // Priority 2: Main Account Email
+                const userRows = await sql`SELECT email FROM users WHERE id = ${userId}`;
+                if (userRows.length > 0) {
+                    emailToSend = userRows[0].email;
+                }
+            }
         }
 
         if (!emailToSend) {
-             return res.status(400).json({ error: "No email address found." });
+             return res.status(400).json({ error: "Không tìm thấy địa chỉ email nào được liên kết với tài khoản." });
         }
 
         try {
