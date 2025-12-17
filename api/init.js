@@ -49,6 +49,29 @@ export default async function handler(req, res) {
         period TEXT DEFAULT 'monthly'
       );
     `;
+    // New Tables for Investments
+    await sql`
+      CREATE TABLE IF NOT EXISTS investments (
+        id TEXT PRIMARY KEY,
+        user_id TEXT REFERENCES users(id),
+        symbol TEXT NOT NULL,
+        name TEXT NOT NULL,
+        type TEXT NOT NULL,
+        quantity NUMERIC NOT NULL,
+        buy_price NUMERIC NOT NULL,
+        current_price NUMERIC NOT NULL,
+        date TEXT NOT NULL
+      );
+    `;
+    await sql`
+      CREATE TABLE IF NOT EXISTS investment_security (
+        user_id TEXT PRIMARY KEY REFERENCES users(id),
+        secondary_password TEXT NOT NULL,
+        is_otp_enabled BOOLEAN DEFAULT FALSE,
+        email TEXT
+      );
+    `;
+
     res.status(200).json({ message: "Database initialized successfully" });
   } catch (error) {
     console.error("Init Error:", error);

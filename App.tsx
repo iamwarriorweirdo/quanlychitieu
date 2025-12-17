@@ -4,13 +4,14 @@ import { User, Transaction, ParsedTransactionData, Goal, Budget } from './types'
 import { Dashboard } from './components/Dashboard';
 import { Analysis } from './components/Analysis';
 import { Planning } from './components/Planning';
+import { InvestmentPage } from './components/Investment';
 import { AIParserModal } from './components/AIParserModal';
 import { ManualTransactionModal } from './components/ManualTransactionModal';
 import { FilterMode } from './components/DateFilter';
-import { Wallet, ArrowRight, Lock, User as UserIcon, Eye, EyeOff, Loader2, Globe, LayoutDashboard, PieChart, LogOut, Plus, Wand2, QrCode, ClipboardList } from 'lucide-react';
+import { Wallet, ArrowRight, Lock, User as UserIcon, Eye, EyeOff, Loader2, Globe, LayoutDashboard, PieChart, LogOut, Plus, Wand2, QrCode, ClipboardList, TrendingUp } from 'lucide-react';
 import { translations, Language } from './utils/i18n';
 
-type View = 'dashboard' | 'analysis' | 'planning' | 'settings';
+type View = 'dashboard' | 'analysis' | 'planning' | 'investment' | 'settings';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -21,7 +22,7 @@ const App: React.FC = () => {
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [isLoadingTx, setIsLoadingTx] = useState(false);
 
-  // App Global State for Filters (Lifted from Dashboard to share with Analysis)
+  // App Global State for Filters
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
   const [filterDate, setFilterDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
   const [rangeStart, setRangeStart] = useState<string>(() => {
@@ -119,38 +120,11 @@ const App: React.FC = () => {
     }
   };
 
-  // Goal Handlers
-  const handleAddGoal = async (goal: Goal) => {
-    if (!user) return;
-    try {
-      const updated = await saveGoal(user.id, goal);
-      setGoals(updated);
-    } catch(e) { console.error(e); }
-  };
-  const handleDeleteGoal = async (id: string) => {
-    if (!user) return;
-    if (confirm('Delete goal?')) {
-      const updated = await deleteGoal(user.id, id);
-      setGoals(updated);
-    }
-  };
-
-  // Budget Handlers
-  const handleAddBudget = async (budget: Budget) => {
-    if (!user) return;
-    try {
-      const updated = await saveBudget(user.id, budget);
-      setBudgets(updated);
-    } catch(e) { console.error(e); }
-  };
-  const handleDeleteBudget = async (id: string) => {
-    if (!user) return;
-    if (confirm('Remove budget?')) {
-      const updated = await deleteBudget(user.id, id);
-      setBudgets(updated);
-    }
-  };
-
+  // Goal & Budget Handlers
+  const handleAddGoal = async (goal: Goal) => { if (user) setGoals(await saveGoal(user.id, goal)); };
+  const handleDeleteGoal = async (id: string) => { if (user && confirm('Delete?')) setGoals(await deleteGoal(user.id, id)); };
+  const handleAddBudget = async (budget: Budget) => { if (user) setBudgets(await saveBudget(user.id, budget)); };
+  const handleDeleteBudget = async (id: string) => { if (user && confirm('Delete?')) setBudgets(await deleteBudget(user.id, id)); };
 
   // Auth Handlers
   const handleAuth = async (e: React.FormEvent) => {
@@ -215,7 +189,6 @@ const App: React.FC = () => {
   if (!user) {
     return (
       <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 relative">
-        {/* Language Switcher Login */}
         <div className="absolute top-4 right-4 flex items-center gap-2 bg-white/80 backdrop-blur rounded-full px-3 py-1.5 shadow-sm border border-slate-200 z-10">
           <Globe size={14} className="text-slate-500" />
           <select 
@@ -344,6 +317,14 @@ const App: React.FC = () => {
             <ClipboardList size={20} />
             {t.nav.planning}
           </button>
+
+          <button 
+            onClick={() => setCurrentView('investment')}
+            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-colors font-medium ${currentView === 'investment' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}
+          >
+            <TrendingUp size={20} />
+            {t.nav.investment}
+          </button>
         </nav>
 
         <div className="p-4 border-t border-slate-100 space-y-4">
@@ -373,7 +354,7 @@ const App: React.FC = () => {
              <Wallet size={18} />
            </div>
            <span className="font-bold text-slate-800">
-             {currentView === 'dashboard' ? t.nav.dashboard : currentView === 'analysis' ? t.nav.analysis : t.nav.planning}
+             {currentView === 'dashboard' ? t.nav.dashboard : currentView === 'analysis' ? t.nav.analysis : currentView === 'planning' ? t.nav.planning : t.nav.investment}
            </span>
          </div>
          <div className="flex items-center gap-3">
@@ -427,39 +408,32 @@ const App: React.FC = () => {
                 budgets={budgets}
                 onAddGoal={handleAddGoal}
                 onDeleteGoal={handleDeleteGoal}
-                onUpdateGoal={handleAddGoal} // Reuse create as update (upsert in DB)
+                onUpdateGoal={handleAddGoal}
                 onAddBudget={handleAddBudget}
                 onDeleteBudget={handleDeleteBudget}
                 lang={lang}
               />
             )}
+
+            {currentView === 'investment' && (
+              <InvestmentPage user={user} lang={lang} />
+            )}
          </div>
       </main>
 
       {/* MOBILE BOTTOM NAV */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-30 px-4 py-3 flex justify-around items-center">
-         <button 
-           onClick={() => setCurrentView('dashboard')}
-           className={`flex flex-col items-center gap-1 ${currentView === 'dashboard' ? 'text-indigo-600' : 'text-slate-400'}`}
-         >
-           <LayoutDashboard size={24} />
-           <span className="text-[10px] font-medium">{t.nav.dashboard}</span>
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-30 px-2 py-3 flex justify-around items-center">
+         <button onClick={() => setCurrentView('dashboard')} className={`flex flex-col items-center gap-1 ${currentView === 'dashboard' ? 'text-indigo-600' : 'text-slate-400'}`}>
+           <LayoutDashboard size={22} />
          </button>
-
-         <button 
-           onClick={() => setCurrentView('analysis')}
-           className={`flex flex-col items-center gap-1 ${currentView === 'analysis' ? 'text-indigo-600' : 'text-slate-400'}`}
-         >
-           <PieChart size={24} />
-           <span className="text-[10px] font-medium">{t.nav.analysis}</span>
+         <button onClick={() => setCurrentView('analysis')} className={`flex flex-col items-center gap-1 ${currentView === 'analysis' ? 'text-indigo-600' : 'text-slate-400'}`}>
+           <PieChart size={22} />
          </button>
-
-         <button 
-           onClick={() => setCurrentView('planning')}
-           className={`flex flex-col items-center gap-1 ${currentView === 'planning' ? 'text-indigo-600' : 'text-slate-400'}`}
-         >
-           <ClipboardList size={24} />
-           <span className="text-[10px] font-medium">{t.nav.planning}</span>
+         <button onClick={() => setCurrentView('planning')} className={`flex flex-col items-center gap-1 ${currentView === 'planning' ? 'text-indigo-600' : 'text-slate-400'}`}>
+           <ClipboardList size={22} />
+         </button>
+         <button onClick={() => setCurrentView('investment')} className={`flex flex-col items-center gap-1 ${currentView === 'investment' ? 'text-indigo-600' : 'text-slate-400'}`}>
+           <TrendingUp size={22} />
          </button>
 
          {/* Floating Action Button for Mobile */}

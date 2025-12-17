@@ -1,4 +1,4 @@
-import { Transaction, User, Goal, Budget } from '../types';
+import { Transaction, User, Goal, Budget, Investment, InvestmentSecurity } from '../types';
 
 // Determine API base URL based on deployment path
 const BASE_URL = (import.meta as any).env?.BASE_URL || '/';
@@ -143,6 +143,77 @@ export const deleteBudget = async (userId: string, budgetId: string): Promise<Bu
     return await getBudgets(userId);
   } catch (error) { throw error; }
 };
+
+// Investments
+export const getInvestments = async (userId: string): Promise<Investment[]> => {
+  try {
+    const response = await fetch(`${API_URL}/investments?userId=${userId}`);
+    return await handleResponse(response);
+  } catch (error) {
+    console.error("Error fetching investments:", error);
+    return [];
+  }
+};
+
+export const saveInvestment = async (userId: string, investment: Investment): Promise<Investment[]> => {
+  try {
+    await fetch(`${API_URL}/investments`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ investment })
+    }).then(handleResponse);
+    return await getInvestments(userId);
+  } catch (error) { throw error; }
+};
+
+export const deleteInvestment = async (userId: string, investmentId: string): Promise<Investment[]> => {
+  try {
+    await fetch(`${API_URL}/investments?id=${investmentId}&userId=${userId}`, { method: 'DELETE' }).then(handleResponse);
+    return await getInvestments(userId);
+  } catch (error) { throw error; }
+};
+
+// Security Services
+export const checkSecurityStatus = async (userId: string): Promise<InvestmentSecurity> => {
+    try {
+        const response = await fetch(`${API_URL}/security`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ action: 'check_status', userId })
+        });
+        return await handleResponse(response);
+    } catch (e) { return { userId, hasPassword: false, isOtpEnabled: false }; }
+};
+
+export const setupSecurity = async (userId: string, password: string, email?: string): Promise<void> => {
+    await fetch(`${API_URL}/security`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ action: 'setup', userId, password, email })
+    }).then(handleResponse);
+};
+
+export const verifySecondaryPassword = async (userId: string, password: string): Promise<boolean> => {
+    try {
+        await fetch(`${API_URL}/security`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ action: 'verify_password', userId, password })
+        }).then(handleResponse);
+        return true;
+    } catch { return false; }
+};
+
+export const requestOtp = async (userId: string): Promise<string> => {
+    const res = await fetch(`${API_URL}/security`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ action: 'request_otp', userId })
+    }).then(handleResponse);
+    // For demo purposes, the server returns the OTP code to display
+    return res.demoOtpCode;
+};
+
 
 // User Auth
 export const registerUser = async (username: string, password: string): Promise<User> => {

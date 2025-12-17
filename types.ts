@@ -57,3 +57,22 @@ export interface Budget {
   amount: number; // Planned amount
   period: string; // e.g., 'monthly'
 }
+
+export interface Investment {
+  id: string;
+  userId: string;
+  symbol: string; // e.g., VCB, BTC, GOLD
+  name: string;
+  type: 'Stock' | 'Crypto' | 'RealEstate' | 'Gold' | 'Fund' | 'Other';
+  quantity: number;
+  buyPrice: number; // Giá mua trung bình
+  currentPrice: number; // Giá thị trường hiện tại
+  date: string; // Ngày mua ban đầu
+}
+
+export interface InvestmentSecurity {
+  userId: string;
+  hasPassword: boolean;
+  isOtpEnabled: boolean;
+  email?: string;
+}
