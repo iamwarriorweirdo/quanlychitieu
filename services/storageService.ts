@@ -1,7 +1,7 @@
 import { Transaction, User } from '../types';
 
 // Determine API base URL based on deployment path
-const BASE_URL = import.meta.env.BASE_URL || '/';
+const BASE_URL = (import.meta as any).env?.BASE_URL || '/';
 const CLEAN_BASE_URL = BASE_URL.endsWith('/') ? BASE_URL.slice(0, -1) : BASE_URL;
 const API_URL = `${CLEAN_BASE_URL}/api`;
 

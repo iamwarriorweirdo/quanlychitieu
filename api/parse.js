@@ -4,32 +4,43 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const { content, isImage } = req.body;
+  const { content, isImage, imageUrl } = req.body;
 
   try {
     const systemPrompt = `
-      You are a smart financial assistant. Task: Extract transaction details from bank SMS or receipt images.
+      You are a smart financial assistant. 
+      Task: Extract transaction details from the provided text or image data.
+      The input might be raw text from an OCR scan of a receipt, or a direct SMS copy.
+      Identify: Amount, Transaction Type (INCOME/EXPENSE), Category, Description, and Date.
+      If the date is missing, use today's date.
+      Return JSON only.
     `;
 
     const parts = [];
 
-    if (isImage) {
-      const matches = content.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
-      if (!matches) {
-          throw new Error("Invalid image data");
+    // Nếu có văn bản (từ nhập tay HOẶC từ Tesseract OCR)
+    if (content) {
+      parts.push({ text: `Analyze this transaction data: ${content}` });
+      if (imageUrl) {
+        parts.push({ text: `Original Receipt Image URL for reference: ${imageUrl}` });
       }
-      const mimeType = matches[1];
-      const data = matches[2];
+    } 
+    // Fallback: Nếu không có text nhưng là ảnh base64 (cách cũ, đề phòng)
+    else if (isImage && content && content.startsWith('data:')) {
+       const matches = content.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+       if (matches) {
+         parts.push({
+           inlineData: {
+             mimeType: matches[1],
+             data: matches[2]
+           }
+         });
+         parts.push({ text: "Analyze this image and extract transaction details." });
+       }
+    }
 
-      parts.push({
-        inlineData: {
-          mimeType: mimeType,
-          data: data
-        }
-      });
-      parts.push({ text: "Analyze this image and extract transaction details." });
-    } else {
-      parts.push({ text: content });
+    if (parts.length === 0) {
+      throw new Error("No content provided to analyze");
     }
 
     const response = await ai.models.generateContent({
@@ -50,7 +61,7 @@ export default async function handler(req, res) {
                 "Salary", "Transfer", "Entertainment", "Health & Fitness", "Other"
               ]
             },
-            description: { type: Type.STRING, description: "Short description in English" },
+            description: { type: Type.STRING, description: "Short description in English or Vietnamese" },
             date: { type: Type.STRING, description: "ISO 8601 YYYY-MM-DD" }
           },
           required: ["amount", "type", "category", "description", "date"],
@@ -65,6 +76,6 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error("Gemini Parsing Error:", error);
-    res.status(500).json({ error: "AI Processing Failed" });
+    res.status(500).json({ error: "AI Processing Failed: " + error.message });
   }
 }

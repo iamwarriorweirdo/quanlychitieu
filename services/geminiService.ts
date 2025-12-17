@@ -2,7 +2,8 @@ import { ParsedTransactionData } from '../types';
 
 export const parseBankNotification = async (
   input: string, 
-  isImage: boolean = false
+  isImage: boolean = false,
+  imageUrl?: string
 ): Promise<ParsedTransactionData> => {
   
   try {
@@ -10,20 +11,22 @@ export const parseBankNotification = async (
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        content: input, 
-        isImage 
+        content: input, // Đây sẽ là Text (OCR hoặc nhập tay)
+        isImage,
+        imageUrl // Link ảnh Cloudinary (nếu có)
       })
     });
 
     if (!response.ok) {
-      throw new Error("AI Service Error");
+      const errorText = await response.text();
+      throw new Error(`Server Error: ${errorText}`);
     }
 
     const data = await response.json();
     return data as ParsedTransactionData;
 
-  } catch (error) {
-    console.error("Groq/AI Parsing Error:", error);
-    throw new Error("Unable to parse transaction. Please check your input.");
+  } catch (error: any) {
+    console.error("AI Parsing Error:", error);
+    throw new Error(error.message || "Unable to parse transaction.");
   }
 };
