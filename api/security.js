@@ -22,9 +22,15 @@ export default async function handler(req, res) {
 
       if (rows.length === 0) return res.status(200).json({ hasPassword: false, isOtpEnabled: false, email: mainEmail, hasSmtp: false });
       
+      // FIX: If a specific investment email is set (rows[0].email), FORCE isOtpEnabled to true.
+      // This fixes the issue where users link email but OTP flag remains false.
+      const dbIsOtp = rows[0].is_otp_enabled;
+      const hasSpecificEmail = !!rows[0].email;
+      const finalIsOtp = hasSpecificEmail ? true : dbIsOtp;
+
       return res.status(200).json({ 
           hasPassword: true, 
-          isOtpEnabled: rows[0].is_otp_enabled, 
+          isOtpEnabled: finalIsOtp, 
           email: rows[0].email || mainEmail,
           hasSmtp: !!rows[0].smtp_email 
       });
@@ -42,9 +48,10 @@ export default async function handler(req, res) {
             `;
         } else {
              if (email) {
+                 // FIX: Explicitly set TRUE for postgres boolean
                  await sql`
                     UPDATE investment_security 
-                    SET email = ${email}, is_otp_enabled = ${true}
+                    SET email = ${email}, is_otp_enabled = TRUE
                     WHERE user_id = ${userId}
                  `;
              }

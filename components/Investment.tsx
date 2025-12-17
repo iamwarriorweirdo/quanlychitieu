@@ -127,6 +127,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
         if (isValid) {
             // Check if user has Email OTP enabled
             const status = await checkSecurityStatus(user.id);
+            // With new backend logic, isOtpEnabled will be true if any email is linked.
             if (status.isOtpEnabled && status.email) {
                 // Request OTP from Server
                 setSecurityLoading(true);
@@ -312,7 +313,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
                className="w-full bg-indigo-600 text-white py-3 rounded-lg font-bold hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2"
              >
                {hasSetup ? <Unlock size={18} /> : <ShieldCheck size={18} />}
-               {hasSetup ? (otpSent ? t.investment.verifyAndLink : t.investment.unlock) : t.investment.setup}
+               {hasSetup ? (otpSent ? t.investment.verify : t.investment.unlock) : t.investment.setup}
              </button>
            </div>
         </div>

@@ -116,6 +116,7 @@ export const translations = {
       gmailLinked: 'Gmail đã liên kết',
       sendCode: 'Gửi mã xác thực',
       verifyAndLink: 'Xác thực & Liên kết',
+      verify: 'Xác thực OTP',
       enterCode: 'Nhập mã OTP từ Email',
       otpSent: 'Đã gửi mã OTP!',
       types: {
@@ -297,6 +298,7 @@ export const translations = {
       gmailLinked: 'Gmail Linked',
       sendCode: 'Send Verification Code',
       verifyAndLink: 'Verify & Link',
+      verify: 'Verify OTP',
       enterCode: 'Enter OTP from Email',
       otpSent: 'OTP Sent!',
       types: {
@@ -472,6 +474,7 @@ export const translations = {
       gmailLinked: 'Gmail 已关联',
       sendCode: '发送验证码',
       verifyAndLink: '验证并关联',
+      verify: '验证 OTP',
       enterCode: '输入邮件中的OTP',
       otpSent: 'OTP 已发送!',
       types: {
