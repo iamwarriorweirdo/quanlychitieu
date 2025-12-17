@@ -204,16 +204,26 @@ export const verifySecondaryPassword = async (userId: string, password: string):
     } catch { return false; }
 };
 
-export const requestOtp = async (userId: string): Promise<string> => {
+// Returns an object containing { success: boolean, demoOtpCode?: string, message?: string }
+export const requestOtp = async (userId: string): Promise<any> => {
     const res = await fetch(`${API_URL}/security`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ action: 'request_otp', userId })
     }).then(handleResponse);
-    // For demo purposes, the server returns the OTP code to display
-    return res.demoOtpCode;
+    return res;
 };
 
+export const verifyOtp = async (userId: string, otp: string): Promise<boolean> => {
+    try {
+        await fetch(`${API_URL}/security`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ action: 'verify_otp', userId, otp })
+        }).then(handleResponse);
+        return true;
+    } catch { return false; }
+};
 
 // User Auth
 export const registerUser = async (username: string, password: string): Promise<User> => {

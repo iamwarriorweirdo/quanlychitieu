@@ -49,7 +49,7 @@ export default async function handler(req, res) {
         period TEXT DEFAULT 'monthly'
       );
     `;
-    // New Tables for Investments
+    
     await sql`
       CREATE TABLE IF NOT EXISTS investments (
         id TEXT PRIMARY KEY,
@@ -65,11 +65,11 @@ export default async function handler(req, res) {
       );
     `;
     
-    // Add unit column if it doesn't exist (Migration for existing users)
+    // Migration: Add unit column
     try {
       await sql`ALTER TABLE investments ADD COLUMN IF NOT EXISTS unit TEXT`;
     } catch (e) {
-      console.log("Migration note: unit column check skipped or failed", e.message);
+      console.log("Migration note: unit column check skipped", e.message);
     }
 
     await sql`
@@ -77,9 +77,17 @@ export default async function handler(req, res) {
         user_id TEXT PRIMARY KEY REFERENCES users(id),
         secondary_password TEXT NOT NULL,
         is_otp_enabled BOOLEAN DEFAULT FALSE,
-        email TEXT
+        email TEXT,
+        otp_code TEXT
       );
     `;
+    
+    // Migration: Add otp_code column
+    try {
+      await sql`ALTER TABLE investment_security ADD COLUMN IF NOT EXISTS otp_code TEXT`;
+    } catch (e) {
+      console.log("Migration note: otp_code column check skipped", e.message);
+    }
 
     res.status(200).json({ message: "Database initialized successfully" });
   } catch (error) {

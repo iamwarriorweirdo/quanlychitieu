@@ -3,7 +3,7 @@ import { User, Investment, InvestmentSecurity } from '../types';
 import { translations, Language } from '../utils/i18n';
 import { Lock, Unlock, ShieldCheck, Plus, TrendingUp, TrendingDown, DollarSign, Activity, Trash2, RefreshCw, Settings, X, Calculator } from 'lucide-react';
 import { 
-  checkSecurityStatus, setupSecurity, verifySecondaryPassword, requestOtp, 
+  checkSecurityStatus, setupSecurity, verifySecondaryPassword, requestOtp, verifyOtp,
   getInvestments, saveInvestment, deleteInvestment 
 } from '../services/storageService';
 
@@ -24,7 +24,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
   const [useOtp, setUseOtp] = useState(false);
   const [otpSent, setOtpSent] = useState(false);
   const [otpInput, setOtpInput] = useState('');
-  const [serverOtp, setServerOtp] = useState(''); 
+  // No longer storing serverOtp client-side for security
   const [error, setError] = useState('');
 
   // Data State
@@ -113,25 +113,43 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
 
   const handleUnlock = async () => {
     setError('');
-    const isValid = await verifySecondaryPassword(user.id, passwordInput);
     
-    if (isValid) {
-      if (useOtp && !otpSent) {
-        const code = await requestOtp(user.id);
-        setServerOtp(code);
-        setOtpSent(true);
-        alert(`DEMO OTP CODE: ${code}`); 
-      } else if (useOtp && otpSent) {
-        if (otpInput === serverOtp) {
+    // Step 1: Password Check
+    if (!otpSent) {
+        const isValid = await verifySecondaryPassword(user.id, passwordInput);
+        if (isValid) {
+            if (useOtp) {
+                // Request OTP from Server
+                setSecurityLoading(true);
+                const res = await requestOtp(user.id);
+                setSecurityLoading(false);
+                setOtpSent(true);
+                
+                if (res.demoOtpCode) {
+                    alert(`[SIMULATION MODE] OTP: ${res.demoOtpCode}\n(Configure EMAIL_USER/PASS in .env to send real emails)`);
+                } else {
+                    alert(res.message || "OTP sent to your email!");
+                }
+            } else {
+                setIsLocked(false);
+            }
+        } else {
+            setError("Incorrect Password");
+        }
+        return;
+    }
+
+    // Step 2: OTP Check (if applicable)
+    if (useOtp && otpSent) {
+        setSecurityLoading(true);
+        const isValidOtp = await verifyOtp(user.id, otpInput);
+        setSecurityLoading(false);
+        
+        if (isValidOtp) {
           setIsLocked(false);
         } else {
           setError("Invalid OTP");
         }
-      } else {
-        setIsLocked(false);
-      }
-    } else {
-      setError("Incorrect Password");
     }
   };
 
@@ -176,7 +194,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
     return qty * price;
   };
 
-  if (securityLoading) return <div className="p-10 text-center"><RefreshCw className="animate-spin mx-auto"/></div>;
+  if (securityLoading) return <div className="p-10 text-center"><RefreshCw className="animate-spin mx-auto text-indigo-600 mb-2"/> <p className="text-slate-500 text-sm">Verifying...</p></div>;
 
   // --- LOCKED VIEW ---
   if (isLocked) {
