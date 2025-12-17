@@ -3,6 +3,7 @@ import { User, Transaction, TransactionType, ParsedTransactionData, Category } f
 import { getTransactions, saveTransaction, deleteTransaction } from '../services/storageService';
 import { TransactionItem } from './TransactionItem';
 import { AIParserModal } from './AIParserModal';
+import { ManualTransactionModal } from './ManualTransactionModal';
 import { Plus, LogOut, Wallet, TrendingUp, TrendingDown, Wand2, Filter, Search, QrCode, Landmark, CheckCircle2, Loader2, Globe } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as ReTooltip, Legend } from 'recharts';
 import { translations, Language } from '../utils/i18n';
@@ -17,9 +18,14 @@ interface Props {
 export const Dashboard: React.FC<Props> = ({ user, onLogout, lang, setLang }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  
+  // AI Modal State
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [aiModalMode, setAiModalMode] = useState<'text' | 'image'>('text');
   
+  // Manual Entry Modal State
+  const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+
   const [searchQuery, setSearchQuery] = useState('');
   const [isBankLinked, setIsBankLinked] = useState(false);
   
@@ -58,23 +64,6 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout, lang, setLang }) =>
     } catch (error) {
       alert(t.common.saveFailed);
     }
-  };
-
-  const handleManualAdd = async () => {
-    const desc = prompt(t.common.enterDesc);
-    if (!desc) return;
-    const amountStr = prompt(t.common.enterAmount);
-    if (!amountStr) return;
-    const amount = parseFloat(amountStr);
-    if (isNaN(amount)) return;
-    
-    await handleAddTransaction({
-      description: desc,
-      amount: amount,
-      category: Category.OTHER,
-      type: TransactionType.EXPENSE,
-      date: new Date().toISOString()
-    });
   };
 
   const handleDelete = async (id: string) => {
@@ -302,7 +291,7 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout, lang, setLang }) =>
           <div className="lg:col-span-2 space-y-4">
             <div className="flex justify-between items-center">
               <h3 className="font-semibold text-slate-800">{t.dashboard.history}</h3>
-              <button onClick={handleManualAdd} className="text-sm text-indigo-600 font-medium hover:underline">
+              <button onClick={() => setIsManualModalOpen(true)} className="text-sm text-indigo-600 font-medium hover:underline">
                 {t.dashboard.quickAdd}
               </button>
             </div>
@@ -342,7 +331,7 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout, lang, setLang }) =>
         </button>
 
         <button 
-          onClick={handleManualAdd}
+          onClick={() => setIsManualModalOpen(true)}
           className="bg-white text-slate-600 p-4 rounded-full shadow-lg border border-slate-100 hover:bg-slate-50 transition-all flex items-center justify-center"
         >
           <Plus size={24} />
@@ -354,6 +343,13 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout, lang, setLang }) =>
         onClose={() => setIsAiModalOpen(false)} 
         onSuccess={handleAddTransaction} 
         initialMode={aiModalMode}
+        lang={lang}
+      />
+      
+      <ManualTransactionModal
+        isOpen={isManualModalOpen}
+        onClose={() => setIsManualModalOpen(false)}
+        onSave={handleAddTransaction}
         lang={lang}
       />
     </div>

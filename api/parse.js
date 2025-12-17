@@ -3,31 +3,37 @@ import { GoogleGenAI, Type } from "@google/genai";
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
+  // Increase limit for this specific route if using body-parser manually, 
+  // but mostly relying on Vercel's config. 
+  // Note: Vercel serverless functions have a payload limit (usually 4.5MB).
+  
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-  const { content, isImage, imageUrl } = req.body;
+  const { ocrText, imageBase64, imageUrl } = req.body;
 
   try {
     const systemPrompt = `
       You are a smart financial assistant. 
-      Task: Extract transaction details from the provided text or image data.
-      The input might be raw text from an OCR scan of a receipt, or a direct SMS copy.
+      Task: Extract transaction details from the provided input (OCR text and/or receipt image).
       Identify: Amount, Transaction Type (INCOME/EXPENSE), Category, Description, and Date.
-      If the date is missing, use today's date.
-      Return JSON only.
+      
+      Rules:
+      1. If the date is missing, use today's date.
+      2. If category is unclear, choose 'Other'.
+      3. Convert amounts to absolute numbers.
+      4. Detect VIETNAMESE or ENGLISH text.
+      5. Return pure JSON only.
     `;
 
     const parts = [];
 
-    // Nếu có văn bản (từ nhập tay HOẶC từ Tesseract OCR)
-    if (content) {
-      parts.push({ text: `Analyze this transaction data: ${content}` });
-      if (imageUrl) {
-        parts.push({ text: `Original Receipt Image URL for reference: ${imageUrl}` });
-      }
-    } 
-    // Fallback: Nếu không có text nhưng là ảnh base64 (cách cũ, đề phòng)
-    else if (isImage && content && content.startsWith('data:')) {
-       const matches = content.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
+    // 1. Add OCR Text if available
+    if (ocrText && ocrText.trim().length > 0) {
+      parts.push({ text: `OCR Text Data:\n${ocrText}` });
+    }
+
+    // 2. Add Image if available (Base64)
+    if (imageBase64 && imageBase64.startsWith('data:')) {
+       const matches = imageBase64.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
        if (matches) {
          parts.push({
            inlineData: {
@@ -35,12 +41,19 @@ export default async function handler(req, res) {
              data: matches[2]
            }
          });
-         parts.push({ text: "Analyze this image and extract transaction details." });
        }
     }
 
-    if (parts.length === 0) {
-      throw new Error("No content provided to analyze");
+    // 3. Add Image URL as context (optional, model might not fetch it but good for logging/context)
+    if (imageUrl) {
+        parts.push({ text: `Reference Image URL: ${imageUrl}` });
+    }
+    
+    // Add instruction
+    parts.push({ text: "Extract transaction details from the above data." });
+
+    if (parts.length <= 1) { // Only instruction exists
+      return res.status(400).json({ error: "No valid text or image provided to analyze." });
     }
 
     const response = await ai.models.generateContent({
@@ -52,7 +65,7 @@ export default async function handler(req, res) {
         responseSchema: {
           type: Type.OBJECT,
           properties: {
-            amount: { type: Type.NUMBER, description: "Transaction amount (positive number)" },
+            amount: { type: Type.NUMBER, description: "Transaction amount" },
             type: { type: Type.STRING, enum: ["INCOME", "EXPENSE"] },
             category: { 
               type: Type.STRING, 
@@ -61,7 +74,7 @@ export default async function handler(req, res) {
                 "Salary", "Transfer", "Entertainment", "Health & Fitness", "Other"
               ]
             },
-            description: { type: Type.STRING, description: "Short description in English or Vietnamese" },
+            description: { type: Type.STRING, description: "Short description" },
             date: { type: Type.STRING, description: "ISO 8601 YYYY-MM-DD" }
           },
           required: ["amount", "type", "category", "description", "date"],
@@ -70,7 +83,7 @@ export default async function handler(req, res) {
     });
 
     const result = response.text;
-    if (!result) throw new Error("No content returned");
+    if (!result) throw new Error("No content returned from AI");
 
     res.status(200).json(JSON.parse(result));
 

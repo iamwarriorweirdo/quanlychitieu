@@ -1,9 +1,9 @@
 import { ParsedTransactionData } from '../types';
 
 export const parseBankNotification = async (
-  input: string, 
-  isImage: boolean = false,
-  imageUrl?: string
+  ocrText: string, 
+  imageBase64?: string | null,
+  imageUrl?: string | null
 ): Promise<ParsedTransactionData> => {
   
   try {
@@ -11,15 +11,21 @@ export const parseBankNotification = async (
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
-        content: input, // Đây sẽ là Text (OCR hoặc nhập tay)
-        isImage,
-        imageUrl // Link ảnh Cloudinary (nếu có)
+        ocrText, 
+        imageBase64,
+        imageUrl 
       })
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      throw new Error(`Server Error: ${errorText}`);
+      // Try to parse JSON error if possible
+      try {
+          const jsonError = JSON.parse(errorText);
+          throw new Error(jsonError.error || errorText);
+      } catch {
+          throw new Error(`Server Error: ${errorText}`);
+      }
     }
 
     const data = await response.json();

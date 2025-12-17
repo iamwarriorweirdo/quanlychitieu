@@ -5,10 +5,9 @@ import { ParsedTransactionData } from '../types';
 import { translations, Language } from '../utils/i18n';
 import Tesseract from 'tesseract.js';
 
-// CẤU HÌNH CLOUDINARY (Bạn nên thay thế bằng thông tin của bạn)
-// Tạo tại: https://cloudinary.com/ -> Settings -> Upload -> Upload presets (Unsigned)
-const CLOUDINARY_UPLOAD_PRESET = 'ml_default'; // Thay bằng preset của bạn
-const CLOUDINARY_CLOUD_NAME = 'demo'; // Thay bằng cloud name của bạn
+// CẤU HÌNH CLOUDINARY (Để demo hoạt động, tôi thêm logic kiểm tra)
+const CLOUDINARY_UPLOAD_PRESET = 'ml_default'; 
+const CLOUDINARY_CLOUD_NAME = 'demo'; 
 
 interface Props {
   isOpen: boolean;
@@ -39,10 +38,48 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
 
   if (!isOpen) return null;
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Hàm nén ảnh để giảm dung lượng trước khi gửi (Max 1024px)
+  const resizeImage = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          let width = img.width;
+          let height = img.height;
+          const MAX_WIDTH = 1024;
+          const MAX_HEIGHT = 1024;
+
+          if (width > height) {
+            if (width > MAX_WIDTH) {
+              height *= MAX_WIDTH / width;
+              width = MAX_WIDTH;
+            }
+          } else {
+            if (height > MAX_HEIGHT) {
+              width *= MAX_HEIGHT / height;
+              height = MAX_HEIGHT;
+            }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx?.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL('image/jpeg', 0.8)); // Nén JPEG chất lượng 80%
+        };
+        img.src = event.target?.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       setImageFile(file);
+      // Hiển thị preview ngay lập tức
       const reader = new FileReader();
       reader.onloadend = () => {
         setSelectedImage(reader.result as string);
@@ -53,8 +90,8 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
 
   const uploadToCloudinary = async (file: File): Promise<string | null> => {
     if (CLOUDINARY_CLOUD_NAME === 'demo') {
-        console.warn("Using demo cloud name. Please configure your own.");
-        return null; // Bỏ qua upload nếu chưa cấu hình
+        console.warn("Using demo cloud name. Skipping upload.");
+        return null; 
     }
     
     const formData = new FormData();
@@ -66,6 +103,7 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
         `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
         { method: 'POST', body: formData }
       );
+      if (!response.ok) return null;
       const data = await response.json();
       return data.secure_url;
     } catch (e) {
@@ -83,26 +121,35 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
     setStatusText(t.auth.processing);
 
     try {
-      let contentToAnalyze = inputText;
+      let ocrTextResult = '';
       let finalImageUrl = undefined;
+      let compressedBase64 = null;
+
+      if (mode === 'text') {
+        ocrTextResult = inputText;
+      }
 
       if (mode === 'image' && imageFile) {
-        // BƯỚC 1: OCR (Nhận diện văn bản)
+        // BƯỚC 0: Nén ảnh (QUAN TRỌNG ĐỂ TRÁNH LỖI 500/PAYLOAD LARGE)
+        setStatusText("Đang xử lý ảnh...");
+        compressedBase64 = await resizeImage(imageFile);
+
+        // BƯỚC 1: OCR với Tesseract
         setStatusText("Đang đọc chữ từ ảnh (OCR)...");
         try {
+          // Sử dụng ảnh đã nén cho OCR để nhanh hơn
           const { data: { text } } = await Tesseract.recognize(
-            imageFile,
-            'eng+vie', // Hỗ trợ tiếng Anh và tiếng Việt
-            { logger: m => console.log(m) }
+            compressedBase64,
+            'eng+vie', 
+            { logger: m => console.log(m) } // Optional: xem log tiến độ
           );
-          contentToAnalyze = text;
-          console.log("OCR Result:", text);
+          ocrTextResult = text;
+          console.log("OCR Success:", text.substring(0, 100) + "...");
         } catch (ocrError) {
-          console.error("OCR Failed:", ocrError);
-          // Nếu OCR lỗi, vẫn tiếp tục để gửi ảnh raw (nếu file nhỏ)
+          console.warn("OCR Failed, falling back to image-only analysis:", ocrError);
         }
 
-        // BƯỚC 2: Upload Cloudinary (Nếu cấu hình)
+        // BƯỚC 2: Upload Cloudinary (Chạy ngầm hoặc song song nếu muốn, ở đây đợi để lấy link)
         setStatusText("Đang lưu trữ ảnh...");
         const uploadedUrl = await uploadToCloudinary(imageFile);
         if (uploadedUrl) {
@@ -110,13 +157,15 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
         }
       }
 
-      // BƯỚC 3: Gửi cho AI phân tích
+      // BƯỚC 3: Gửi cho AI
       setStatusText(t.auth.processing);
-      // Nếu OCR thành công, contentToAnalyze sẽ chứa văn bản -> API xử lý nhẹ hơn
-      // Nếu không, gửi base64 (chỉ khi file nhỏ, nếu không sẽ lỗi 500)
-      const payloadContent = contentToAnalyze || (selectedImage || "");
       
-      const result = await parseBankNotification(payloadContent, mode === 'image', finalImageUrl);
+      // Gửi: Text (nhập tay hoặc OCR) + Ảnh nén (nếu có) + Link ảnh (nếu có)
+      const result = await parseBankNotification(
+        ocrTextResult, 
+        mode === 'image' ? compressedBase64 : null, 
+        finalImageUrl
+      );
       
       onSuccess(result);
       
@@ -200,12 +249,12 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
               
               <div className="mt-3 flex gap-2 text-xs text-slate-500 justify-center">
                  <div className="flex items-center gap-1">
-                    <ScanLine size={12} className="text-indigo-500"/>
-                    <span>Tesseract OCR</span>
+                    <ScanLine size={12} className="text-emerald-500"/>
+                    <span>Tesseract OCR (Auto)</span>
                  </div>
                  <div className="flex items-center gap-1">
-                    <Cloud size={12} className="text-indigo-500"/>
-                    <span>Cloudinary</span>
+                    <Cloud size={12} className="text-sky-500"/>
+                    <span>Cloudinary Backup</span>
                  </div>
               </div>
 
