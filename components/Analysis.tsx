@@ -121,7 +121,7 @@ export const Analysis: React.FC<Props> = ({
                 <span className="text-sm text-slate-500 font-medium">{t.dashboard.income}</span>
                 <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg"><TrendingUp size={16}/></div>
               </div>
-              <p className="text-xl font-bold text-emerald-600">+{stats.income.toLocaleString()} ₫</p>
+              <p className="text-xl font-bold text-emerald-600">+{stats.income.toLocaleString('vi-VN')} ₫</p>
             </div>
             
             <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
@@ -129,7 +129,7 @@ export const Analysis: React.FC<Props> = ({
                 <span className="text-sm text-slate-500 font-medium">{t.dashboard.expense}</span>
                 <div className="p-1.5 bg-rose-50 text-rose-600 rounded-lg"><TrendingDown size={16}/></div>
               </div>
-              <p className="text-xl font-bold text-rose-600">-{stats.expense.toLocaleString()} ₫</p>
+              <p className="text-xl font-bold text-rose-600">-{stats.expense.toLocaleString('vi-VN')} ₫</p>
             </div>
 
             <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
@@ -138,7 +138,7 @@ export const Analysis: React.FC<Props> = ({
                 <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><Wallet size={16}/></div>
               </div>
               <p className={`text-xl font-bold ${stats.balance >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>
-                {stats.balance.toLocaleString()} ₫
+                {stats.balance.toLocaleString('vi-VN')} ₫
               </p>
             </div>
 
@@ -186,7 +186,7 @@ export const Analysis: React.FC<Props> = ({
                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                        ))}
                      </Pie>
-                     <ReTooltip formatter={(value) => `${Number(value).toLocaleString()} ₫`} />
+                     <ReTooltip formatter={(value) => `${Number(value).toLocaleString('vi-VN')} ₫`} />
                      <Legend verticalAlign="bottom" height={36}/>
                    </PieChart>
                  </ResponsiveContainer>
@@ -204,7 +204,7 @@ export const Analysis: React.FC<Props> = ({
                          <Cell key={`cell-${index}`} fill={COLORS[(index + 4) % COLORS.length]} />
                        ))}
                      </Pie>
-                     <ReTooltip formatter={(value) => `${Number(value).toLocaleString()} ₫`} />
+                     <ReTooltip formatter={(value) => `${Number(value).toLocaleString('vi-VN')} ₫`} />
                      <Legend verticalAlign="bottom" height={36}/>
                    </PieChart>
                  </ResponsiveContainer>

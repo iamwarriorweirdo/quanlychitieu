@@ -117,8 +117,8 @@ export const Planning: React.FC<Props> = ({
                  </div>
                  <h3 className="font-bold text-slate-800">{goal.name}</h3>
                  <div className="flex justify-between text-xs text-slate-500 mt-1 mb-3">
-                    <span>{t.planning.current}: {goal.currentAmount.toLocaleString()}</span>
-                    <span>{t.planning.target}: {goal.targetAmount.toLocaleString()}</span>
+                    <span>{t.planning.current}: {goal.currentAmount.toLocaleString('vi-VN')}</span>
+                    <span>{t.planning.target}: {goal.targetAmount.toLocaleString('vi-VN')}</span>
                  </div>
                  <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden mb-3">
                     <div className="h-full bg-indigo-500 rounded-full" style={{ width: `${percent}%` }}></div>
@@ -184,7 +184,7 @@ export const Planning: React.FC<Props> = ({
                          </div>
                          <div className="flex items-center gap-3">
                             <span className="text-sm font-medium text-slate-600">
-                              {actual.toLocaleString()} / <span className="text-slate-400">{budget.amount.toLocaleString()}</span>
+                              {actual.toLocaleString('vi-VN')} / <span className="text-slate-400">{budget.amount.toLocaleString('vi-VN')}</span>
                             </span>
                             <button onClick={() => onDeleteBudget(budget.id)} className="text-slate-300 hover:text-rose-500"><Trash2 size={14}/></button>
                          </div>

@@ -129,7 +129,7 @@ export const Dashboard: React.FC<Props> = ({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="bg-gradient-to-br from-indigo-500 to-violet-600 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200">
             <p className="text-indigo-100 text-sm font-medium mb-1">{searchQuery ? t.dashboard.filteredBalance : t.dashboard.balance}</p>
-            <h3 className="text-3xl font-bold">{stats.balance.toLocaleString()} ₫</h3>
+            <h3 className="text-3xl font-bold">{stats.balance.toLocaleString('vi-VN')} ₫</h3>
             <div className="mt-4 flex items-center gap-2 text-indigo-100 text-xs">
               <Wallet size={14} /> {t.dashboard.available}
             </div>
@@ -143,7 +143,7 @@ export const Dashboard: React.FC<Props> = ({
               <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-full">Income</span>
             </div>
             <p className="text-slate-500 text-sm">{t.dashboard.income}</p>
-            <h3 className="text-2xl font-bold text-slate-800">{stats.income.toLocaleString()} ₫</h3>
+            <h3 className="text-2xl font-bold text-slate-800">{stats.income.toLocaleString('vi-VN')} ₫</h3>
           </div>
 
           <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100">
@@ -154,7 +154,7 @@ export const Dashboard: React.FC<Props> = ({
               <span className="text-xs font-semibold text-rose-600 bg-rose-50 px-2 py-1 rounded-full">Expense</span>
             </div>
             <p className="text-slate-500 text-sm">{t.dashboard.expense}</p>
-            <h3 className="text-2xl font-bold text-slate-800">{stats.expense.toLocaleString()} ₫</h3>
+            <h3 className="text-2xl font-bold text-slate-800">{stats.expense.toLocaleString('vi-VN')} ₫</h3>
           </div>
       </div>
 

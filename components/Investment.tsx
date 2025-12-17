@@ -300,11 +300,11 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
          <div className="bg-gradient-to-br from-slate-800 to-slate-900 rounded-2xl p-6 text-white shadow-xl">
             <p className="text-slate-400 text-sm font-medium mb-1">{t.investment.totalValue}</p>
-            <h3 className="text-3xl font-bold tracking-tight">{totalValue.toLocaleString()} ₫</h3>
+            <h3 className="text-3xl font-bold tracking-tight">{totalValue.toLocaleString('vi-VN')} ₫</h3>
             <div className="mt-4 flex gap-4">
                <div>
                   <span className="text-xs text-slate-400">Invested</span>
-                  <p className="font-semibold">{totalCost.toLocaleString()}</p>
+                  <p className="font-semibold">{totalCost.toLocaleString('vi-VN')}</p>
                </div>
                <div>
                   <span className="text-xs text-slate-400">P/L %</span>
@@ -318,7 +318,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
          <div className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 flex flex-col justify-center items-center text-center">
             <p className="text-slate-500 text-sm font-medium mb-2">{t.investment.totalProfit}</p>
             <h3 className={`text-4xl font-bold ${totalProfit >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-               {totalProfit > 0 ? '+' : ''}{totalProfit.toLocaleString()} ₫
+               {totalProfit > 0 ? '+' : ''}{totalProfit.toLocaleString('vi-VN')} ₫
             </h3>
             <div className={`mt-2 p-1 rounded-full ${totalProfit >= 0 ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
               {totalProfit >= 0 ? <TrendingUp size={24} /> : <TrendingDown size={24} />}
@@ -358,16 +358,16 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
                       <span className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-600">{typeLabel}</span>
                     </td>
                     <td className="p-4 text-sm font-medium text-slate-700">
-                      {inv.quantity.toLocaleString()} <span className="text-slate-400 text-xs">{inv.unit}</span>
+                      {inv.quantity.toLocaleString('vi-VN')} <span className="text-slate-400 text-xs">{inv.unit}</span>
                     </td>
                     <td className="p-4 text-sm">
-                       <div className="font-medium">{inv.currentPrice.toLocaleString()}</div>
-                       <div className="text-xs text-slate-400">Avg: {inv.buyPrice.toLocaleString()}</div>
+                       <div className="font-medium">{inv.currentPrice.toLocaleString('vi-VN')}</div>
+                       <div className="text-xs text-slate-400">Avg: {inv.buyPrice.toLocaleString('vi-VN')}</div>
                     </td>
-                    <td className="p-4 font-bold text-slate-800">{val.toLocaleString()}</td>
+                    <td className="p-4 font-bold text-slate-800">{val.toLocaleString('vi-VN')}</td>
                     <td className="p-4">
                        <div className={`font-bold ${pl >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                         {pl > 0 ? '+' : ''}{pl.toLocaleString()}
+                         {pl > 0 ? '+' : ''}{pl.toLocaleString('vi-VN')}
                        </div>
                        <div className={`text-xs ${plPer >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                          {plPer.toFixed(2)}%
@@ -426,7 +426,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
                    </div>
                    <div className="mt-2 text-[10px] text-amber-600 flex items-center gap-1">
                       <Activity size={10} />
-                      {t.investment.refPrice}: ~{form.unit === 'Chỉ' ? '8,000,000' : '80,000,000'} / {form.unit}
+                      {t.investment.refPrice}: ~{form.unit === 'Chỉ' ? '8.000.000' : '80.000.000'} / {form.unit}
                    </div>
                  </div>
                )}
@@ -468,7 +468,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
                        {t.investment.conversion}:
                     </div>
                     <div className="font-bold text-slate-800 text-sm">
-                       {getEstimatedTotal().toLocaleString()} ₫
+                       {getEstimatedTotal().toLocaleString('vi-VN')} ₫
                     </div>
                  </div>
                )}

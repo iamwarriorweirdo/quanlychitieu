@@ -45,7 +45,7 @@ export const TransactionItem: React.FC<Props> = ({ transaction, onDelete, lang }
       </div>
       <div className="flex items-center gap-4">
         <span className={`font-bold text-lg ${isIncome ? 'text-emerald-600' : 'text-slate-800'}`}>
-          {isIncome ? '+' : '-'}{Math.abs(transaction.amount).toLocaleString()} ₫
+          {isIncome ? '+' : '-'}{Math.abs(transaction.amount).toLocaleString('vi-VN')} ₫
         </span>
         <button 
           onClick={() => onDelete(transaction.id)}
