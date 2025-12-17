@@ -44,7 +44,10 @@ export const translations = {
         all: 'Tất cả',
         day: 'Theo Ngày',
         week: 'Theo Tuần',
-        month: 'Theo Tháng'
+        month: 'Theo Tháng',
+        range: 'Khoảng thời gian',
+        from: 'Từ',
+        to: 'Đến'
       }
     },
     manual: {
@@ -133,7 +136,10 @@ export const translations = {
         all: 'All Time',
         day: 'Daily',
         week: 'Weekly',
-        month: 'Monthly'
+        month: 'Monthly',
+        range: 'Date Range',
+        from: 'From',
+        to: 'To'
       }
     },
     manual: {
@@ -222,7 +228,10 @@ export const translations = {
         all: '全部',
         day: '按日',
         week: '按周',
-        month: '按月'
+        month: '按月',
+        range: '日期范围',
+        from: '从',
+        to: '到'
       }
     },
     manual: {

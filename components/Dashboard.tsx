@@ -4,7 +4,7 @@ import { getTransactions, saveTransaction, deleteTransaction } from '../services
 import { TransactionItem } from './TransactionItem';
 import { AIParserModal } from './AIParserModal';
 import { ManualTransactionModal } from './ManualTransactionModal';
-import { Plus, LogOut, Wallet, TrendingUp, TrendingDown, Wand2, Filter, Search, QrCode, Landmark, CheckCircle2, Loader2, Globe, CalendarDays } from 'lucide-react';
+import { Plus, LogOut, Wallet, TrendingUp, TrendingDown, Wand2, Filter, Search, QrCode, Landmark, CheckCircle2, Loader2, Globe, CalendarDays, ArrowRight } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as ReTooltip, Legend } from 'recharts';
 import { translations, Language } from '../utils/i18n';
 
@@ -15,7 +15,7 @@ interface Props {
   setLang: (lang: Language) => void;
 }
 
-type FilterMode = 'day' | 'week' | 'month' | 'all';
+type FilterMode = 'day' | 'week' | 'month' | 'range' | 'all';
 
 export const Dashboard: React.FC<Props> = ({ user, onLogout, lang, setLang }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -35,6 +35,18 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout, lang, setLang }) =>
   const [filterMode, setFilterMode] = useState<FilterMode>('day');
   const [filterDate, setFilterDate] = useState<string>(() => {
     return new Date().toLocaleDateString('en-CA');
+  });
+  
+  // Range State
+  const [rangeStart, setRangeStart] = useState<string>(() => {
+     // Default start of current month
+     const d = new Date();
+     d.setDate(1);
+     return d.toLocaleDateString('en-CA');
+  });
+  const [rangeEnd, setRangeEnd] = useState<string>(() => {
+     // Default today
+     return new Date().toLocaleDateString('en-CA');
   });
 
   const t = translations[lang];
@@ -100,12 +112,24 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout, lang, setLang }) =>
       
       // 2. Date Filtering
       const txDate = new Date(t.date);
-      const selectedDate = new Date(filterDate);
 
       if (filterMode === 'all') {
         return true;
       }
       
+      if (filterMode === 'range') {
+        // Range comparison (Inclusive)
+        const start = new Date(rangeStart);
+        start.setHours(0, 0, 0, 0);
+        
+        const end = new Date(rangeEnd);
+        end.setHours(23, 59, 59, 999);
+        
+        return txDate >= start && txDate <= end;
+      }
+
+      const selectedDate = new Date(filterDate);
+
       if (filterMode === 'day') {
         // Compare YYYY-MM-DD
         return txDate.toLocaleDateString('en-CA') === filterDate;
@@ -133,7 +157,7 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout, lang, setLang }) =>
 
       return true;
     });
-  }, [transactions, filterDate, filterMode, searchQuery]);
+  }, [transactions, filterDate, filterMode, searchQuery, rangeStart, rangeEnd]);
 
   const stats = useMemo(() => {
     let income = 0;
@@ -257,13 +281,36 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout, lang, setLang }) =>
                    <option value="day">{t.dashboard.filter.day}</option>
                    <option value="week">{t.dashboard.filter.week}</option>
                    <option value="month">{t.dashboard.filter.month}</option>
+                   <option value="range">{t.dashboard.filter.range}</option>
                    <option value="all">{t.dashboard.filter.all}</option>
                  </select>
                  <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
               </div>
 
-              {/* Date Picker (Hidden if 'all' is selected) */}
-              {filterMode !== 'all' && (
+              {/* Dynamic Inputs based on filter mode */}
+              {filterMode === 'range' ? (
+                <div className="flex items-center gap-2 border-l border-slate-200 pl-2">
+                  <div className="flex items-center gap-1 bg-slate-50 px-2 rounded-lg">
+                    <span className="text-xs text-slate-400 font-medium">{t.dashboard.filter.from}</span>
+                    <input 
+                      type="date" 
+                      value={rangeStart}
+                      onChange={(e) => setRangeStart(e.target.value)}
+                      className="outline-none text-slate-600 bg-transparent text-sm font-medium py-2 cursor-pointer w-32"
+                    />
+                  </div>
+                  <ArrowRight size={14} className="text-slate-300" />
+                  <div className="flex items-center gap-1 bg-slate-50 px-2 rounded-lg">
+                    <span className="text-xs text-slate-400 font-medium">{t.dashboard.filter.to}</span>
+                    <input 
+                      type="date" 
+                      value={rangeEnd}
+                      onChange={(e) => setRangeEnd(e.target.value)}
+                      className="outline-none text-slate-600 bg-transparent text-sm font-medium py-2 cursor-pointer w-32"
+                    />
+                  </div>
+                </div>
+              ) : filterMode !== 'all' ? (
                 <div className="relative border-l border-slate-200 pl-2">
                   <input 
                     type="date" 
@@ -272,7 +319,7 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout, lang, setLang }) =>
                     className="outline-none text-slate-600 bg-transparent text-sm font-medium py-2 pl-2 cursor-pointer"
                   />
                 </div>
-              )}
+              ) : null}
             </div>
           </div>
         )}
