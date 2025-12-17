@@ -4,7 +4,7 @@ import { getTransactions, saveTransaction, deleteTransaction } from '../services
 import { TransactionItem } from './TransactionItem';
 import { AIParserModal } from './AIParserModal';
 import { ManualTransactionModal } from './ManualTransactionModal';
-import { Plus, LogOut, Wallet, TrendingUp, TrendingDown, Wand2, Filter, Search, QrCode, Landmark, CheckCircle2, Loader2, Globe } from 'lucide-react';
+import { Plus, LogOut, Wallet, TrendingUp, TrendingDown, Wand2, Filter, Search, QrCode, Landmark, CheckCircle2, Loader2, Globe, CalendarDays } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as ReTooltip, Legend } from 'recharts';
 import { translations, Language } from '../utils/i18n';
 
@@ -14,6 +14,8 @@ interface Props {
   lang: Language;
   setLang: (lang: Language) => void;
 }
+
+type FilterMode = 'day' | 'week' | 'month' | 'all';
 
 export const Dashboard: React.FC<Props> = ({ user, onLogout, lang, setLang }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -29,6 +31,8 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout, lang, setLang }) =>
   const [searchQuery, setSearchQuery] = useState('');
   const [isBankLinked, setIsBankLinked] = useState(false);
   
+  // Filter State
+  const [filterMode, setFilterMode] = useState<FilterMode>('day');
   const [filterDate, setFilterDate] = useState<string>(() => {
     return new Date().toLocaleDateString('en-CA');
   });
@@ -84,6 +88,7 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout, lang, setLang }) =>
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter(t => {
+      // 1. Text Search (Global override)
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         return (
@@ -91,12 +96,44 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout, lang, setLang }) =>
           t.category.toLowerCase().includes(query) ||
           t.amount.toString().includes(query)
         );
-      } else {
-        const txDate = new Date(t.date).toLocaleDateString('en-CA');
-        return txDate === filterDate;
+      } 
+      
+      // 2. Date Filtering
+      const txDate = new Date(t.date);
+      const selectedDate = new Date(filterDate);
+
+      if (filterMode === 'all') {
+        return true;
       }
+      
+      if (filterMode === 'day') {
+        // Compare YYYY-MM-DD
+        return txDate.toLocaleDateString('en-CA') === filterDate;
+      }
+
+      if (filterMode === 'month') {
+        // Compare Month and Year
+        return txDate.getMonth() === selectedDate.getMonth() && 
+               txDate.getFullYear() === selectedDate.getFullYear();
+      }
+
+      if (filterMode === 'week') {
+        // Calculate start (Sunday) and end (Saturday) of the selected week
+        const dayOfWeek = selectedDate.getDay(); // 0 (Sun) - 6 (Sat)
+        const startOfWeek = new Date(selectedDate);
+        startOfWeek.setDate(selectedDate.getDate() - dayOfWeek);
+        startOfWeek.setHours(0, 0, 0, 0);
+
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(startOfWeek.getDate() + 6);
+        endOfWeek.setHours(23, 59, 59, 999);
+
+        return txDate >= startOfWeek && txDate <= endOfWeek;
+      }
+
+      return true;
     });
-  }, [transactions, filterDate, searchQuery]);
+  }, [transactions, filterDate, filterMode, searchQuery]);
 
   const stats = useMemo(() => {
     let income = 0;
@@ -205,16 +242,37 @@ export const Dashboard: React.FC<Props> = ({ user, onLogout, lang, setLang }) =>
       <main className="max-w-4xl mx-auto p-6 space-y-8">
         
         {!searchQuery && (
-          <div className="flex justify-between items-center animate-in fade-in slide-in-from-top-4 duration-300">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
             <h2 className="text-2xl font-bold text-slate-800">{t.dashboard.overview}</h2>
-            <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg shadow-sm border border-slate-200">
-              <Filter size={16} className="text-slate-400" />
-              <input 
-                type="date" 
-                value={filterDate}
-                onChange={(e) => setFilterDate(e.target.value)}
-                className="outline-none text-slate-600 bg-transparent text-sm font-medium"
-              />
+            
+            <div className="flex flex-wrap items-center gap-2 bg-white p-1 rounded-xl shadow-sm border border-slate-200">
+              
+              {/* Filter Mode Selector */}
+              <div className="relative">
+                 <select
+                   value={filterMode}
+                   onChange={(e) => setFilterMode(e.target.value as FilterMode)}
+                   className="appearance-none pl-9 pr-8 py-2 bg-slate-50 hover:bg-slate-100 border border-transparent rounded-lg text-sm font-medium text-slate-700 focus:ring-2 focus:ring-indigo-500 outline-none cursor-pointer transition-colors"
+                 >
+                   <option value="day">{t.dashboard.filter.day}</option>
+                   <option value="week">{t.dashboard.filter.week}</option>
+                   <option value="month">{t.dashboard.filter.month}</option>
+                   <option value="all">{t.dashboard.filter.all}</option>
+                 </select>
+                 <Filter size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 pointer-events-none" />
+              </div>
+
+              {/* Date Picker (Hidden if 'all' is selected) */}
+              {filterMode !== 'all' && (
+                <div className="relative border-l border-slate-200 pl-2">
+                  <input 
+                    type="date" 
+                    value={filterDate}
+                    onChange={(e) => setFilterDate(e.target.value)}
+                    className="outline-none text-slate-600 bg-transparent text-sm font-medium py-2 pl-2 cursor-pointer"
+                  />
+                </div>
+              )}
             </div>
           </div>
         )}

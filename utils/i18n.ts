@@ -27,7 +27,7 @@ export const translations = {
       linkBank: 'Liên kết NH',
       linked: 'Đã liên kết',
       logout: 'Đăng xuất',
-      overview: 'Tổng quan ngày',
+      overview: 'Tổng quan',
       balance: 'Số dư hiện tại',
       income: 'Tổng thu',
       expense: 'Tổng chi',
@@ -40,6 +40,12 @@ export const translations = {
       loading: 'Đang tải...',
       filteredBalance: 'Số dư (Lọc)',
       available: 'Khả dụng',
+      filter: {
+        all: 'Tất cả',
+        day: 'Theo Ngày',
+        week: 'Theo Tuần',
+        month: 'Theo Tháng'
+      }
     },
     manual: {
       title: 'Thêm Giao Dịch Mới',
@@ -110,7 +116,7 @@ export const translations = {
       linkBank: 'Link Bank',
       linked: 'Linked',
       logout: 'Logout',
-      overview: 'Daily Overview',
+      overview: 'Overview',
       balance: 'Current Balance',
       income: 'Total Income',
       expense: 'Total Expense',
@@ -123,6 +129,12 @@ export const translations = {
       loading: 'Loading...',
       filteredBalance: 'Filtered Balance',
       available: 'Available',
+      filter: {
+        all: 'All Time',
+        day: 'Daily',
+        week: 'Weekly',
+        month: 'Monthly'
+      }
     },
     manual: {
       title: 'Add New Transaction',
@@ -193,7 +205,7 @@ export const translations = {
       linkBank: '关联银行',
       linked: '已关联',
       logout: '退出',
-      overview: '每日概览',
+      overview: '概览',
       balance: '当前余额',
       income: '总收入',
       expense: '总支出',
@@ -206,6 +218,12 @@ export const translations = {
       loading: '加载中...',
       filteredBalance: '余额 (筛选)',
       available: '可用',
+      filter: {
+        all: '全部',
+        day: '按日',
+        week: '按周',
+        month: '按月'
+      }
     },
     manual: {
       title: '添加新交易',
