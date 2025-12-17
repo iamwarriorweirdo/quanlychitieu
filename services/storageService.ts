@@ -173,6 +173,21 @@ export const deleteInvestment = async (userId: string, investmentId: string): Pr
   } catch (error) { throw error; }
 };
 
+export const fetchMarketPrices = async (symbols: string[]): Promise<Record<string, number>> => {
+    try {
+        const response = await fetch(`${API_URL}/market`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ symbols })
+        });
+        const data = await handleResponse(response);
+        return data.prices;
+    } catch (e) {
+        console.error("Market fetch failed", e);
+        throw e;
+    }
+};
+
 // Security Services
 export const checkSecurityStatus = async (userId: string): Promise<InvestmentSecurity> => {
     try {

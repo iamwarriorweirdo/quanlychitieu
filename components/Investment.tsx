@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { User, Investment, InvestmentSecurity } from '../types';
 import { translations, Language } from '../utils/i18n';
-import { Lock, Unlock, ShieldCheck, Plus, TrendingUp, TrendingDown, DollarSign, Activity, Trash2, RefreshCw, Settings, X, Calculator, Mail, CheckCircle2, Send, Server, AlertCircle, HelpCircle } from 'lucide-react';
+import { Lock, Unlock, ShieldCheck, Plus, TrendingUp, TrendingDown, DollarSign, Activity, Trash2, RefreshCw, Settings, X, Calculator, Mail, CheckCircle2, Send, Server, AlertCircle, HelpCircle, CloudLightning } from 'lucide-react';
 import { 
   checkSecurityStatus, setupSecurity, verifySecondaryPassword, requestOtp, verifyOtp,
-  getInvestments, saveInvestment, deleteInvestment 
+  getInvestments, saveInvestment, deleteInvestment, fetchMarketPrices 
 } from '../services/storageService';
 
 interface Props {
@@ -44,7 +44,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
   const [investments, setInvestments] = useState<Investment[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
-  const [simulationEnabled, setSimulationEnabled] = useState(false);
+  const [isUpdatingPrices, setIsUpdatingPrices] = useState(false);
   const [form, setForm] = useState<Partial<Investment>>({
     symbol: '', name: '', type: 'Stock', quantity: 0, buyPrice: 0, currentPrice: 0, unit: ''
   });
@@ -56,7 +56,6 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
 
   // 1. Initial Check
   const checkStatus = async () => {
-    // We fetch raw here to get extra fields not in type yet or update type
     try {
         const res = await fetch(`${API_URL}/security`, {
             method: 'POST',
@@ -88,22 +87,6 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
       loadData();
     }
   }, [isLocked, user.id]);
-
-  // 3. Simulation Effect
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (!isLocked && simulationEnabled && investments.length > 0) {
-      interval = setInterval(() => {
-        setInvestments(prev => prev.map(inv => {
-          let change = (Math.random() - 0.5) * 0.02; // Default 2%
-          if (inv.type === 'Gold') change = (Math.random() - 0.5) * 0.005; 
-          const newPrice = inv.currentPrice * (1 + change);
-          return { ...inv, currentPrice: newPrice };
-        }));
-      }, 5000); 
-    }
-    return () => clearInterval(interval);
-  }, [isLocked, simulationEnabled, investments.length]);
 
   // --- Handlers ---
 
@@ -257,6 +240,46 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
     }
   };
 
+  // REAL-TIME PRICE UPDATE HANDLER
+  const handleUpdatePrices = async () => {
+    if (investments.length === 0) return;
+    setIsUpdatingPrices(true);
+    
+    // Get list of unique symbols
+    const symbols = Array.from(new Set(investments.map(i => i.symbol)));
+    
+    try {
+       const prices = await fetchMarketPrices(symbols);
+       
+       // Update Local State with new prices
+       const updatedInvestments = investments.map(inv => {
+           if (prices[inv.symbol]) {
+               return { ...inv, currentPrice: prices[inv.symbol] };
+           }
+           return inv;
+       });
+       
+       setInvestments(updatedInvestments);
+
+       // Ideally, we should save these new prices to DB. 
+       // For now, we update client-side to see effect immediately.
+       // We can trigger background save:
+       updatedInvestments.forEach(inv => {
+           if (prices[inv.symbol]) {
+               saveInvestment(user.id, inv); 
+           }
+       });
+
+       alert("Cập nhật giá thành công từ Google!");
+
+    } catch (err) {
+       console.error(err);
+       alert("Không thể cập nhật giá. Vui lòng thử lại sau.");
+    } finally {
+       setIsUpdatingPrices(false);
+    }
+  };
+
   const totalValue = investments.reduce((sum, i) => sum + (i.quantity * i.currentPrice), 0);
   const totalCost = investments.reduce((sum, i) => sum + (i.quantity * i.buyPrice), 0);
   const totalProfit = totalValue - totalCost;
@@ -330,13 +353,15 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
         <div>
           <h2 className="text-2xl font-bold text-slate-800">{t.investment.title}</h2>
           <div className="flex items-center gap-2 text-sm text-slate-500">
-             <Activity size={14} className={simulationEnabled ? "text-emerald-500 animate-pulse" : ""} />
+             <Activity size={14} className={isUpdatingPrices ? "text-indigo-500 animate-spin" : "text-emerald-500"} />
              <span>{t.investment.marketUpdate}: </span>
              <button 
-               onClick={() => setSimulationEnabled(!simulationEnabled)}
-               className={`font-semibold ${simulationEnabled ? "text-emerald-600" : "text-slate-400"}`}
+               onClick={handleUpdatePrices}
+               disabled={isUpdatingPrices}
+               className={`font-semibold flex items-center gap-1 ${isUpdatingPrices ? "text-indigo-500 cursor-wait" : "text-indigo-600 hover:text-indigo-700 hover:underline"}`}
              >
-               {simulationEnabled ? "ON" : "OFF"}
+               {isUpdatingPrices ? "Updating..." : t.investment.updatePrices}
+               {!isUpdatingPrices && <CloudLightning size={14} />}
              </button>
           </div>
         </div>

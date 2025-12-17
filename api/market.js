@@ -1,0 +1,61 @@
+import { GoogleGenAI, Type } from "@google/genai";
+
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
+
+  const { symbols } = req.body;
+
+  if (!symbols || !Array.isArray(symbols) || symbols.length === 0) {
+    return res.status(400).json({ error: "Missing symbols list" });
+  }
+
+  // Use Gemini with Google Search to get real-time data
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+  try {
+    const prompt = `
+      Find the current market price in VND (Vietnam Dong) for these assets: ${symbols.join(', ')}.
+      
+      Rules:
+      1. For 3-letter tickers (e.g., VIC, VNM, FPT), assume they are Vietnamese Stocks (HOSE/HNX).
+      2. For 'BTC', 'ETH', 'SOL', assume Cryptocurrency.
+      3. For 'Gold', 'Vàng', 'SJC', find the current SJC Gold sell price in VND.
+      4. Convert all prices to VND numbers (integers).
+      
+      Return valid JSON object where keys are the symbols provided and values are the price in VND.
+      Example: { "VIC": 42500, "BTC": 1500000000, "VNM": 68000 }
+    `;
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-2.5-flash',
+      contents: prompt,
+      config: {
+        tools: [{ googleSearch: {} }], // Enable Google Search
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          description: "Map of asset symbols to their prices in VND",
+          properties: symbols.reduce((acc, symbol) => {
+            acc[symbol] = { type: Type.NUMBER };
+            return acc;
+          }, {})
+        }
+      }
+    });
+
+    const resultText = response.text;
+    if (!resultText) throw new Error("No data returned from AI");
+    
+    // Parse JSON
+    const prices = JSON.parse(resultText);
+    
+    // Return prices and sources if available
+    const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
+    
+    res.status(200).json({ prices, sources });
+
+  } catch (error) {
+    console.error("Market API Error:", error);
+    res.status(500).json({ error: "Failed to fetch market data: " + error.message });
+  }
+}
