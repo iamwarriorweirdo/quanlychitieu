@@ -3,7 +3,6 @@ import { GoogleGenAI, Type } from "@google/genai";
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
-  // 1. Explicitly check for API Key and TRIM whitespace (Fixes Vercel/Env issues)
   const apiKey = process.env.API_KEY ? process.env.API_KEY.trim() : null;
 
   if (!apiKey) {
@@ -15,30 +14,30 @@ export default async function handler(req, res) {
   const { ocrText, imageBase64, imageUrl } = req.body;
 
   try {
-    // UPDATED PROMPT: Specific handling for Vietnamese Salary/Income context
+    // UPDATED PROMPT: Extract MULTIPLE transactions
     const systemPrompt = `
-      You are a smart financial assistant specialized in analyzing Vietnamese financial documents (Receipts, Bank SMS, Salary Slips).
-      Task: Extract transaction details from the provided input.
+      You are a smart financial assistant.
+      Task: Extract a list of financial transactions from the provided input (Image/Text).
       
-      CRITICAL LOGIC FOR "TYPE" (INCOME vs EXPENSE):
-      1. **INCOME Detection**:
-         - Keywords: "Lương" (Salary), "Thu nhập", "Cộng", "+", "Báo có", "Nhận tiền", "Tiền về".
-         - **Salary Slips**: If the document contains "Lương cố định", "Tổng thu nhập", or looks like a salary table, classify as **INCOME**.
-         - Even if there are expenses listed in the table, if the main subject is "Salary" (Lương), it is an INCOME transaction.
+      SCENARIO: SUMMARY TABLES (Like the user image):
+      - If you see a table with "Lương" (Salary/Income) and "Tổng Chi" (Total Expense), create TWO separate transactions:
+        1. One INCOME transaction for the Salary amount.
+        2. One EXPENSE transaction for the Total Expense amount.
+      - DO NOT create a transaction for "Dư" (Balance/Remaining), as this is calculated automatically.
       
-      2. **EXPENSE Detection**:
-         - Keywords: "Chi", "Thanh toán", "Trừ", "-", "Hóa đơn" (Bill), "Payment", "Purchase".
-         - Only classify as Expense if it is a payment receipt or deduction notification.
-
-      CRITICAL LOGIC FOR "CATEGORY":
-      - If Type is INCOME and text contains "Lương" or "Salary" -> Category MUST be "Salary".
-      - If "Ăn uống", "Cafe", "Nhà hàng" -> "Food & Dining".
-      - If "Grab", "Be", "Xăng", "Gửi xe" -> "Transportation".
+      SCENARIO: DETAILED LISTS:
+      - If it is a long receipt with many small items, extract them individually if possible.
       
-      General Rules:
-      1. If the date is missing, use today's date (YYYY-MM-DD).
-      2. Amount must be a positive number (Absolute value).
-      3. Return pure JSON only matching the schema.
+      RULES:
+      1. **Type**: Detect based on context. "Lương", "Thu nhập" = INCOME. "Chi", "Mua", "Tổng chi" = EXPENSE.
+      2. **Category**: 
+         - "Lương" -> "Salary"
+         - "Tổng chi" -> "Other" (or infer from context)
+         - "Ăn uống" -> "Food & Dining"
+      3. **Amount**: Must be a positive number.
+      4. **Date**: Use today's date if not found.
+      
+      OUTPUT: Return a JSON **ARRAY** of objects.
     `;
 
     const parts = [];
@@ -63,7 +62,7 @@ export default async function handler(req, res) {
         parts.push({ text: `Reference Image URL: ${imageUrl}` });
     }
     
-    parts.push({ text: "Extract transaction details from the above data." });
+    parts.push({ text: "Extract a list of transactions." });
 
     if (parts.length <= 1) { 
       return res.status(400).json({ error: "No valid text or image provided to analyze." });
@@ -76,21 +75,24 @@ export default async function handler(req, res) {
         systemInstruction: systemPrompt,
         responseMimeType: "application/json",
         responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            amount: { type: Type.NUMBER, description: "Transaction amount" },
-            type: { type: Type.STRING, enum: ["INCOME", "EXPENSE"] },
-            category: { 
-              type: Type.STRING, 
-              enum: [
-                "Food & Dining", "Transportation", "Utilities", "Shopping", 
-                "Salary", "Transfer", "Entertainment", "Health & Fitness", "Other"
-              ]
+          type: Type.ARRAY, // CHANGED TO ARRAY
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              amount: { type: Type.NUMBER, description: "Transaction amount" },
+              type: { type: Type.STRING, enum: ["INCOME", "EXPENSE"] },
+              category: { 
+                type: Type.STRING, 
+                enum: [
+                  "Food & Dining", "Transportation", "Utilities", "Shopping", 
+                  "Salary", "Transfer", "Entertainment", "Health & Fitness", "Other"
+                ]
+              },
+              description: { type: Type.STRING, description: "Short description" },
+              date: { type: Type.STRING, description: "ISO 8601 YYYY-MM-DD" }
             },
-            description: { type: Type.STRING, description: "Short description" },
-            date: { type: Type.STRING, description: "ISO 8601 YYYY-MM-DD" }
-          },
-          required: ["amount", "type", "category", "description", "date"],
+            required: ["amount", "type", "category", "description", "date"],
+          }
         },
       }
     });
@@ -102,7 +104,6 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error("Gemini Parsing Error:", error);
-    // Return the specific error message to frontend so we can trigger fallback
     res.status(500).json({ error: "AI Processing Failed: " + error.message });
   }
 }

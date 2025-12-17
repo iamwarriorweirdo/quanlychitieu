@@ -5,7 +5,7 @@ export const parseBankNotification = async (
   ocrText: string, 
   imageBase64?: string | null,
   imageUrl?: string | null
-): Promise<ParsedTransactionData> => {
+): Promise<ParsedTransactionData[]> => { // Return Array
   
   try {
     const response = await fetch('/api/parse', {
@@ -20,7 +20,6 @@ export const parseBankNotification = async (
 
     if (!response.ok) {
       const errorText = await response.text();
-      // Try to parse JSON error if possible
       try {
           const jsonError = JSON.parse(errorText);
           throw new Error(jsonError.error || errorText);
@@ -30,18 +29,24 @@ export const parseBankNotification = async (
     }
 
     const data = await response.json();
-    return data as ParsedTransactionData;
+    
+    // Ensure we always return an array, even if API somehow returns a single object
+    if (Array.isArray(data)) {
+        return data as ParsedTransactionData[];
+    } else {
+        return [data] as ParsedTransactionData[];
+    }
 
   } catch (error: any) {
     console.warn("AI Parsing Error:", error);
     
-    // FALLBACK: If API fails (Auth error, quota exceeded, etc.) and we have text, use Regex
+    // FALLBACK: Regex Parser (Currently only supports single item extraction)
+    // We wrap it in an array to match the new signature
     if (ocrText && ocrText.trim().length > 0) {
         console.log("Falling back to Offline Regex Parser...");
         const fallbackData = parseWithRegex(ocrText);
-        // Add a flag or note to description so user knows
         fallbackData.description += " (Offline Scan)";
-        return fallbackData;
+        return [fallbackData];
     }
 
     throw new Error(error.message || "Unable to parse transaction.");

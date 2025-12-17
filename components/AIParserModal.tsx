@@ -13,7 +13,7 @@ const CLOUDINARY_CLOUD_NAME = 'demo';
 interface Props {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (data: ParsedTransactionData) => void;
+  onSuccess: (data: ParsedTransactionData[]) => void; // Expect Array
   initialMode?: 'text' | 'image';
   lang: Language;
 }
@@ -142,7 +142,8 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
           const result = parseWithRegex(textToParse);
           result.description += " (Offline Mode)";
           
-          onSuccess(result);
+          // Wrap single result in array for consistency
+          onSuccess([result]);
           onClose();
 
       } catch (err: any) {
@@ -203,13 +204,13 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
       setStatusText(t.auth.processing);
       
       // Gửi: Text (nhập tay hoặc OCR) + Ảnh nén (nếu có) + Link ảnh (nếu có)
-      const result = await parseBankNotification(
+      const results = await parseBankNotification(
         ocrTextResult, 
         mode === 'image' ? compressedBase64 : null, 
         finalImageUrl
       );
       
-      onSuccess(result);
+      onSuccess(results);
       
       // Reset
       setInputText('');
@@ -343,6 +344,5 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
           </div>
         </div>
       </div>
-    </div>
-  );
-};
+    );
+  };

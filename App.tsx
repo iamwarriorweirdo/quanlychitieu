@@ -95,17 +95,28 @@ const App: React.FC = () => {
   }, [user?.id]);
 
   // Transaction Handlers
-  const handleAddTransaction = async (data: ParsedTransactionData) => {
+  const handleAddTransactions = async (dataList: ParsedTransactionData[]) => {
     if (!user) return;
-    const newTx: Transaction = {
-      id: crypto.randomUUID(),
-      userId: user.id,
-      createdAt: Date.now(),
-      ...data
-    };
+    
+    // Process list of transactions (from AI) or single item array (from Manual/Regex)
     try {
-      const updated = await saveTransaction(user.id, newTx);
-      setTransactions(updated);
+      const promises = dataList.map(data => {
+          const newTx: Transaction = {
+            id: crypto.randomUUID(),
+            userId: user.id,
+            createdAt: Date.now(),
+            ...data
+          };
+          return saveTransaction(user.id, newTx);
+      });
+      
+      // Wait for all to save. Note: saveTransaction returns the updated list, 
+      // so we take the result of the last one or refetch. 
+      // For simplicity/safety, we await all then refetch locally or use the last result.
+      const results = await Promise.all(promises);
+      if (results.length > 0) {
+          setTransactions(results[results.length - 1]);
+      }
     } catch (error) {
       alert(t.common.saveFailed);
     }
@@ -533,7 +544,7 @@ const App: React.FC = () => {
       <AIParserModal 
         isOpen={isAiModalOpen} 
         onClose={() => setIsAiModalOpen(false)} 
-        onSuccess={handleAddTransaction} 
+        onSuccess={handleAddTransactions} // CHANGED to handle list
         initialMode={aiModalMode}
         lang={lang}
       />
@@ -541,7 +552,7 @@ const App: React.FC = () => {
       <ManualTransactionModal
         isOpen={isManualModalOpen}
         onClose={() => setIsManualModalOpen(false)}
-        onSave={handleAddTransaction}
+        onSave={(data) => handleAddTransactions([data])} // CHANGED to wrap single in array
         lang={lang}
       />
 
