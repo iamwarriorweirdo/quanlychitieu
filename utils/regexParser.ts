@@ -1,7 +1,19 @@
 import { ParsedTransactionData, TransactionType, Category } from '../types';
 
+// Helper: Xóa dấu tiếng Việt để so sánh chính xác hơn (Lương -> luong)
+function removeVietnameseTones(str: string): string {
+    return str
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/đ/g, 'd').replace(/Đ/g, 'D')
+        .toLowerCase();
+}
+
 export const parseWithRegex = (text: string): ParsedTransactionData => {
-  const normalized = text.toLowerCase();
+  // Chuẩn hóa văn bản: Xóa dấu và chuyển về chữ thường
+  // Ví dụ: "LƯƠNG CỐ ĐỊNH" -> "luong co dinh"
+  const normalized = removeVietnameseTones(text);
+  const originalLower = text.toLowerCase(); // Giữ bản có dấu để check regex số nếu cần
   
   // 1. Find Amount (Try to find patterns like 100.000, 500,000, 1.200.000)
   // Looks for digits followed by . or , and 3 digits (e.g. .000)
@@ -50,41 +62,49 @@ export const parseWithRegex = (text: string): ParsedTransactionData => {
   }
 
   // 3. Guess Category & Type based on Keywords
+  // Mặc định là CHI TIÊU
   let type = TransactionType.EXPENSE;
   let category = Category.OTHER;
   let description = "Quét từ hóa đơn (Offline)";
 
-  // Income keywords
+  // Logic: Nếu tìm thấy từ khóa Thu nhập, đổi Type thành INCOME
+  // Sử dụng chuỗi đã xóa dấu (normalized) để bắt "Lương", "Thưởng", "Cộng"
   if (
       normalized.includes('nhan tien') || 
-      normalized.includes('cộng') || 
+      normalized.includes('cong') || // cộng
       normalized.includes('salary') || 
-      normalized.includes('luong')
+      normalized.includes('luong') || // lương
+      normalized.includes('thu nhap') || // thu nhập
+      normalized.includes('du') || // số dư / dư
+      normalized.includes('tk chinh') // tk chính (thường là biến động số dư dương)
   ) {
       type = TransactionType.INCOME;
       category = Category.SALARY;
+      description = "Thu nhập / Lương (Tự động)";
   }
 
-  // Expense Category Keywords
-  if (normalized.includes('grab') || normalized.includes('be group') || normalized.includes('taxi') || normalized.includes('xang') || normalized.includes('parking')) {
-      category = Category.TRANSPORT;
-      description = "Di chuyển / Xăng xe";
-  }
-  else if (normalized.includes('shopee') || normalized.includes('lazada') || normalized.includes('tiki') || normalized.includes('mart') || normalized.includes('sieu thi') || normalized.includes('circle k')) {
-      category = Category.SHOPPING;
-      description = "Mua sắm";
-  }
-  else if (normalized.includes('dien') || normalized.includes('nuoc') || normalized.includes('internet') || normalized.includes('viettel') || normalized.includes('vnpt')) {
-      category = Category.UTILITIES;
-      description = "Hóa đơn điện/nước/net";
-  }
-  else if (normalized.includes('cafe') || normalized.includes('coffee') || normalized.includes('tea') || normalized.includes('phuc long') || normalized.includes('highland') || normalized.includes('buncha') || normalized.includes('pho ')) {
-      category = Category.FOOD;
-      description = "Ăn uống";
-  }
-  else if (normalized.includes('chuyen tien') || normalized.includes('ck ') || normalized.includes('mb transfer')) {
-       category = Category.TRANSFER;
-       description = "Chuyển khoản";
+  // Expense Category Keywords (Nếu vẫn là Expense thì mới phân loại)
+  if (type === TransactionType.EXPENSE) {
+      if (normalized.includes('grab') || normalized.includes('be group') || normalized.includes('taxi') || normalized.includes('xang') || normalized.includes('parking')) {
+          category = Category.TRANSPORT;
+          description = "Di chuyển / Xăng xe";
+      }
+      else if (normalized.includes('shopee') || normalized.includes('lazada') || normalized.includes('tiki') || normalized.includes('mart') || normalized.includes('sieu thi') || normalized.includes('circle k')) {
+          category = Category.SHOPPING;
+          description = "Mua sắm";
+      }
+      else if (normalized.includes('dien') || normalized.includes('nuoc') || normalized.includes('internet') || normalized.includes('viettel') || normalized.includes('vnpt')) {
+          category = Category.UTILITIES;
+          description = "Hóa đơn điện/nước/net";
+      }
+      else if (normalized.includes('cafe') || normalized.includes('coffee') || normalized.includes('tea') || normalized.includes('phuc long') || normalized.includes('highland') || normalized.includes('buncha') || normalized.includes('pho ')) {
+          category = Category.FOOD;
+          description = "Ăn uống";
+      }
+      else if (normalized.includes('chuyen tien') || normalized.includes('ck ') || normalized.includes('mb transfer')) {
+           category = Category.TRANSFER;
+           description = "Chuyển khoản";
+      }
   }
 
   return {
