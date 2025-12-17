@@ -15,17 +15,30 @@ export default async function handler(req, res) {
   const { ocrText, imageBase64, imageUrl } = req.body;
 
   try {
+    // UPDATED PROMPT: Specific handling for Vietnamese Salary/Income context
     const systemPrompt = `
-      You are a smart financial assistant. 
-      Task: Extract transaction details from the provided input (OCR text and/or receipt image).
-      Identify: Amount, Transaction Type (INCOME/EXPENSE), Category, Description, and Date.
+      You are a smart financial assistant specialized in analyzing Vietnamese financial documents (Receipts, Bank SMS, Salary Slips).
+      Task: Extract transaction details from the provided input.
       
-      Rules:
-      1. If the date is missing, use today's date.
-      2. If category is unclear, choose 'Other'.
-      3. Convert amounts to absolute numbers.
-      4. Detect VIETNAMESE or ENGLISH text.
-      5. Return pure JSON only.
+      CRITICAL LOGIC FOR "TYPE" (INCOME vs EXPENSE):
+      1. **INCOME Detection**:
+         - Keywords: "Lương" (Salary), "Thu nhập", "Cộng", "+", "Báo có", "Nhận tiền", "Tiền về".
+         - **Salary Slips**: If the document contains "Lương cố định", "Tổng thu nhập", or looks like a salary table, classify as **INCOME**.
+         - Even if there are expenses listed in the table, if the main subject is "Salary" (Lương), it is an INCOME transaction.
+      
+      2. **EXPENSE Detection**:
+         - Keywords: "Chi", "Thanh toán", "Trừ", "-", "Hóa đơn" (Bill), "Payment", "Purchase".
+         - Only classify as Expense if it is a payment receipt or deduction notification.
+
+      CRITICAL LOGIC FOR "CATEGORY":
+      - If Type is INCOME and text contains "Lương" or "Salary" -> Category MUST be "Salary".
+      - If "Ăn uống", "Cafe", "Nhà hàng" -> "Food & Dining".
+      - If "Grab", "Be", "Xăng", "Gửi xe" -> "Transportation".
+      
+      General Rules:
+      1. If the date is missing, use today's date (YYYY-MM-DD).
+      2. Amount must be a positive number (Absolute value).
+      3. Return pure JSON only matching the schema.
     `;
 
     const parts = [];
