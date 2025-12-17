@@ -1,5 +1,5 @@
 {
-  "name": "Quản lý chi tiêu",
+  "name": "Quản lý thu nhập",
   "description": "A smart personal finance tracker that uses Gemini AI to automatically parse bank notifications (text or screenshots) into transactions. Supports multiple users and daily summaries.",
   "requestFramePermissions": []
 }

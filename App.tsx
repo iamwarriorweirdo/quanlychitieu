@@ -273,7 +273,7 @@ const App: React.FC = () => {
            <div className="bg-indigo-600 text-white p-2 rounded-lg">
              <Wallet size={24} />
            </div>
-           <h1 className="font-bold text-slate-800 text-lg">FinTrack</h1>
+           <h1 className="font-bold text-slate-800 text-lg">{t.app.title}</h1>
         </div>
 
         <nav className="flex-1 p-4 space-y-2">
