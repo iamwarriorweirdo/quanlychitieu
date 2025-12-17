@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI } from "@google/genai";
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
@@ -22,7 +22,8 @@ export default async function handler(req, res) {
       3. For 'Gold', 'Vàng', 'SJC', find the current SJC Gold sell price in VND.
       4. Convert all prices to VND numbers (integers).
       
-      Return valid JSON object where keys are the symbols provided and values are the price in VND.
+      You MUST return the result as a valid JSON object. Keys are the symbols provided, values are the price in VND (number).
+      Do not wrap in markdown code blocks. Just return the raw JSON string.
       Example: { "VIC": 42500, "BTC": 1500000000, "VNM": 68000 }
     `;
 
@@ -31,23 +32,29 @@ export default async function handler(req, res) {
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }], // Enable Google Search
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          description: "Map of asset symbols to their prices in VND",
-          properties: symbols.reduce((acc, symbol) => {
-            acc[symbol] = { type: Type.NUMBER };
-            return acc;
-          }, {})
-        }
+        // Note: responseMimeType and responseSchema are NOT allowed when using googleSearch tool
       }
     });
 
-    const resultText = response.text;
+    let resultText = response.text;
     if (!resultText) throw new Error("No data returned from AI");
     
-    // Parse JSON
-    const prices = JSON.parse(resultText);
+    // Clean up potential markdown formatting if model ignores instruction
+    resultText = resultText.trim();
+    if (resultText.startsWith('```json')) {
+      resultText = resultText.replace(/^```json/, '').replace(/```$/, '');
+    } else if (resultText.startsWith('```')) {
+      resultText = resultText.replace(/^```/, '').replace(/```$/, '');
+    }
+
+    // Parse JSON manually
+    let prices = {};
+    try {
+        prices = JSON.parse(resultText);
+    } catch (e) {
+        console.error("JSON Parse Error:", resultText);
+        throw new Error("AI returned invalid JSON format.");
+    }
     
     // Return prices and sources if available
     const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
