@@ -110,12 +110,14 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
             if (status.isOtpEnabled && status.email) {
                 // Request OTP from Server
                 setSecurityLoading(true);
-                const res = await requestOtp(user.id); // Send to stored email
-                setSecurityLoading(false);
-                setOtpSent(true);
-                
-                if (res.demoOtpCode) {
-                    alert(`[SIMULATION MODE] OTP: ${res.demoOtpCode}`);
+                try {
+                   await requestOtp(user.id); // Send to stored email
+                   setOtpSent(true);
+                   alert(`Mã OTP đã được gửi đến email ${status.email}. Vui lòng kiểm tra hộp thư.`);
+                } catch (err: any) {
+                   setError(err.message || "Failed to send OTP");
+                } finally {
+                   setSecurityLoading(false);
                 }
             } else {
                 setIsLocked(false);
@@ -152,11 +154,13 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
   const handleSendLinkOtp = async () => {
       if (!linkEmailInput) return;
       setIsLinkingEmail(true);
-      const res = await requestOtp(user.id, linkEmailInput); // Send to NEW email input
-      if (res.demoOtpCode) {
-         alert(`[SIMULATION MODE] OTP: ${res.demoOtpCode}`);
-      } else {
+      setError('');
+      try {
+         await requestOtp(user.id, linkEmailInput); // Send to NEW email input
          alert(t.investment.otpSent);
+      } catch (err: any) {
+         setIsLinkingEmail(false);
+         alert(err.message || "Failed to send OTP");
       }
   };
 
