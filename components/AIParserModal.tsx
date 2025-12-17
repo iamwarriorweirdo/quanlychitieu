@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Upload, Wand2, Loader2, Image as ImageIcon, Type, ScanLine, Cloud } from 'lucide-react';
+import { X, Upload, Wand2, Loader2, Image as ImageIcon, Type, ScanLine, Cloud, Zap } from 'lucide-react';
 import { parseBankNotification } from '../services/geminiService';
 import { ParsedTransactionData } from '../types';
 import { translations, Language } from '../utils/i18n';
+import { parseWithRegex } from '../utils/regexParser';
 import Tesseract from 'tesseract.js';
 
 // CẤU HÌNH CLOUDINARY (Để demo hoạt động, tôi thêm logic kiểm tra)
@@ -110,6 +111,47 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
       console.error("Cloudinary Upload Error:", e);
       return null;
     }
+  };
+
+  // Hàm xử lý Offline (Regex + OCR Client side)
+  const handleOfflineExtract = async () => {
+      if (mode === 'text' && !inputText.trim()) return;
+      if (mode === 'image' && !imageFile) return;
+
+      setIsLoading(true);
+      setError(null);
+      setStatusText("Đang xử lý Offline (Không dùng Server)...");
+
+      try {
+          let textToParse = inputText;
+
+          if (mode === 'image' && imageFile) {
+              setStatusText("Đang đọc chữ từ ảnh (OCR)...");
+              const compressedBase64 = await resizeImage(imageFile);
+              const { data: { text } } = await Tesseract.recognize(
+                  compressedBase64,
+                  'eng+vie',
+                  { logger: m => console.log(m) }
+              );
+              textToParse = text;
+          }
+
+          if (!textToParse) throw new Error("Không tìm thấy văn bản để xử lý.");
+
+          setStatusText("Đang phân tích dữ liệu...");
+          const result = parseWithRegex(textToParse);
+          result.description += " (Offline Mode)";
+          
+          onSuccess(result);
+          onClose();
+
+      } catch (err: any) {
+          console.error(err);
+          setError("Lỗi Offline: " + (err.message || "Không thể xử lý."));
+      } finally {
+          setIsLoading(false);
+          setStatusText('');
+      }
   };
 
   const handleProcess = async () => {
@@ -269,21 +311,36 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
             </div>
           )}
 
-          <button
-            onClick={handleProcess}
-            disabled={isLoading || (mode === 'text' && !inputText) || (mode === 'image' && !selectedImage)}
-            className="w-full mt-6 py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-200"
-          >
-            {isLoading ? (
-              <>
-                <Loader2 className="animate-spin" /> {statusText || t.auth.processing}
-              </>
-            ) : (
-              <>
-                <Wand2 size={18} /> {t.modal.extract}
-              </>
-            )}
-          </button>
+          <div className="flex flex-col gap-3 mt-6">
+              <button
+                onClick={handleProcess}
+                disabled={isLoading || (mode === 'text' && !inputText) || (mode === 'image' && !selectedImage)}
+                className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white rounded-xl font-medium transition-all flex items-center justify-center gap-2 shadow-lg shadow-indigo-200"
+              >
+                {isLoading && !statusText.includes("Offline") ? (
+                  <>
+                    <Loader2 className="animate-spin" /> {statusText || t.auth.processing}
+                  </>
+                ) : (
+                  <>
+                    <Wand2 size={18} /> {t.modal.extract} (AI Server)
+                  </>
+                )}
+              </button>
+
+              <button
+                onClick={handleOfflineExtract}
+                disabled={isLoading || (mode === 'text' && !inputText) || (mode === 'image' && !selectedImage)}
+                className="w-full py-2 bg-slate-100 hover:bg-slate-200 disabled:bg-slate-50 text-slate-700 rounded-xl font-medium transition-all flex items-center justify-center gap-2 text-sm"
+              >
+                 {isLoading && statusText.includes("Offline") ? (
+                     <Loader2 className="animate-spin w-4 h-4" /> 
+                 ) : (
+                     <Zap size={16} className="text-amber-500" /> 
+                 )}
+                 Quét Offline (Không dùng Server)
+              </button>
+          </div>
         </div>
       </div>
     </div>

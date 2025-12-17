@@ -3,13 +3,15 @@ import { GoogleGenAI, Type } from "@google/genai";
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
-  // 1. Explicitly check for API Key
-  if (!process.env.API_KEY) {
+  // 1. Explicitly check for API Key and TRIM whitespace (Fixes Vercel/Env issues)
+  const apiKey = process.env.API_KEY ? process.env.API_KEY.trim() : null;
+
+  if (!apiKey) {
     console.error("Server Error: Missing API_KEY environment variable.");
     return res.status(500).json({ error: "Server Configuration Error: API_KEY is missing. Please check .env file." });
   }
 
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const ai = new GoogleGenAI({ apiKey: apiKey });
   const { ocrText, imageBase64, imageUrl } = req.body;
 
   try {

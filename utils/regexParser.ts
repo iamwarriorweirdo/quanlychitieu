@@ -6,16 +6,16 @@ export const parseWithRegex = (text: string): ParsedTransactionData => {
   // 1. Find Amount (Try to find patterns like 100.000, 500,000, 1.200.000)
   // Looks for digits followed by . or , and 3 digits (e.g. .000)
   const amountRegex = /\b\d{1,3}(?:[.,]\d{3})+(?:\s?[đdĐ]|\s?VND)?\b/gi; 
-  const potentialAmounts = text.match(amountRegex) || [];
+  const potentialAmounts: string[] = text.match(amountRegex) || [];
   
   // Also look for plain large numbers
   const plainNumberRegex = /\b\d{4,10}\b/g;
-  const plainNumbers = text.match(plainNumberRegex) || [];
+  const plainNumbers: string[] = text.match(plainNumberRegex) || [];
 
   let maxAmount = 0;
 
   // Process formatted amounts
-  potentialAmounts.forEach(str => {
+  potentialAmounts.forEach((str) => {
      // Remove non-digit characters to parse
      const cleanStr = str.replace(/[^\d]/g, '');
      const num = parseFloat(cleanStr);
@@ -24,7 +24,7 @@ export const parseWithRegex = (text: string): ParsedTransactionData => {
 
   // Process plain numbers if no formatted amount found or to compare
   if (maxAmount === 0) {
-      plainNumbers.forEach(str => {
+      plainNumbers.forEach((str) => {
           const num = parseFloat(str);
           if (!isNaN(num) && num > maxAmount) maxAmount = num;
       });

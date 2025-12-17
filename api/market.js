@@ -9,8 +9,13 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Missing symbols list" });
   }
 
-  // Use Gemini with Google Search to get real-time data
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  // Fix: Trim API Key to avoid MetadataLookupWarning
+  const apiKey = process.env.API_KEY ? process.env.API_KEY.trim() : null;
+  if (!apiKey) {
+      return res.status(500).json({ error: "Server Error: Missing API_KEY" });
+  }
+
+  const ai = new GoogleGenAI({ apiKey: apiKey });
 
   try {
     const prompt = `
