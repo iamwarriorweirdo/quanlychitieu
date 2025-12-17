@@ -3,10 +3,12 @@ import { GoogleGenAI, Type } from "@google/genai";
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).send('Method Not Allowed');
 
-  // Increase limit for this specific route if using body-parser manually, 
-  // but mostly relying on Vercel's config. 
-  // Note: Vercel serverless functions have a payload limit (usually 4.5MB).
-  
+  // 1. Explicitly check for API Key
+  if (!process.env.API_KEY) {
+    console.error("Server Error: Missing API_KEY environment variable.");
+    return res.status(500).json({ error: "Server Configuration Error: API_KEY is missing. Please check .env file." });
+  }
+
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   const { ocrText, imageBase64, imageUrl } = req.body;
 
@@ -26,12 +28,10 @@ export default async function handler(req, res) {
 
     const parts = [];
 
-    // 1. Add OCR Text if available
     if (ocrText && ocrText.trim().length > 0) {
       parts.push({ text: `OCR Text Data:\n${ocrText}` });
     }
 
-    // 2. Add Image if available (Base64)
     if (imageBase64 && imageBase64.startsWith('data:')) {
        const matches = imageBase64.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
        if (matches) {
@@ -44,15 +44,13 @@ export default async function handler(req, res) {
        }
     }
 
-    // 3. Add Image URL as context (optional, model might not fetch it but good for logging/context)
     if (imageUrl) {
         parts.push({ text: `Reference Image URL: ${imageUrl}` });
     }
     
-    // Add instruction
     parts.push({ text: "Extract transaction details from the above data." });
 
-    if (parts.length <= 1) { // Only instruction exists
+    if (parts.length <= 1) { 
       return res.status(400).json({ error: "No valid text or image provided to analyze." });
     }
 
@@ -89,6 +87,7 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error("Gemini Parsing Error:", error);
+    // Return the specific error message to frontend so we can trigger fallback
     res.status(500).json({ error: "AI Processing Failed: " + error.message });
   }
 }
