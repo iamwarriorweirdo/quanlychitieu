@@ -3,7 +3,7 @@ export type Language = 'vi' | 'en' | 'zh';
 export const translations = {
   vi: {
     app: {
-      title: 'Quản Lý Chi Tiêu',
+      title: 'Quản lý thu nhập',
       subtitle: 'Theo dõi tài chính thông minh',
       connecting: 'Đang kết nối cơ sở dữ liệu...',
     },
@@ -109,7 +109,7 @@ export const translations = {
   },
   en: {
     app: {
-      title: 'Finance Manager',
+      title: 'Income Manager',
       subtitle: 'Smart Financial Tracking',
       connecting: 'Connecting to database...',
     },
@@ -215,7 +215,7 @@ export const translations = {
   },
   zh: {
     app: {
-      title: '财务管家',
+      title: '收入管理',
       subtitle: '智能财务追踪',
       connecting: '正在连接数据库...',
     },
@@ -241,82 +241,4 @@ export const translations = {
     dashboard: {
       search: '搜索交易...',
       scanQR: '扫描收据',
-      linkBank: '关联银行',
-      linked: '已关联',
-      logout: '退出',
-      overview: '概览',
-      balance: '当前余额',
-      income: '总收入',
-      expense: '总支出',
-      chartTitle: '支出明细',
-      history: '交易历史',
-      quickAdd: '添加交易',
-      noTx: '未找到交易',
-      noTxSub: '尝试手动添加或使用AI扫描。',
-      aiScan: 'AI 扫描',
-      loading: '加载中...',
-      filteredBalance: '余额 (筛选)',
-      available: '可用',
-      filter: {
-        all: '全部',
-        day: '按日',
-        week: '按周',
-        month: '按月',
-        range: '日期范围',
-        from: '从',
-        to: '到'
-      }
-    },
-    analysis: {
-      title: '财务分析',
-      netIncome: '净收入',
-      savingsRate: '储蓄率',
-      expenseRatio: '支出比率',
-      incomeBreakdown: '收入明细',
-      expenseBreakdown: '支出明细',
-      noData: '在此期间没有数据',
-    },
-    manual: {
-      title: '添加新交易',
-      amount: '金额',
-      type: '交易类型',
-      income: '收入',
-      expense: '支出',
-      category: '类别',
-      date: '日期',
-      time: '时间',
-      note: '备注 / 原因',
-      save: '保存交易',
-      cancel: '取消'
-    },
-    modal: {
-      title: 'AI 助手',
-      subtitle: '粘贴短信或上传收据以自动填写详情。',
-      textMode: '文本 / 短信',
-      imageMode: '收据 / 二维码',
-      paste: '在此粘贴银行通知...',
-      upload: '上传图片',
-      remove: '移除图片',
-      extract: '提取数据',
-      error: '无法处理内容。请重试。',
-    },
-    categories: {
-      'Food & Dining': '餐饮',
-      'Transportation': '交通',
-      'Utilities': '水电费',
-      'Shopping': '购物',
-      'Salary': '工资',
-      'Transfer': '转账',
-      'Entertainment': '娱乐',
-      'Health & Fitness': '健康',
-      'Other': '其他',
-    },
-    common: {
-      deleteConfirm: '确定要删除此交易吗？',
-      deleteFailed: '删除失败。',
-      saveFailed: '保存失败。',
-      enterDesc: '输入交易描述：',
-      enterAmount: '输入金额：',
-    }
-  }
-};
+      linkBank: '关联
