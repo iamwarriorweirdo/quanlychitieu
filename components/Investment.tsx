@@ -247,7 +247,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
     setIsUpdatingPrices(true);
     
     // Get list of unique symbols
-    // Fix: Explicitly cast to string[] to resolve 'unknown[]' inference issue which was causing a type mismatch in fetchMarketPrices call
+    // Fix: Explicitly cast to string[] to resolve 'unknown[]' inference issue
     const symbols = Array.from(new Set(investments.map(i => i.symbol))) as string[];
     
     try {
@@ -263,9 +263,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
        
        setInvestments(updatedInvestments);
 
-       // Ideally, we should save these new prices to DB. 
-       // For now, we update client-side to see effect immediately.
-       // We can trigger background save:
+       // background save:
        updatedInvestments.forEach(inv => {
            if (prices[inv.symbol]) {
                saveInvestment(user.id, inv); 
@@ -428,7 +426,8 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
                 const plPer = cost > 0 ? (pl / cost) * 100 : 0;
                 
                 // Get display text from types map
-                const typeLabel = t.investment.types[inv.type] || inv.type;
+                // Add casting to satisfy index access on record
+                const typeLabel = (t.investment.types as Record<string, string>)[inv.type] || inv.type;
 
                 return (
                   <tr key={inv.id} className="hover:bg-slate-50 transition-colors">
@@ -482,7 +481,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
                  onChange={e => setForm({...form, type: e.target.value as any})}
                >
                  {Object.entries(t.investment.types).map(([key, label]) => (
-                   <option key={key} value={key}>{label}</option>
+                   <option key={key} value={key}>{label as React.ReactNode}</option>
                  ))}
                </select>
 
@@ -562,7 +561,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
         </div>
       )}
 
-      {/* Modal: Security Settings (Revamped for Gmail Linking & Sender Config) */}
+      {/* Modal: Security Settings */}
       {isSecurityModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="bg-white rounded-2xl w-full max-w-sm p-6 max-h-[90vh] overflow-y-auto">
@@ -586,7 +585,6 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
                     {currentEmail && <CheckCircle2 size={16} className="text-emerald-500 ml-auto" />}
                  </div>
 
-                 {/* Input Area */}
                  <div className="space-y-2">
                     {!isLinkingEmail ? (
                         <div className="flex gap-2">
@@ -624,7 +622,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
                  </div>
               </div>
               
-              {/* SECTION: SMTP Config (Sender) - Only show if toggle or if needed */}
+              {/* SECTION: SMTP Config (Sender) */}
               <div className="bg-slate-50 p-4 rounded-xl border border-slate-200">
                  <button 
                     onClick={() => setShowSmtpConfig(!showSmtpConfig)}

@@ -11,15 +11,14 @@ export default async function handler(req, res) {
 
     const sql = neon(process.env.DATABASE_URL);
     const body = req.body || {};
-    const { username, password } = body; // 'username' here acts as the general identifier (can be email or phone)
+    const { username, password } = body;
 
     if (!username || !password) {
       return res.status(400).json({ error: "Missing identifier or password" });
     }
 
-    // Search by username, email, or phone
     const users = await sql`
-      SELECT id, username, password, email, phone 
+      SELECT id, username, password, email, phone, role 
       FROM users 
       WHERE username = ${username} 
          OR email = ${username} 
@@ -28,13 +27,13 @@ export default async function handler(req, res) {
 
     if (users.length > 0) {
       const user = users[0];
-      // In a real production app, passwords should be hashed (e.g., with bcrypt)
       if (user.password === password) {
         return res.status(200).json({ 
           id: user.id, 
           username: user.username,
           email: user.email,
-          phone: user.phone
+          phone: user.phone,
+          role: user.role
         });
       }
     }

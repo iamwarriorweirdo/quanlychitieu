@@ -1,3 +1,4 @@
+
 export enum TransactionType {
   INCOME = 'INCOME',
   EXPENSE = 'EXPENSE'
@@ -32,6 +33,7 @@ export interface User {
   password?: string;
   email?: string;
   phone?: string;
+  role?: 'admin' | 'user';
 }
 
 export interface ParsedTransactionData {
