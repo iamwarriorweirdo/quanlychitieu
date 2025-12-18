@@ -25,7 +25,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // 2. Setup Security & SYNC Email to Users Table
+    // 2. Setup Security (Secondary Password & Target Email)
     if (action === 'setup') {
         const isOtp = !!email;
         const existing = await sql`SELECT user_id FROM investment_security WHERE user_id = ${userId}`;
@@ -42,7 +42,6 @@ export default async function handler(req, res) {
                     SET email = ${email}, is_otp_enabled = TRUE
                     WHERE user_id = ${userId}
                  `;
-                 // CRITICAL: SYNC TO USERS TABLE for Login capability
                  await sql`
                     UPDATE users 
                     SET email = ${email}
@@ -60,9 +59,26 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true });
     }
 
-    // 3. Request OTP
+    // 3. Setup SMTP (Sender Configuration)
+    if (action === 'setup_smtp') {
+        const existing = await sql`SELECT user_id FROM investment_security WHERE user_id = ${userId}`;
+        if (existing.length === 0) {
+             await sql`
+                INSERT INTO investment_security (user_id, secondary_password, smtp_email, smtp_password)
+                VALUES (${userId}, 'default123', ${smtpEmail}, ${smtpPassword})
+            `;
+        } else {
+            await sql`
+                UPDATE investment_security 
+                SET smtp_email = ${smtpEmail}, smtp_password = ${smtpPassword}
+                WHERE user_id = ${userId}
+            `;
+        }
+        return res.status(200).json({ success: true });
+    }
+
+    // 4. Request OTP
     if (action === 'request_otp') {
-        // Find recipient email
         let emailToSend = targetEmail; 
         if (!emailToSend) {
             const secRows = await sql`SELECT email FROM investment_security WHERE user_id = ${userId}`;
@@ -76,7 +92,6 @@ export default async function handler(req, res) {
 
         if (!emailToSend) return res.status(400).json({ error: "Không tìm thấy Email để gửi OTP. Vui lòng liên kết Gmail trước." });
 
-        // Sender Config (System or Custom)
         let senderUser = process.env.EMAIL_USER;
         let senderPass = process.env.EMAIL_PASS;
         
@@ -114,11 +129,11 @@ export default async function handler(req, res) {
             return res.status(200).json({ success: true });
         } catch (e) {
             console.error(e);
-            return res.status(500).json({ error: "Lỗi gửi Email. Hãy đảm bảo bạn đã dùng 'Mật khẩu ứng dụng' Gmail thay vì mật khẩu thông thường." });
+            return res.status(500).json({ error: "Lỗi gửi Email. Hãy đảm bảo bạn dùng 'Mật khẩu ứng dụng' Gmail." });
         }
     }
 
-    // 4. Verify OTP
+    // 5. Verify OTP
     if (action === 'verify_otp') {
         const rows = await sql`SELECT otp_code FROM investment_security WHERE user_id = ${userId}`;
         if (rows.length > 0 && rows[0].otp_code === otp) {
@@ -128,7 +143,7 @@ export default async function handler(req, res) {
         return res.status(401).json({ error: "Mã OTP không chính xác" });
     }
 
-    // 5. Verify Password
+    // 6. Verify Password
     if (action === 'verify_password') {
         const rows = await sql`SELECT secondary_password FROM investment_security WHERE user_id = ${userId}`;
         if (rows.length > 0 && rows[0].secondary_password === password) return res.status(200).json({ success: true });
