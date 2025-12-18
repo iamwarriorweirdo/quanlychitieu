@@ -29,6 +29,9 @@ export default async function handler(req, res) {
     if (!payload) throw new Error("Payload trống.");
 
     const { sub: googleId, email, name, picture } = payload;
+    
+    // Kiểm tra xem đây có phải là tài khoản Admin chỉ định không
+    const isAdminEmail = email === 'tdt19092004@gmail.com';
 
     // Tìm hoặc tạo người dùng
     let users = await sql`SELECT * FROM users WHERE google_id = ${googleId} OR email = ${email} LIMIT 1`;
@@ -36,13 +39,22 @@ export default async function handler(req, res) {
 
     if (users.length === 0) {
       const newId = crypto.randomUUID();
+      const role = isAdminEmail ? 'admin' : 'user';
+      
       await sql`
         INSERT INTO users (id, username, email, role, google_id, avatar, password)
-        VALUES (${newId}, ${name}, ${email}, 'user', ${googleId}, ${picture}, ${crypto.randomUUID()})
+        VALUES (${newId}, ${name}, ${email}, ${role}, ${googleId}, ${picture}, ${crypto.randomUUID()})
       `;
-      user = { id: newId, username: name, email, role: 'user', avatar: picture, googleId };
+      user = { id: newId, username: name, email, role: role, avatar: picture, googleId };
     } else {
       user = users[0];
+      
+      // Nếu là email admin nhưng role hiện tại chưa phải admin thì cập nhật ngay
+      if (isAdminEmail && user.role !== 'admin') {
+        await sql`UPDATE users SET role = 'admin' WHERE id = ${user.id}`;
+        user.role = 'admin';
+      }
+
       if (!user.google_id || user.avatar !== picture) {
         await sql`UPDATE users SET google_id = ${googleId}, avatar = ${picture} WHERE id = ${user.id}`;
       }
@@ -53,7 +65,6 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error("GOOGLE AUTH VERIFICATION FAILED:", error.message);
-    console.error("Used Client ID at Server:", SERVER_CLIENT_ID);
-    return res.status(401).json({ error: "Xác thực Google thất bại. Hãy kiểm tra Client ID ở cả Frontend và Backend." });
+    return res.status(401).json({ error: "Xác thực Google thất bại." });
   }
 }
