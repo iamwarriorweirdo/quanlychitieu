@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { User, Investment, InvestmentSecurity } from '../types';
 import { translations, Language } from '../utils/i18n';
-import { Lock, Unlock, ShieldCheck, Plus, TrendingUp, TrendingDown, DollarSign, Activity, Trash2, RefreshCw, Settings, X, Calculator, Mail, CheckCircle2, Send, Server, AlertCircle, HelpCircle, CloudLightning, ExternalLink, Key, ShieldAlert } from 'lucide-react';
+import { Lock, Unlock, ShieldCheck, Plus, TrendingUp, TrendingDown, DollarSign, Activity, Trash2, RefreshCw, Settings, X, Calculator, Mail, CheckCircle2, Send, Server, AlertCircle, HelpCircle, CloudLightning, ExternalLink, Key, ShieldAlert, BarChart3, Briefcase } from 'lucide-react';
 import { 
   checkSecurityStatus, setupSecurity, verifySecondaryPassword, requestOtp, verifyOtp,
   getInvestments, saveInvestment, deleteInvestment, fetchMarketPrices 
@@ -47,6 +47,8 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
   const [isUpdatingPrices, setIsUpdatingPrices] = useState(false);
+  
+  // Form State for Adding Asset
   const [form, setForm] = useState<Partial<Investment>>({
     symbol: '', name: '', type: 'Stock', quantity: 0, buyPrice: 0, currentPrice: 0, unit: ''
   });
@@ -138,7 +140,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
   const handleSaveSmtp = async () => {
       const cleanPass = smtpPass.trim().replace(/\s/g, '');
       if(!smtpEmail || !cleanPass) return alert("Vui lòng nhập đầy đủ Email và Mật khẩu ứng dụng.");
-      if(cleanPass.length !== 16) return alert("Lỗi: Mật khẩu ứng dụng Google phải có đúng 16 ký tự viết liền. Bạn đang nhập " + cleanPass.length + " ký tự.");
+      if(cleanPass.length !== 16) return alert("Lỗi: Mật khẩu ứng dụng Google phải có đúng 16 ký tự viết liền.");
 
       try {
         const res = await fetch(`${API_URL}/security`, {
@@ -147,7 +149,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
             body: JSON.stringify({ action: 'setup_smtp', userId: user.id, smtpEmail, smtpPassword: cleanPass })
         });
         if(!res.ok) throw new Error("Failed to save");
-        alert("Cấu hình thành công! Hãy thử gửi lại OTP.");
+        alert("Cấu hình thành công!");
         setShowSmtpConfig(false);
         checkStatus();
       } catch(e) {
@@ -155,69 +157,34 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
       }
   };
 
-  const handleSendLinkOtp = async () => {
-      if (!linkEmailInput) return;
-      setIsLinkingEmail(true);
-      setError('');
-      try {
-         await requestOtp(user.id, linkEmailInput);
-         setIsWaitingOtp(true);
-         alert(t.investment.otpSent);
-      } catch (err: any) {
-         setError(err.message);
-         alert(err.message);
-         if (err.message && (err.message.includes("cấu hình") || err.message.includes("xác thực"))) {
-             setIsSecurityModalOpen(true);
-             setShowSmtpConfig(true);
-         }
-      } finally {
-         setIsLinkingEmail(false);
-      }
-  };
-
-  const handleVerifyLinkOtp = async () => {
-      const isValid = await verifyOtp(user.id, linkOtpInput);
-      if (isValid) {
-          await setupSecurity(user.id, undefined, linkEmailInput);
-          setCurrentEmail(linkEmailInput);
-          setIsWaitingOtp(false);
-          setLinkOtpInput('');
-          alert("Liên kết thành công!");
-          checkStatus();
-      } else {
-          alert("Mã OTP không chính xác.");
-      }
-  };
-
-  const handleUpdatePassword = async () => {
-    if (!newPassword) return alert("Vui lòng nhập mật khẩu mới.");
-    try {
-      await setupSecurity(user.id, newPassword);
-      alert("Đổi mật khẩu cấp 2 thành công!");
-      setNewPassword('');
-    } catch (e) {
-      alert("Đổi mật khẩu thất bại.");
-    }
-  };
-
   const handleSave = async () => {
-    if (!form.symbol || !form.quantity || !form.buyPrice) return;
-    const newInv: Investment = {
-      id: crypto.randomUUID(),
-      userId: user.id,
-      symbol: form.symbol!,
-      name: form.name || form.symbol!,
-      type: form.type as any,
-      quantity: Number(form.quantity),
-      unit: form.unit,
-      buyPrice: Number(form.buyPrice),
-      currentPrice: Number(form.currentPrice || form.buyPrice),
-      date: new Date().toISOString()
-    };
-    const updated = await saveInvestment(user.id, newInv);
-    setInvestments(updated);
-    setIsModalOpen(false);
-    setForm({ symbol: '', name: '', type: 'Stock', quantity: 0, buyPrice: 0, currentPrice: 0, unit: '' });
+    if (!form.symbol || !form.quantity || !form.buyPrice) {
+      alert("Vui lòng nhập đầy đủ các thông tin bắt buộc.");
+      return;
+    }
+    
+    try {
+      const newInv: Investment = {
+        id: crypto.randomUUID(),
+        userId: user.id,
+        symbol: form.symbol!.toUpperCase(),
+        name: form.name || form.symbol!,
+        type: form.type as any,
+        quantity: Number(form.quantity),
+        unit: form.unit || '',
+        buyPrice: Number(form.buyPrice),
+        currentPrice: Number(form.currentPrice || form.buyPrice),
+        date: new Date().toISOString()
+      };
+      
+      const updated = await saveInvestment(user.id, newInv);
+      setInvestments(updated);
+      setIsModalOpen(false);
+      setForm({ symbol: '', name: '', type: 'Stock', quantity: 0, buyPrice: 0, currentPrice: 0, unit: '' });
+      alert("Đã thêm tài sản mới.");
+    } catch (e) {
+      alert("Không thể lưu tài sản.");
+    }
   };
 
   const handleDelete = async (id: string) => {
@@ -238,12 +205,61 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
            return inv;
        });
        setInvestments(updatedInvestments);
-       updatedInvestments.forEach(inv => { if (prices[inv.symbol]) saveInvestment(user.id, inv); });
+       // Save each updated price to DB
+       for (const inv of updatedInvestments) {
+          if (prices[inv.symbol]) await saveInvestment(user.id, inv);
+       }
        alert("Cập nhật giá thành công!");
     } catch (err) {
-       alert("Không thể cập nhật giá.");
+       alert("Không thể cập nhật giá tự động.");
     } finally {
        setIsUpdatingPrices(false);
+    }
+  };
+
+  // Fixed missing handleSendLinkOtp function
+  const handleSendLinkOtp = async () => {
+    if (!linkEmailInput || !linkEmailInput.includes('@')) {
+      alert("Vui lòng nhập email hợp lệ.");
+      return;
+    }
+    setIsLinkingEmail(true);
+    try {
+      const res = await requestOtp(user.id, linkEmailInput);
+      if (res.success) {
+        setIsWaitingOtp(true);
+        alert("Mã xác thực đã được gửi đến email mới.");
+      } else {
+        alert(res.error || "Gửi OTP thất bại.");
+      }
+    } catch (err: any) {
+      alert(err.message || "Lỗi gửi OTP");
+    } finally {
+      setIsLinkingEmail(false);
+    }
+  };
+
+  // Fixed missing handleVerifyLinkOtp function
+  const handleVerifyLinkOtp = async () => {
+    if (linkOtpInput.length !== 6) {
+      alert("Mã OTP phải có 6 chữ số.");
+      return;
+    }
+    try {
+      const isValid = await verifyOtp(user.id, linkOtpInput);
+      if (isValid) {
+        // setupSecurity handles undefined/empty password by ignoring it in the backend logic
+        await setupSecurity(user.id, '', linkEmailInput);
+        setCurrentEmail(linkEmailInput);
+        setIsWaitingOtp(false);
+        setLinkOtpInput('');
+        alert("Liên kết email thành công!");
+        checkStatus();
+      } else {
+        alert("Mã OTP không chính xác.");
+      }
+    } catch (err: any) {
+      alert(err.message || "Lỗi xác thực OTP");
     }
   };
 
@@ -277,10 +293,6 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
                {hasSetup ? <Unlock size={18} /> : <ShieldCheck size={18} />}
                {hasSetup ? (otpSent ? t.investment.verify : t.investment.unlock) : t.investment.setup}
              </button>
-             
-             {hasSetup && otpSent && (
-                <button onClick={() => { setOtpSent(false); setError(''); }} className="text-xs text-slate-400 hover:underline">Quay lại nhập mật khẩu</button>
-             )}
            </div>
         </div>
       </div>
@@ -372,16 +384,69 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
         </div>
       </div>
 
+      {/* MODAL: ADD ASSET */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+           <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in border border-slate-100">
+              <div className="flex justify-between items-center mb-6">
+                 <h3 className="text-xl font-bold flex items-center gap-2"><Briefcase className="text-indigo-600" /> {t.investment.addAsset}</h3>
+                 <button onClick={() => setIsModalOpen(false)} className="bg-slate-100 p-2 rounded-full text-slate-400 hover:text-slate-600"><X size={20}/></button>
+              </div>
+              
+              <div className="space-y-4">
+                 <div className="grid grid-cols-2 gap-3">
+                    <div>
+                       <label className="text-[10px] font-bold text-slate-500 uppercase ml-1 block mb-1">Mã tài sản (VIC, BTC...)</label>
+                       <input className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="VD: VIC" value={form.symbol} onChange={e => setForm({...form, symbol: e.target.value})} />
+                    </div>
+                    <div>
+                       <label className="text-[10px] font-bold text-slate-500 uppercase ml-1 block mb-1">Tên tài sản (Tùy chọn)</label>
+                       <input className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="VD: VinGroup" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+                    </div>
+                 </div>
+
+                 <div>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase ml-1 block mb-1">Loại tài sản</label>
+                    <select className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 bg-white" value={form.type} onChange={e => setForm({...form, type: e.target.value as any})}>
+                       {Object.entries(t.investment.types).map(([k, v]) => (
+                          <option key={k} value={k}>{v as string}</option>
+                       ))}
+                    </select>
+                 </div>
+
+                 <div className="grid grid-cols-2 gap-3">
+                    <div>
+                       <label className="text-[10px] font-bold text-slate-500 uppercase ml-1 block mb-1">Số lượng</label>
+                       <input type="number" className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="0" value={form.quantity || ''} onChange={e => setForm({...form, quantity: Number(e.target.value)})} />
+                    </div>
+                    <div>
+                       <label className="text-[10px] font-bold text-slate-500 uppercase ml-1 block mb-1">Đơn vị (VD: CP, Coin, Chỉ)</label>
+                       <input className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="CP" value={form.unit} onChange={e => setForm({...form, unit: e.target.value})} />
+                    </div>
+                 </div>
+
+                 <div>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase ml-1 block mb-1">Giá mua trung bình (VNĐ)</label>
+                    <input type="number" className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="0" value={form.buyPrice || ''} onChange={e => setForm({...form, buyPrice: Number(e.target.value)})} />
+                 </div>
+
+                 <button onClick={handleSave} className="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95">Thêm vào danh mục</button>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* SECURITY CENTER MODAL (Existing) */}
       {isSecurityModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
           <div className="bg-white rounded-3xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in border border-white/20">
             <div className="flex justify-between items-center mb-6 border-b pb-4">
               <h3 className="text-xl font-extrabold flex items-center gap-2"><ShieldCheck className="text-indigo-600" /> Trung tâm bảo mật</h3>
-              <button onClick={() => setIsSecurityModalOpen(false)} className="bg-slate-100 p-2 rounded-full text-slate-400 hover:text-slate-600 transition-colors"><X size={20}/></button>
+              <button onClick={() => setIsSecurityModalOpen(false)} className="bg-slate-100 p-2 rounded-full text-slate-400 hover:text-slate-600"><X size={20}/></button>
             </div>
             
             <div className="space-y-6">
-              {/* PHẦN 1: LIÊN KẾT EMAIL NHẬN OTP */}
+              {/* LIÊN KẾT EMAIL */}
               <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-sm">
                  <div className="flex items-center gap-3 mb-4">
                     <div className={`p-3 rounded-xl ${currentEmail ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-500'}`}><Mail size={22} /></div>
@@ -389,114 +454,55 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
                         <h4 className="text-sm font-bold">Email nhận mã OTP</h4>
                         <p className="text-xs text-slate-500 font-medium truncate max-w-[200px]">{currentEmail || 'Chưa liên kết'}</p>
                     </div>
-                    {currentEmail && <span className="bg-emerald-100 text-emerald-700 text-[10px] px-2 py-0.5 rounded-full font-bold">Đã kích hoạt</span>}
                  </div>
-                 
                  <div className="space-y-3">
-                    {!isWaitingOtp ? (
-                        <div className="flex gap-2">
-                           <input title="Link Email" className="flex-1 p-3 text-sm border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 bg-white" placeholder="Địa chỉ Gmail của bạn" value={linkEmailInput} onChange={e => setLinkEmailInput(e.target.value)} />
-                           <button onClick={handleSendLinkOtp} disabled={isLinkingEmail} className="bg-indigo-600 text-white px-4 py-3 rounded-xl hover:bg-indigo-700 disabled:bg-slate-300 transition-all shadow-lg shadow-indigo-100">
-                             {isLinkingEmail ? <RefreshCw className="animate-spin w-5 h-5"/> : <Send size={20} />}
-                           </button>
-                        </div>
-                    ) : (
+                    <div className="flex gap-2">
+                       <input title="Link Email" className="flex-1 p-3 text-sm border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 bg-white" placeholder="Địa chỉ Gmail của bạn" value={linkEmailInput} onChange={e => setLinkEmailInput(e.target.value)} />
+                       <button onClick={handleSendLinkOtp} disabled={isLinkingEmail} className="bg-indigo-600 text-white px-4 py-3 rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-100">
+                         {isLinkingEmail ? <RefreshCw className="animate-spin w-5 h-5"/> : <Send size={20} />}
+                       </button>
+                    </div>
+                    {isWaitingOtp && (
                         <div className="space-y-3 animate-in slide-in-from-top-2">
-                           <div className="bg-indigo-50 p-3 rounded-xl text-xs text-indigo-700 text-center font-bold border border-indigo-100">Đã gửi mã đến {linkEmailInput}</div>
-                           <input title="Link OTP" className="w-full p-3 text-center text-lg border border-slate-200 rounded-xl tracking-[0.5em] font-black focus:ring-2 focus:ring-emerald-500 outline-none" placeholder="000000" value={linkOtpInput} onChange={e => setLinkOtpInput(e.target.value)} maxLength={6} />
-                           <button onClick={handleVerifyLinkOtp} className="w-full bg-emerald-600 text-white py-3 rounded-xl text-sm font-bold shadow-xl shadow-emerald-100 hover:bg-emerald-700 transition-all">Xác thực ngay</button>
-                           <button onClick={() => setIsWaitingOtp(false)} className="w-full text-xs text-slate-400 font-medium hover:text-slate-600">Dùng email khác</button>
+                           <input title="Link OTP" className="w-full p-3 text-center text-lg border border-slate-200 rounded-xl tracking-[0.5em] font-black focus:ring-2 focus:ring-emerald-500" placeholder="000000" value={linkOtpInput} onChange={e => setLinkOtpInput(e.target.value)} maxLength={6} />
+                           <button onClick={handleVerifyLinkOtp} className="w-full bg-emerald-600 text-white py-3 rounded-xl text-sm font-bold shadow-xl shadow-emerald-100 hover:bg-emerald-700">Xác thực & Lưu</button>
                         </div>
                     )}
                  </div>
               </div>
               
-              {/* PHẦN 2: CẤU HÌNH EMAIL GỬI (GUIDE CHI TIẾT) */}
-              <div className={`p-5 rounded-2xl border transition-all shadow-sm ${showSmtpConfig ? 'bg-indigo-50/50 border-indigo-200' : 'bg-slate-50 border-slate-200'}`}>
+              {/* CẤU HÌNH GỬI (GUIDE CHI TIẾT) */}
+              <div className={`p-5 rounded-2xl border transition-all shadow-sm ${showSmtpConfig ? 'bg-indigo-50 border-indigo-200' : 'bg-slate-50 border-slate-200'}`}>
                  <button onClick={() => setShowSmtpConfig(!showSmtpConfig)} className="flex items-center justify-between w-full">
                     <div className="flex items-center gap-3">
                         <div className={`p-3 rounded-xl ${hasSmtp ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-500'}`}><Server size={22} /></div>
                         <div className="text-left">
-                            <h4 className="text-sm font-bold">Email Gửi OTP (Bắt buộc)</h4>
-                            <p className="text-[10px] text-slate-500 font-medium">{hasSmtp ? 'Hệ thống đang dùng tài khoản của bạn' : 'Cần cài đặt để gửi mail ổn định'}</p>
+                            <h4 className="text-sm font-bold">Cấu hình Email gửi (Tùy chọn)</h4>
+                            <p className="text-[10px] text-slate-500 font-medium">{hasSmtp ? 'Hệ thống đang dùng tài khoản của bạn' : 'Dùng Gmail cá nhân để gửi OTP'}</p>
                         </div>
                     </div>
-                    <Settings size={18} className={`text-slate-400 transition-transform duration-300 ${showSmtpConfig ? 'rotate-90' : ''}`} />
+                    <Settings size={18} className={`text-slate-400 transition-transform ${showSmtpConfig ? 'rotate-90' : ''}`} />
                  </button>
                  
                  {showSmtpConfig && (
-                     <div className="mt-5 space-y-4 animate-in slide-in-from-top-4 duration-500">
-                        {/* Hướng dẫn Step-by-Step */}
+                     <div className="mt-5 space-y-4 animate-in slide-in-from-top-4">
                         <div className="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm space-y-3">
                             <div className="flex items-center gap-2 text-indigo-700 border-b pb-2 mb-2">
                                 <HelpCircle size={16} />
-                                <span className="text-xs font-black uppercase">Hướng dẫn 3 bước của Google</span>
+                                <span className="text-xs font-black">Hướng dẫn 3 bước Google</span>
                             </div>
-                            
-                            <div className="space-y-3">
-                                <div className="flex gap-3">
-                                    <span className="bg-indigo-100 text-indigo-700 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">1</span>
-                                    <p className="text-[11px] text-slate-600">Truy cập <b>Tài khoản Google</b> {'>'} <b>Bảo mật</b> và bật <b>Xác minh 2 bước</b>.</p>
-                                </div>
-                                <div className="flex gap-3">
-                                    <span className="bg-indigo-100 text-indigo-700 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">2</span>
-                                    <p className="text-[11px] text-slate-600">Tìm từ khóa <b>"Mật khẩu ứng dụng"</b> trong ô tìm kiếm của Google.</p>
-                                </div>
-                                <div className="flex gap-3">
-                                    <span className="bg-indigo-100 text-indigo-700 w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 mt-0.5">3</span>
-                                    <p className="text-[11px] text-slate-600">Đặt tên (VD: Finance App) và nhấn <b>Tạo</b>. Copy mã <b>16 ký tự</b> và dán vào ô bên dưới.</p>
-                                </div>
-                            </div>
-
-                            <div className="pt-2">
-                                <a 
-                                    href="https://myaccount.google.com/apppasswords" 
-                                    target="_blank" 
-                                    rel="noreferrer"
-                                    className="flex items-center justify-center gap-2 w-full py-2 bg-slate-800 text-white text-[11px] font-bold rounded-lg hover:bg-black transition-all"
-                                >
-                                    <ExternalLink size={12} /> Đi tới trang Mật khẩu ứng dụng Google
-                                </a>
-                            </div>
+                            <p className="text-[11px] text-slate-600">1. Truy cập <b>Google Account</b> {'>'} <b>Bảo mật</b> {'>'} <b>Xác minh 2 bước</b>.</p>
+                            <p className="text-[11px] text-slate-600">2. Tìm ô tìm kiếm: <b>"Mật khẩu ứng dụng"</b>.</p>
+                            <p className="text-[11px] text-slate-600">3. Nhấn <b>Tạo</b> và copy mã <b>16 ký tự</b> dán xuống ô bên dưới.</p>
+                            <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full py-2 bg-slate-800 text-white text-[11px] font-bold rounded-lg"><ExternalLink size={12} /> Link trang mật khẩu ứng dụng</a>
                         </div>
-
-                        <div className="bg-rose-50 p-3 rounded-xl border border-rose-100 flex items-start gap-2">
-                            <ShieldAlert size={16} className="text-rose-600 shrink-0 mt-0.5" />
-                            <p className="text-[10px] text-rose-800 leading-relaxed">
-                                <b>Lưu ý cực kỳ quan trọng:</b> KHÔNG nhập mật khẩu đăng nhập Gmail. Google sẽ chặn ngay lập tức. Phải dùng mật khẩu 16 ký tự vừa tạo ở bước 3.
-                            </p>
-                        </div>
-                        
                         <div className="grid grid-cols-1 gap-3">
-                            <div>
-                                <label className="text-[10px] font-bold text-slate-500 uppercase ml-1 block mb-1">Gmail của bạn</label>
-                                <div className="relative">
-                                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                                    <input title="SMTP Email" className="w-full pl-10 p-3 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-white" placeholder="vi-du@gmail.com" value={smtpEmail} onChange={e => setSmtpEmail(e.target.value)} />
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <label className="text-[10px] font-bold text-slate-500 uppercase ml-1 block mb-1">Mật khẩu ứng dụng (16 ký tự)</label>
-                                <div className="relative">
-                                    <Key className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                                    <input type="password" title="SMTP Pass" className="w-full pl-10 p-3 text-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none bg-white" placeholder="xxxx xxxx xxxx xxxx" value={smtpPass} onChange={e => setSmtpPass(e.target.value)} />
-                                </div>
-                            </div>
+                            <input title="SMTP Email" className="w-full p-3 text-sm border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Gmail của bạn" value={smtpEmail} onChange={e => setSmtpEmail(e.target.value)} />
+                            <input type="password" title="SMTP Pass" className="w-full p-3 text-sm border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Mật khẩu ứng dụng (16 ký tự)" value={smtpPass} onChange={e => setSmtpPass(e.target.value)} />
                         </div>
-
-                        <button onClick={handleSaveSmtp} className="w-full bg-indigo-600 text-white py-3.5 rounded-xl text-sm font-black shadow-xl shadow-indigo-200 hover:bg-indigo-700 active:scale-95 transition-all">Lưu & Thử lại OTP</button>
+                        <button onClick={handleSaveSmtp} className="w-full bg-indigo-600 text-white py-3.5 rounded-xl text-sm font-black shadow-xl shadow-indigo-200 hover:bg-indigo-700">Lưu cấu hình</button>
                      </div>
                  )}
-              </div>
-
-              {/* PHẦN 3: ĐỔI MẬT KHẨU CẤP 2 */}
-              <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-sm">
-                  <h4 className="text-sm font-bold mb-4 flex items-center gap-2"><Lock size={18} className="text-slate-400" /> Đổi mật khẩu mở khóa (Cấp 2)</h4>
-                  <div className="flex gap-2">
-                      <input type="password" title="New Password" className="flex-1 p-3 text-sm border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 bg-white" placeholder="Mật khẩu mới" value={newPassword} onChange={e => setNewPassword(e.target.value)} />
-                      <button onClick={handleUpdatePassword} className="bg-slate-800 text-white px-6 py-3 rounded-xl text-xs font-bold hover:bg-black transition-colors">Lưu mới</button>
-                  </div>
               </div>
             </div>
           </div>
