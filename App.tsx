@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { getCurrentSession, loginUser, registerUser, setCurrentSession, initDB, getTransactions, saveTransaction, deleteTransaction, getGoals, saveGoal, deleteGoal, getBudgets, saveBudget, deleteBudget } from './services/storageService';
 import { User, Transaction, ParsedTransactionData, Goal, Budget } from './types';

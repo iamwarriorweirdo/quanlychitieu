@@ -1,3 +1,4 @@
+
 export type Language = 'vi' | 'en' | 'zh';
 
 export const translations = {
@@ -15,7 +16,7 @@ export const translations = {
       settings: 'Cài đặt',
     },
     auth: {
-      username: 'Tên đăng nhập',
+      username: 'Tên đăng nhập / Email / SĐT',
       password: 'Mật khẩu',
       login: 'Đăng nhập',
       register: 'Đăng ký',
@@ -24,9 +25,9 @@ export const translations = {
       newHere: 'Chưa có tài khoản? Đăng ký ngay',
       haveAccount: 'Đã có tài khoản? Đăng nhập',
       passReq: 'Yêu cầu: 1 Chữ hoa & 1 Số',
-      errorUser: 'Vui lòng nhập tên đăng nhập và mật khẩu.',
+      errorUser: 'Vui lòng nhập thông tin tài khoản và mật khẩu.',
       errorPass: 'Mật khẩu phải chứa ít nhất 1 chữ hoa và 1 số.',
-      errorLogin: 'Sai tên đăng nhập hoặc mật khẩu.',
+      errorLogin: 'Thông tin đăng nhập không chính xác.',
     },
     dashboard: {
       search: 'Tìm giao dịch...',
@@ -192,7 +193,7 @@ export const translations = {
       settings: 'Settings',
     },
     auth: {
-      username: 'Username',
+      username: 'Username / Email / Phone',
       password: 'Password',
       login: 'Login',
       register: 'Register',
@@ -201,9 +202,9 @@ export const translations = {
       newHere: 'New here? Register now',
       haveAccount: 'Already have an account? Login',
       passReq: 'Requires: 1 Uppercase & 1 Number',
-      errorUser: 'Please enter both username and password.',
+      errorUser: 'Please enter account info and password.',
       errorPass: 'Password must contain at least 1 uppercase letter and 1 number.',
-      errorLogin: 'Invalid username or password.',
+      errorLogin: 'Invalid login credentials.',
     },
     dashboard: {
       search: 'Search transactions...',
@@ -375,7 +376,7 @@ export const translations = {
       settings: '设置',
     },
     auth: {
-      username: '用户名',
+      username: '用户名 / 邮箱 / 电话',
       password: '密码',
       login: '登录',
       register: '注册',
@@ -384,9 +385,9 @@ export const translations = {
       newHere: '新用户？立即注册',
       haveAccount: '已有账户？登录',
       passReq: '要求：1个大写字母和1个数字',
-      errorUser: '请输入用户名和密码。',
+      errorUser: '请输入账户信息和密码。',
       errorPass: '密码必须包含至少1个大写字母和1个数字。',
-      errorLogin: '用户名或密码无效。',
+      errorLogin: '登录凭据无效。',
     },
     dashboard: {
       search: '搜索交易...',
