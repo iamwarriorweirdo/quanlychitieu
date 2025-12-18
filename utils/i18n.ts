@@ -135,6 +135,8 @@ export const translations = {
       totalValue: 'Tổng giá trị tài sản',
       totalProfit: 'Tổng lợi nhuận (P/L)',
       symbol: 'Mã / Tên',
+      // Added missing name translation
+      name: 'Tên tài sản',
       quantity: 'Số lượng',
       currentPrice: 'Giá hiện tại',
       types: {
@@ -309,6 +311,8 @@ export const translations = {
       totalValue: 'Total Asset Value',
       totalProfit: 'Total Profit/Loss',
       symbol: 'Symbol / Name',
+      // Added missing name translation
+      name: 'Asset Name',
       quantity: 'Quantity',
       currentPrice: 'Current Price',
       types: {
@@ -483,6 +487,8 @@ export const translations = {
       totalValue: '资产总值',
       totalProfit: '总盈亏 (P/L)',
       symbol: '代码 / 名称',
+      // Added missing name translation
+      name: '资产名称',
       quantity: '数量',
       currentPrice: '当前价格',
       types: {
