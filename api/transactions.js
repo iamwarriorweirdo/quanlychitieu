@@ -1,3 +1,4 @@
+
 import { neon } from '@neondatabase/serverless';
 
 export default async function handler(req, res) {
@@ -41,7 +42,7 @@ export default async function handler(req, res) {
       return res.status(200).json(transactions);
     }
 
-    // POST: Tạo mới
+    // POST: Tạo mới hoặc Cập nhật
     if (req.method === 'POST') {
       const body = req.body || {};
       const { userId: bodyUserId, transaction } = body;
@@ -53,6 +54,12 @@ export default async function handler(req, res) {
       await sql`
         INSERT INTO transactions (id, user_id, amount, type, category, description, date, created_at)
         VALUES (${transaction.id}, ${bodyUserId}, ${transaction.amount}, ${transaction.type}, ${transaction.category}, ${transaction.description}, ${transaction.date}, ${transaction.createdAt})
+        ON CONFLICT (id) DO UPDATE SET
+          amount = EXCLUDED.amount,
+          type = EXCLUDED.type,
+          category = EXCLUDED.category,
+          description = EXCLUDED.description,
+          date = EXCLUDED.date
       `;
       return res.status(200).json({ success: true });
     }

@@ -5,12 +5,14 @@ import { TransactionItem } from './TransactionItem';
 import { Wallet, TrendingUp, TrendingDown, Search, Loader2, Plus, Wand2, Image as ImageIcon } from 'lucide-react';
 import { translations, Language } from '../utils/i18n';
 import { DateFilter, FilterMode } from './DateFilter';
+import { saveTransaction } from '../services/storageService';
 
 interface Props {
   user: User;
   transactions: Transaction[];
   isLoading: boolean;
   onDelete: (id: string) => void;
+  onTransactionsUpdated: (updatedList: Transaction[]) => void;
   lang: Language;
   openAiScan: (mode: 'text' | 'image') => void;
   openManualModal: () => void;
@@ -27,7 +29,7 @@ interface Props {
 }
 
 export const Dashboard: React.FC<Props> = ({ 
-  user, transactions, isLoading, onDelete, lang, openAiScan, openManualModal,
+  user, transactions, isLoading, onDelete, onTransactionsUpdated, lang, openAiScan, openManualModal,
   filterMode, setFilterMode, filterDate, setFilterDate, 
   rangeStart, setRangeStart, rangeEnd, setRangeEnd 
 }) => {
@@ -94,6 +96,15 @@ export const Dashboard: React.FC<Props> = ({
     });
     return { income, expense, balance: income - expense };
   }, [filteredTransactions]);
+
+  const handleUpdateTransaction = async (updatedTx: Transaction) => {
+    try {
+      const newList = await saveTransaction(user.id, updatedTx);
+      onTransactionsUpdated(newList);
+    } catch (error) {
+      alert("Cập nhật thất bại.");
+    }
+  };
 
   return (
     <div className="space-y-6 pb-20 md:pb-0">
@@ -211,7 +222,13 @@ export const Dashboard: React.FC<Props> = ({
         ) : filteredTransactions.length > 0 ? (
           <div className="space-y-3">
             {filteredTransactions.map(tx => (
-              <TransactionItem key={tx.id} transaction={tx} onDelete={onDelete} lang={lang} />
+              <TransactionItem 
+                key={tx.id} 
+                transaction={tx} 
+                onDelete={onDelete} 
+                onUpdate={handleUpdateTransaction}
+                lang={lang} 
+              />
             ))}
           </div>
         ) : (
