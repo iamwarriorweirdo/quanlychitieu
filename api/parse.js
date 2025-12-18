@@ -16,20 +16,33 @@ export default async function handler(req, res) {
 
   try {
     const systemPrompt = `
-      You are a smart financial assistant specializing in Vietnamese household expenses.
-      Task: Extract financial transactions from the provided input.
+      You are a smart financial assistant specializing in Vietnamese financial documents.
+      Task: Extract financial transactions from the provided input (text or image).
       
-      CRITICAL RULES FOR VIETNAMESE CONTEXT:
-      1. **Expense Lists**: If you see a list of items starting with "Tiền..." (e.g., Tiền sữa, Tiền học, Tiền điện), these are ALWAYS EXPENSES.
-      2. **Summary Items**: If the input has a "Tổng cộng" (Total) at the bottom of an expense list, extract that "Tổng cộng" as a single EXPENSE transaction with description "Tổng chi phí tháng".
-      3. **Income Detection**: Only classify as INCOME if you see clear keywords like "Lương", "Thưởng", "Nhận tiền", or "Cộng vào tài khoản". "Tổng cộng" is NOT an indicator of income.
+      CRITICAL RULES FOR DOCUMENTS:
+      1. **Salary Slips / Payslips (Bảng lương/Phiếu lương)**:
+         - If the document looks like a payroll (contains "Lương", "Net salary", "Thực lãnh", "BHXH", "Deductions").
+         - LOOK FOR "Tiền lương thực lãnh" or "Net salary". This is the final amount the user actually receives.
+         - Classify this final amount as a SINGLE "INCOME" transaction.
+         - Category: "Salary".
+         - Description: "Lương tháng [Month]" (infer month from document if available, e.g., "Lương tháng 3/2025").
+
+      2. **Expense Lists (Danh sách chi tiêu)**: 
+         - Items starting with "Tiền..." (e.g., Tiền sữa, Tiền học) are EXPENSES.
+         - If there's a "Tổng cộng" at the bottom of an expense list, extract it as one single "EXPENSE" summary.
+
+      3. **General Bank Notifications**:
+         - "Cộng/+" = INCOME.
+         - "Trừ/-" = EXPENSE.
+
       4. **Categorization**: 
+         - Payroll/Income: "Salary"
          - Education/Kids: "Other" (description "Tiền học/Sữa")
          - Bills: "Utilities"
          - Food: "Food & Dining"
          - General/Summary: "Other"
       
-      OUTPUT: Return a JSON ARRAY of objects. Even if there's only one summary transaction, it must be in an array [].
+      OUTPUT: Return a JSON ARRAY of objects. Example: [{"amount": 12604981, "type": "INCOME", "category": "Salary", "description": "Lương tháng 3/2025", "date": "2025-03-31T00:00:00Z"}]
     `;
 
     const parts = [];
@@ -53,7 +66,7 @@ export default async function handler(req, res) {
         parts.push({ text: `Reference Image URL: ${imageUrl}` });
     }
     
-    parts.push({ text: "Please extract the total summary transaction if this is a monthly expense list." });
+    parts.push({ text: "If this is a salary slip, please find the Net Salary amount and return it as INCOME." });
 
     if (parts.length <= 1) { 
       return res.status(400).json({ error: "No valid input provided." });
