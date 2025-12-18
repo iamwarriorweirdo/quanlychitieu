@@ -14,10 +14,9 @@ import { Wallet, ArrowRight, Lock, User as UserIcon, Eye, EyeOff, Loader2, Globe
 import { translations, Language } from './utils/i18n';
 
 /** 
- * THAY ĐỔI ID DƯỚI ĐÂY:
- * Lấy từ: Google Cloud Console -> APIs & Services -> Credentials -> OAuth 2.0 Client IDs
+ * ĐÃ CẬP NHẬT CLIENT ID CHÍNH XÁC
  */
-const YOUR_GOOGLE_CLIENT_ID = "878564070206-p69389n6p54r8f15gpksh8n2pvn12r7g.apps.googleusercontent.com";
+const GOOGLE_CLIENT_ID = "598430888470-bnchhoarr75hoas2rjbgn0ue54ud4i7k.apps.googleusercontent.com";
 
 type View = 'dashboard' | 'analysis' | 'planning' | 'investment' | 'admin' | 'settings';
 
@@ -70,7 +69,7 @@ const App: React.FC = () => {
     init();
   }, []);
 
-  // Google OAuth Initialization
+  // Google OAuth Initialization with robust checking
   useEffect(() => {
     if (!user && !isInitializing) {
       const handleCredentialResponse = async (response: any) => {
@@ -81,39 +80,44 @@ const App: React.FC = () => {
           setUser(loggedInUser);
           setCurrentSession(loggedInUser);
         } catch (err: any) {
-          setError("Google Auth Failed: " + err.message);
+          setError("Xác thực Google thất bại: " + err.message);
+          console.error("Google Auth Error:", err);
         } finally {
           setIsAuthLoading(false);
         }
       };
 
-      const startGSI = () => {
+      const renderGoogleBtn = () => {
         // @ts-ignore
         if (window.google?.accounts?.id) {
           // @ts-ignore
           google.accounts.id.initialize({
-            client_id: YOUR_GOOGLE_CLIENT_ID,
+            client_id: GOOGLE_CLIENT_ID,
             callback: handleCredentialResponse,
-            auto_select: false
+            auto_select: false,
+            context: 'signin'
           });
           
-          const btn = document.getElementById("googleBtn");
-          if (btn) {
+          const btnContainer = document.getElementById("googleBtn");
+          if (btnContainer) {
             // @ts-ignore
-            google.accounts.id.renderButton(btn, { 
+            google.accounts.id.renderButton(btnContainer, { 
               theme: "outline", 
               size: "large", 
               width: "100%", 
-              text: "continue_with" 
+              text: "continue_with",
+              shape: "rectangular"
             });
           }
           // @ts-ignore
-          google.accounts.id.prompt();
+          google.accounts.id.prompt(); 
         } else {
-          setTimeout(startGSI, 300);
+          // Script might not be ready yet
+          setTimeout(renderGoogleBtn, 300);
         }
       };
-      startGSI();
+      
+      renderGoogleBtn();
     }
   }, [user, isInitializing]);
 
@@ -164,7 +168,15 @@ const App: React.FC = () => {
     } catch (err: any) { setError(err.message); } finally { setIsAuthLoading(false); }
   };
 
-  const handleLogout = () => { setUser(null); setCurrentSession(null); setCurrentView('dashboard'); };
+  const handleLogout = () => { 
+    setUser(null); 
+    setCurrentSession(null); 
+    setCurrentView('dashboard'); 
+    // Clear Google session prompt
+    // @ts-ignore
+    if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
+  };
+
   const handleAddGoal = async (g: Goal) => { if (user) setGoals(await saveGoal(user.id, g)); };
   const handleDeleteGoal = async (id: string) => { if (user && confirm('Xóa?')) setGoals(await deleteGoal(user.id, id)); };
   const handleAddBudget = async (b: Budget) => { if (user) setBudgets(await saveBudget(user.id, b)); };
@@ -186,12 +198,12 @@ const App: React.FC = () => {
               <input type="text" value={usernameInput} onChange={e => setUsernameInput(e.target.value)} className="w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-indigo-500 outline-none" placeholder={t.auth.username} />
               <input type={showPassword ? "text" : "password"} value={passwordInput} onChange={e => setPasswordInput(e.target.value)} className="w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-indigo-500 outline-none" placeholder={t.auth.password} />
               {error && <p className="text-rose-500 text-sm bg-rose-50 p-2 rounded">{error}</p>}
-              <button type="submit" disabled={isAuthLoading} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 flex justify-center">
+              <button type="submit" disabled={isAuthLoading} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 flex justify-center transition-colors">
                 {isAuthLoading ? <Loader2 className="animate-spin" /> : (isLoginView ? t.auth.login : t.auth.createAccount)}
               </button>
             </form>
-            <div className="relative flex items-center py-2"><div className="flex-grow border-t"></div><span className="mx-3 text-slate-400 text-xs">OR</span><div className="flex-grow border-t"></div></div>
-            <div id="googleBtn" className="flex justify-center min-h-[44px]"></div>
+            <div className="relative flex items-center py-2"><div className="flex-grow border-t"></div><span className="mx-3 text-slate-400 text-xs">Hoặc đăng nhập bằng</span><div className="flex-grow border-t"></div></div>
+            <div id="googleBtn" className="flex justify-center min-h-[50px] overflow-hidden"></div>
             <button onClick={() => setIsLoginView(!isLoginView)} className="w-full text-center text-indigo-600 text-sm font-medium hover:underline">{isLoginView ? t.auth.newHere : t.auth.haveAccount}</button>
           </div>
         </div>
@@ -204,15 +216,15 @@ const App: React.FC = () => {
       <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200">
         <div className="p-6 flex items-center gap-3 border-b"><div className="bg-indigo-600 text-white p-2 rounded-lg"><Wallet /></div><h1 className="font-bold text-lg">{t.app.title}</h1></div>
         <nav className="flex-1 p-4 space-y-1">
-          <button onClick={() => setCurrentView('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl ${currentView === 'dashboard' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}><LayoutDashboard size={20} />{t.nav.dashboard}</button>
-          <button onClick={() => setCurrentView('analysis')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl ${currentView === 'analysis' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}><PieChart size={20} />{t.nav.analysis}</button>
-          <button onClick={() => setCurrentView('planning')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl ${currentView === 'planning' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}><ClipboardList size={20} />{t.nav.planning}</button>
-          <button onClick={() => setCurrentView('investment')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl ${currentView === 'investment' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}><TrendingUp size={20} />{t.nav.investment}</button>
-          {user.role === 'admin' && <button onClick={() => setCurrentView('admin')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl ${currentView === 'admin' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}><Shield size={20} />{t.nav.admin}</button>}
+          <button onClick={() => setCurrentView('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'dashboard' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}><LayoutDashboard size={20} />{t.nav.dashboard}</button>
+          <button onClick={() => setCurrentView('analysis')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'analysis' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}><PieChart size={20} />{t.nav.analysis}</button>
+          <button onClick={() => setCurrentView('planning')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'planning' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}><ClipboardList size={20} />{t.nav.planning}</button>
+          <button onClick={() => setCurrentView('investment')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'investment' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}><TrendingUp size={20} />{t.nav.investment}</button>
+          {user.role === 'admin' && <button onClick={() => setCurrentView('admin')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'admin' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}><Shield size={20} />{t.nav.admin}</button>}
         </nav>
         <div className="p-4 border-t flex items-center justify-between">
-          <div className="flex items-center gap-2 overflow-hidden">{user.avatar ? <img src={user.avatar} className="w-8 h-8 rounded-full" /> : <UserIcon size={20} />}<span className="text-sm font-bold truncate">{user.username}</span></div>
-          <button onClick={handleLogout} className="text-slate-400 hover:text-rose-500"><LogOut size={20} /></button>
+          <div className="flex items-center gap-2 overflow-hidden">{user.avatar ? <img src={user.avatar} className="w-8 h-8 rounded-full border border-slate-100" alt="avatar" /> : <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-400"><UserIcon size={16}/></div>}<span className="text-sm font-bold truncate text-slate-700">{user.username}</span></div>
+          <button onClick={handleLogout} className="text-slate-400 hover:text-rose-500 transition-colors" title="Đăng xuất"><LogOut size={20} /></button>
         </div>
       </aside>
 
