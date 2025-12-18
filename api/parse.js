@@ -12,31 +12,38 @@ export default async function handler(req, res) {
   }
 
   const ai = new GoogleGenAI({ apiKey: apiKey });
-  const { ocrText, imageBase64, imageUrl } = req.body;
+  const { ocrText, imageBase64 } = req.body;
 
   try {
     const systemPrompt = `
-      You are a world-class financial document analyzer. 
-      Your goal is to extract income or expense transactions from screenshots, photos, or OCR text of Vietnamese bank notifications or payrolls.
+      Bạn là chuyên gia phân tích hóa đơn và biên lai tài chính hàng đầu.
+      Nhiệm vụ của bạn là trích xuất các giao dịch (Thu nhập hoặc Chi tiêu) từ hình ảnh hóa đơn hoặc văn bản OCR.
 
-      SPECIFIC INSTRUCTIONS FOR PAYROLLS (Bảng lương):
-      - If you see terms like "Net salary", "Tiền lương thực lãnh", "Thực nhận", "Thực lãnh", "Total income".
-      - The most important number is the FINAL amount the employee actually receives.
-      - Ignore intermediate calculations (Insurance, Tax, Base Salary) unless they are clearly marked as a final "Income" transfer.
-      - ALWAYS return this as ONE transaction of type "INCOME" and category "Salary".
-      - Date: Use current date or find the month/year in the document (e.g., "Lương tháng 03/2024").
+      HƯỚNG DẪN CHI TIẾT CHO HÓA ĐƠN/BIÊN LAI (VIỆT NAM):
+      1. Tìm số tiền giao dịch thực tế:
+         - Ưu tiên các từ khóa: "Tổng cộng", "Thanh toán", "Thành tiền", "Tổng tiền thanh toán", "Tiền mặt", "Chuyển khoản".
+         - Nếu có dòng "Giảm giá" hoặc "Chiết khấu", hãy lấy số tiền cuối cùng sau khi đã giảm (số tiền khách phải trả).
+         - Trường hợp đặc biệt: Nếu hóa đơn có đóng dấu "NỢ HÓA ĐƠN" hoặc "Số tiền thanh toán: 0", hãy xem xét liệu người dùng muốn ghi nhận giá trị hóa đơn (tổng trước giảm) hay số tiền thực chi (0). Tuy nhiên, thông thường trong quản lý thu chi, chúng ta ghi nhận GIÁ TRỊ GIAO DỊCH thực tế của món hàng/dịch vụ đó. Hãy trích xuất con số phản ánh đúng giá trị tiêu dùng nhất.
 
-      SPECIFIC INSTRUCTIONS FOR EXPENSES:
-      - If it's a list of daily expenses (e.g. Tiền học, Tiền sữa, Ăn sáng).
-      - Summarize them into one "EXPENSE" if there is a "Total" or extract each item if clearly separate.
+      2. Phân loại hạng mục (Category):
+         - Ăn uống (Food & Dining): Nhà hàng, cafe, trà sữa, siêu thị thực phẩm.
+         - Di chuyển (Transportation): Xăng dầu, grab, taxi, sửa xe.
+         - Hóa đơn (Utilities): Điện, nước, internet, rác.
+         - Mua sắm (Shopping): Quần áo, đồ gia dụng, mỹ phẩm.
+         - Sức khỏe (Health & Fitness): Nhà thuốc, bệnh viện, phòng gym.
+         - Giải trí (Entertainment): Xem phim, game, du lịch.
+         - Khác (Other): Nếu không rõ ràng.
 
-      FORMAT: Return a JSON ARRAY.
-      Example: [{"amount": 12604981, "type": "INCOME", "category": "Salary", "description": "Lương thực lãnh tháng 3", "date": "2024-03-31T00:00:00Z"}]
+      3. Thông tin ngày tháng:
+         - Tìm ngày giao dịch trên hóa đơn (dd/mm/yyyy). Nếu không có, dùng ngày hiện tại.
+
+      ĐỊNH DẠNG TRẢ VỀ: Một mảng JSON các giao dịch.
+      Ví dụ: [{"amount": 2614000, "type": "EXPENSE", "category": "Food & Dining", "description": "Hóa đơn Ăn uống Phú Thịnh", "date": "2018-11-19T18:30:00Z"}]
     `;
 
     const parts = [];
     if (ocrText && ocrText.trim().length > 0) {
-      parts.push({ text: `OCR TEXT DATA:\n${ocrText}` });
+      parts.push({ text: `DỮ LIỆU VĂN BẢN OCR:\n${ocrText}` });
     }
 
     if (imageBase64 && imageBase64.startsWith('data:')) {
@@ -51,8 +58,7 @@ export default async function handler(req, res) {
        }
     }
 
-    // Add explicit hint for the current task
-    parts.push({ text: "Find the 'Net salary' or 'Tiền lương thực lãnh' amount. It is likely a large number like 12,000,000+." });
+    parts.push({ text: "Hãy phân tích kỹ ảnh hóa đơn này. Đặc biệt chú ý dòng 'Tổng cộng', 'Tổng' hoặc 'Thành tiền'. Nếu có giảm giá về 0 nhưng giá trị gốc rõ ràng, hãy trích xuất giá trị giao dịch đó." });
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -83,13 +89,13 @@ export default async function handler(req, res) {
       }
     });
 
-    const result = response.text;
-    if (!result) throw new Error("No response from AI");
+    const resultText = response.text;
+    if (!resultText) throw new Error("AI không phản hồi dữ liệu.");
 
-    res.status(200).json(JSON.parse(result));
+    res.status(200).json(JSON.parse(resultText));
 
   } catch (error) {
     console.error("Gemini Error:", error);
-    res.status(500).json({ error: "AI Parsing Failed. Please try again or use manual entry." });
+    res.status(500).json({ error: "Phân tích AI thất bại: " + error.message });
   }
 }
