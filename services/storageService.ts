@@ -1,3 +1,4 @@
+
 import { Transaction, User, Goal, Budget, Investment, InvestmentSecurity } from '../types';
 
 // Determine API base URL based on deployment path
@@ -274,6 +275,20 @@ export const loginUser = async (username: string, password: string): Promise<Use
     return user as User;
   } catch (error: any) {
     console.error("Login failed:", error);
+    throw error;
+  }
+};
+
+export const loginWithGoogle = async (credential: string): Promise<User> => {
+  try {
+    const response = await fetch(`${API_URL}/auth/google`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ credential })
+    });
+    return await handleResponse(response);
+  } catch (error) {
+    console.error("Google Login failed:", error);
     throw error;
   }
 };

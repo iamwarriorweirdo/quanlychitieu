@@ -19,7 +19,9 @@ export default async function handler(req, res) {
         password TEXT NOT NULL,
         email TEXT,
         phone TEXT,
-        role TEXT DEFAULT 'user'
+        role TEXT DEFAULT 'user',
+        google_id TEXT,
+        avatar TEXT
       );
     `;
 
@@ -27,6 +29,8 @@ export default async function handler(req, res) {
         await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT`;
         await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT`;
         await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS role TEXT DEFAULT 'user'`;
+        await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS google_id TEXT`;
+        await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS avatar TEXT`;
     } catch (e) {
         console.log("Migration note: users column check skipped", e.message);
     }

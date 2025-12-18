@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { getCurrentSession, loginUser, registerUser, setCurrentSession, initDB, getTransactions, saveTransaction, deleteTransaction, getGoals, saveGoal, deleteGoal, getBudgets, saveBudget, deleteBudget } from './services/storageService';
+import { getCurrentSession, loginUser, registerUser, setCurrentSession, initDB, getTransactions, saveTransaction, deleteTransaction, getGoals, saveGoal, deleteGoal, getBudgets, saveBudget, deleteBudget, loginWithGoogle } from './services/storageService';
 import { User, Transaction, ParsedTransactionData, Goal, Budget } from './types';
 import { Dashboard } from './components/Dashboard';
 import { Analysis } from './components/Analysis';
@@ -68,6 +68,44 @@ const App: React.FC = () => {
     };
     init();
   }, []);
+
+  // Initialize Google Login
+  useEffect(() => {
+    if (!user && !isInitializing) {
+      /* global google */
+      const handleCredentialResponse = async (response: any) => {
+        setIsAuthLoading(true);
+        setError('');
+        try {
+          const loggedInUser = await loginWithGoogle(response.credential);
+          setUser(loggedInUser);
+          setCurrentSession(loggedInUser);
+        } catch (err: any) {
+          setError("Google Login failed: " + err.message);
+        } finally {
+          setIsAuthLoading(false);
+        }
+      };
+
+      // @ts-ignore
+      if (window.google) {
+        // @ts-ignore
+        google.accounts.id.initialize({
+          client_id: "878564070206-p69389n6p54r8f15gpksh8n2pvn12r7g.apps.googleusercontent.com", // This is a public client ID
+          callback: handleCredentialResponse,
+        });
+        
+        // @ts-ignore
+        google.accounts.id.renderButton(
+          document.getElementById("googleBtn"),
+          { theme: "outline", size: "large", width: "100%", text: "continue_with" }
+        );
+
+        // @ts-ignore
+        google.accounts.id.prompt(); // One Tap
+      }
+    }
+  }, [user, isInitializing]);
 
   // Fetch transactions when user changes
   useEffect(() => {
@@ -263,6 +301,14 @@ const App: React.FC = () => {
                 )}
               </button>
             </form>
+            
+            <div className="mt-4 relative">
+               <div className="absolute inset-0 flex items-center"><span className="w-full border-t border-slate-200" /></div>
+               <div className="relative flex justify-center text-xs uppercase"><span className="bg-white px-2 text-slate-400">Hoặc</span></div>
+            </div>
+
+            <div id="googleBtn" className="mt-4 flex justify-center"></div>
+
             <div className="mt-6 text-center">
               <button onClick={() => { setIsLoginView(!isLoginView); setError(''); }} className="text-indigo-600 font-medium hover:underline text-sm">{isLoginView ? t.auth.newHere : t.auth.haveAccount}</button>
             </div>
@@ -288,7 +334,10 @@ const App: React.FC = () => {
         <div className="p-4 border-t border-slate-100 space-y-4">
           <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-2 justify-center"><Globe size={14} className="text-slate-500" /><select value={lang} onChange={(e) => setLang(e.target.value as Language)} className="bg-transparent border-none text-xs font-semibold text-slate-700 focus:ring-0 outline-none cursor-pointer"><option value="vi">Tiếng Việt</option><option value="en">English</option><option value="zh">中文</option></select></div>
           <div className="flex items-center justify-between px-2">
-             <div className="overflow-hidden"><span className="text-sm font-semibold text-slate-700 truncate max-w-[100px] block">{user.username}</span>{user.role === 'admin' && <span className="text-[10px] text-indigo-600 font-bold uppercase">Admin</span>}</div>
+             <div className="flex items-center gap-2 overflow-hidden">
+                {user.avatar ? <img src={user.avatar} className="w-8 h-8 rounded-full border border-slate-200" alt="avatar" /> : <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-400"><UserIcon size={16}/></div>}
+                <div className="overflow-hidden"><span className="text-sm font-semibold text-slate-700 truncate max-w-[80px] block">{user.username}</span>{user.role === 'admin' && <span className="text-[10px] text-indigo-600 font-bold uppercase">Admin</span>}</div>
+             </div>
              <button onClick={handleLogout} className="text-slate-400 hover:text-rose-500"><LogOut size={20} /></button>
           </div>
         </div>

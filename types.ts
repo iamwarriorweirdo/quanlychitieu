@@ -34,6 +34,8 @@ export interface User {
   email?: string;
   phone?: string;
   role?: 'admin' | 'user';
+  googleId?: string;
+  avatar?: string;
 }
 
 export interface ParsedTransactionData {
