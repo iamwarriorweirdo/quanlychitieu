@@ -8,41 +8,31 @@ export default async function handler(req, res) {
 
   if (!apiKey) {
     console.error("Server Error: Missing API_KEY environment variable.");
-    return res.status(500).json({ error: "Server Configuration Error: API_KEY is missing. Please check .env file." });
+    return res.status(500).json({ error: "Server Configuration Error: API_KEY is missing." });
   }
 
   const ai = new GoogleGenAI({ apiKey: apiKey });
   const { ocrText, imageBase64, imageUrl } = req.body;
 
   try {
-    // UPDATED PROMPT: Extract MULTIPLE transactions
     const systemPrompt = `
-      You are a smart financial assistant.
-      Task: Extract a list of financial transactions from the provided input (Image/Text).
+      You are a smart financial assistant specializing in Vietnamese household expenses.
+      Task: Extract financial transactions from the provided input.
       
-      SCENARIO: SUMMARY TABLES (Like salary slips):
-      - If you see a table with "Lương" (Salary/Income) and "Tổng Chi" (Total Expense), create TWO separate transactions:
-        1. One INCOME transaction for the Salary amount.
-        2. One EXPENSE transaction for the Total Expense amount.
-      - DO NOT create a transaction for "Dư" (Balance/Remaining), as this is calculated automatically.
+      CRITICAL RULES FOR VIETNAMESE CONTEXT:
+      1. **Expense Lists**: If you see a list of items starting with "Tiền..." (e.g., Tiền sữa, Tiền học, Tiền điện), these are ALWAYS EXPENSES.
+      2. **Summary Items**: If the input has a "Tổng cộng" (Total) at the bottom of an expense list, extract that "Tổng cộng" as a single EXPENSE transaction with description "Tổng chi phí tháng".
+      3. **Income Detection**: Only classify as INCOME if you see clear keywords like "Lương", "Thưởng", "Nhận tiền", or "Cộng vào tài khoản". "Tổng cộng" is NOT an indicator of income.
+      4. **Categorization**: 
+         - Education/Kids: "Other" (description "Tiền học/Sữa")
+         - Bills: "Utilities"
+         - Food: "Food & Dining"
+         - General/Summary: "Other"
       
-      SCENARIO: DETAILED LISTS:
-      - If it is a long receipt with many small items, extract them individually if possible.
-      
-      RULES:
-      1. **Type**: Detect based on context. "Lương", "Thu nhập" = INCOME. "Chi", "Mua", "Tổng chi" = EXPENSE.
-      2. **Category**: 
-         - "Lương" -> "Salary"
-         - "Tổng chi" -> "Other" (or infer from context)
-         - "Ăn uống" -> "Food & Dining"
-      3. **Amount**: Must be a positive number.
-      4. **Date**: Use today's date if not found.
-      
-      OUTPUT: Return a JSON **ARRAY** of objects.
+      OUTPUT: Return a JSON ARRAY of objects. Even if there's only one summary transaction, it must be in an array [].
     `;
 
     const parts = [];
-
     if (ocrText && ocrText.trim().length > 0) {
       parts.push({ text: `OCR Text Data:\n${ocrText}` });
     }
@@ -63,13 +53,12 @@ export default async function handler(req, res) {
         parts.push({ text: `Reference Image URL: ${imageUrl}` });
     }
     
-    parts.push({ text: "Extract a list of transactions." });
+    parts.push({ text: "Please extract the total summary transaction if this is a monthly expense list." });
 
     if (parts.length <= 1) { 
-      return res.status(400).json({ error: "No valid text or image provided to analyze." });
+      return res.status(400).json({ error: "No valid input provided." });
     }
 
-    // Always use ai.models.generateContent to query GenAI with both the model name and prompt.
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: { parts: parts },
@@ -77,11 +66,11 @@ export default async function handler(req, res) {
         systemInstruction: systemPrompt,
         responseMimeType: "application/json",
         responseSchema: {
-          type: Type.ARRAY, // CHANGED TO ARRAY
+          type: Type.ARRAY,
           items: {
             type: Type.OBJECT,
             properties: {
-              amount: { type: Type.NUMBER, description: "Transaction amount" },
+              amount: { type: Type.NUMBER },
               type: { type: Type.STRING, enum: ["INCOME", "EXPENSE"] },
               category: { 
                 type: Type.STRING, 
@@ -90,8 +79,8 @@ export default async function handler(req, res) {
                   "Salary", "Transfer", "Entertainment", "Health & Fitness", "Other"
                 ]
               },
-              description: { type: Type.STRING, description: "Short description" },
-              date: { type: Type.STRING, description: "ISO 8601 YYYY-MM-DD" }
+              description: { type: Type.STRING },
+              date: { type: Type.STRING }
             },
             required: ["amount", "type", "category", "description", "date"],
           }
@@ -99,7 +88,6 @@ export default async function handler(req, res) {
       }
     });
 
-    // The GenerateContentResponse object features a text property (not a method) that directly returns the string output.
     const result = response.text;
     if (!result) throw new Error("No content returned from AI");
 
