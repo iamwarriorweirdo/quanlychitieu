@@ -494,28 +494,50 @@ const App: React.FC = () => {
          </div>
       </main>
 
-      {/* MOBILE BOTTOM NAV */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-30 px-2 py-3 flex justify-around items-center">
-         <button onClick={() => setCurrentView('dashboard')} className={`flex flex-col items-center gap-1 ${currentView === 'dashboard' ? 'text-indigo-600' : 'text-slate-400'}`}>
-           <LayoutDashboard size={22} />
+      {/* MOBILE BOTTOM NAV - UPDATED WITH VIOLET BACKGROUND, LABELS AND ADJUSTED FAB */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-violet-600 z-30 px-2 py-3 flex justify-around items-center h-20 shadow-[0_-4px_20px_rgba(124,58,237,0.3)]">
+         <button 
+           onClick={() => setCurrentView('dashboard')} 
+           className={`flex flex-col items-center gap-1 flex-1 transition-all ${currentView === 'dashboard' ? 'text-white' : 'text-violet-300'}`}
+         >
+           <LayoutDashboard size={22} className={currentView === 'dashboard' ? 'scale-110' : ''} />
+           <span className="text-[10px] font-medium opacity-90">{t.nav.dashboard}</span>
          </button>
-         <button onClick={() => setCurrentView('analysis')} className={`flex flex-col items-center gap-1 ${currentView === 'analysis' ? 'text-indigo-600' : 'text-slate-400'}`}>
-           <PieChart size={22} />
-         </button>
-         <button onClick={() => setCurrentView('planning')} className={`flex flex-col items-center gap-1 ${currentView === 'planning' ? 'text-indigo-600' : 'text-slate-400'}`}>
-           <ClipboardList size={22} />
-         </button>
-         <button onClick={() => setCurrentView('investment')} className={`flex flex-col items-center gap-1 ${currentView === 'investment' ? 'text-indigo-600' : 'text-slate-400'}`}>
-           <TrendingUp size={22} />
+         
+         <button 
+           onClick={() => setCurrentView('analysis')} 
+           className={`flex flex-col items-center gap-1 flex-1 transition-all ${currentView === 'analysis' ? 'text-white' : 'text-violet-300'}`}
+         >
+           <PieChart size={22} className={currentView === 'analysis' ? 'scale-110' : ''} />
+           <span className="text-[10px] font-medium opacity-90">{t.nav.analysis}</span>
          </button>
 
-         {/* Floating Action Button for Mobile */}
-         <div className="absolute -top-5 left-1/2 -translate-x-1/2">
+         {/* Spacer for FAB */}
+         <div className="w-16 flex-none"></div>
+
+         <button 
+           onClick={() => setCurrentView('planning')} 
+           className={`flex flex-col items-center gap-1 flex-1 transition-all ${currentView === 'planning' ? 'text-white' : 'text-violet-300'}`}
+         >
+           <ClipboardList size={22} className={currentView === 'planning' ? 'scale-110' : ''} />
+           <span className="text-[10px] font-medium opacity-90">{t.nav.planning}</span>
+         </button>
+         
+         <button 
+           onClick={() => setCurrentView('investment')} 
+           className={`flex flex-col items-center gap-1 flex-1 transition-all ${currentView === 'investment' ? 'text-white' : 'text-violet-300'}`}
+         >
+           <TrendingUp size={22} className={currentView === 'investment' ? 'scale-110' : ''} />
+           <span className="text-[10px] font-medium opacity-90">{t.nav.investment}</span>
+         </button>
+
+         {/* Floating Action Button for Mobile - Moved up slightly and styled with a white circle */}
+         <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-40">
            <button 
              onClick={() => setIsManualModalOpen(true)}
-             className="bg-indigo-600 text-white p-3 rounded-full shadow-lg shadow-indigo-200 hover:scale-105 transition-transform"
+             className="bg-white text-violet-600 p-4 rounded-full shadow-2xl hover:scale-105 transition-transform border-4 border-violet-600"
            >
-             <Plus size={24} />
+             <Plus size={28} strokeWidth={3} />
            </button>
          </div>
       </nav>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { User, Investment, InvestmentSecurity } from '../types';
 import { translations, Language } from '../utils/i18n';
@@ -246,7 +247,8 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
     setIsUpdatingPrices(true);
     
     // Get list of unique symbols
-    const symbols = Array.from(new Set(investments.map(i => i.symbol)));
+    // Fix: Explicitly cast to string[] to resolve 'unknown[]' inference issue which was causing a type mismatch in fetchMarketPrices call
+    const symbols = Array.from(new Set(investments.map(i => i.symbol))) as string[];
     
     try {
        const prices = await fetchMarketPrices(symbols);

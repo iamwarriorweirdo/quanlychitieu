@@ -1,3 +1,4 @@
+
 import { GoogleGenAI } from "@google/genai";
 
 export default async function handler(req, res) {
@@ -32,15 +33,17 @@ export default async function handler(req, res) {
       Example: { "VIC": 42500, "BTC": 1500000000, "VNM": 68000 }
     `;
 
+    // Always use ai.models.generateContent to query GenAI with both the model name and prompt.
     const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-3-flash-preview',
       contents: prompt,
       config: {
-        tools: [{ googleSearch: {} }], // Enable Google Search
+        tools: [{ googleSearch: {} }], // Enable Google Search grounding
         // Note: responseMimeType and responseSchema are NOT allowed when using googleSearch tool
       }
     });
 
+    // The GenerateContentResponse object features a text property (not a method) that directly returns the string output.
     let resultText = response.text;
     if (!resultText) throw new Error("No data returned from AI");
     
