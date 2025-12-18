@@ -25,7 +25,7 @@ export default async function handler(req, res) {
       });
     }
 
-    // 2. Setup Security (Secondary Password & Target Email)
+    // 2. Setup Security
     if (action === 'setup') {
         const isOtp = !!email;
         const existing = await sql`SELECT user_id FROM investment_security WHERE user_id = ${userId}`;
@@ -59,18 +59,21 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true });
     }
 
-    // 3. Setup SMTP (Sender Configuration)
+    // 3. Setup SMTP (Trim inputs to avoid whitespace errors)
     if (action === 'setup_smtp') {
+        const cleanEmail = smtpEmail ? smtpEmail.trim() : null;
+        const cleanPass = smtpPassword ? smtpPassword.trim().replace(/\s/g, '') : null;
+
         const existing = await sql`SELECT user_id FROM investment_security WHERE user_id = ${userId}`;
         if (existing.length === 0) {
              await sql`
                 INSERT INTO investment_security (user_id, secondary_password, smtp_email, smtp_password)
-                VALUES (${userId}, 'default123', ${smtpEmail}, ${smtpPassword})
+                VALUES (${userId}, 'default123', ${cleanEmail}, ${cleanPass})
             `;
         } else {
             await sql`
                 UPDATE investment_security 
-                SET smtp_email = ${smtpEmail}, smtp_password = ${smtpPassword}
+                SET smtp_email = ${cleanEmail}, smtp_password = ${cleanPass}
                 WHERE user_id = ${userId}
             `;
         }
@@ -108,12 +111,24 @@ export default async function handler(req, res) {
         }
 
         const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-        await sql`UPDATE investment_security SET otp_code = ${otpCode} WHERE user_id = ${userId}`;
+        // Cập nhật hoặc chèn bản ghi bảo mật nếu chưa có
+        const checkSec = await sql`SELECT user_id FROM investment_security WHERE user_id = ${userId}`;
+        if (checkSec.length === 0) {
+            await sql`INSERT INTO investment_security (user_id, secondary_password, otp_code) VALUES (${userId}, 'default123', ${otpCode})`;
+        } else {
+            await sql`UPDATE investment_security SET otp_code = ${otpCode} WHERE user_id = ${userId}`;
+        }
 
         try {
+            // Cấu hình tường minh hơn cho Gmail
             const transporter = nodemailer.createTransport({
-                service: 'gmail',
-                auth: { user: senderUser, pass: senderPass }
+                host: 'smtp.gmail.com',
+                port: 465,
+                secure: true, // use SSL
+                auth: {
+                    user: senderUser,
+                    pass: senderPass
+                }
             });
 
             await transporter.sendMail({
@@ -128,8 +143,12 @@ export default async function handler(req, res) {
             });
             return res.status(200).json({ success: true });
         } catch (e) {
-            console.error(e);
-            return res.status(500).json({ error: "Lỗi gửi Email. Hãy đảm bảo bạn dùng 'Mật khẩu ứng dụng' Gmail." });
+            console.error("Nodemailer Error Details:", e);
+            // Trả về lỗi cụ thể hơn để người dùng biết vấn đề nằm ở xác thực
+            if (e.code === 'EAUTH') {
+                return res.status(500).json({ error: "Lỗi xác thực Gmail: Mật khẩu hoặc tài khoản không đúng. Bạn PHẢI sử dụng 'Mật khẩu ứng dụng' 16 ký tự." });
+            }
+            return res.status(500).json({ error: "Lỗi gửi Email: " + (e.message || "Vui lòng kiểm tra lại cấu hình SMTP.") });
         }
     }
 
