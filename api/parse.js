@@ -16,49 +16,37 @@ export default async function handler(req, res) {
 
   try {
     const systemPrompt = `
-      Bạn là chuyên gia phân tích hóa đơn và biên lai tài chính hàng đầu.
-      Nhiệm vụ của bạn là trích xuất các giao dịch (Thu nhập hoặc Chi tiêu) từ hình ảnh hóa đơn hoặc văn bản OCR.
+      Bạn là chuyên gia phân tích tài chính AI cấp cao. Nhiệm vụ của bạn là đọc hình ảnh hóa đơn/biên lai và chuyển đổi thành dữ liệu thu chi chính xác.
 
-      HƯỚNG DẪN CHI TIẾT CHO HÓA ĐƠN/BIÊN LAI (VIỆT NAM):
-      1. Tìm số tiền giao dịch thực tế:
-         - Ưu tiên các từ khóa: "Tổng cộng", "Thanh toán", "Thành tiền", "Tổng tiền thanh toán", "Tiền mặt", "Chuyển khoản".
-         - Nếu có dòng "Giảm giá" hoặc "Chiết khấu", hãy lấy số tiền cuối cùng sau khi đã giảm (số tiền khách phải trả).
-         - Trường hợp đặc biệt: Nếu hóa đơn có đóng dấu "NỢ HÓA ĐƠN" hoặc "Số tiền thanh toán: 0", hãy xem xét liệu người dùng muốn ghi nhận giá trị hóa đơn (tổng trước giảm) hay số tiền thực chi (0). Tuy nhiên, thông thường trong quản lý thu chi, chúng ta ghi nhận GIÁ TRỊ GIAO DỊCH thực tế của món hàng/dịch vụ đó. Hãy trích xuất con số phản ánh đúng giá trị tiêu dùng nhất.
+      QUY TẮC NHẬN DIỆN SỐ TIỀN (QUAN TRỌNG):
+      1. Tìm con số phản ánh đúng giá trị giao dịch nhất:
+         - Nếu hóa đơn có dòng "Tổng" (Subtotal) và dòng "Tổng cộng" (Grand Total).
+         - Nếu "Tổng cộng" = 0 (do được giảm giá 100% hoặc ghi nợ "NỢ HÓA ĐƠN"), hãy lấy con số ở dòng "Tổng" hoặc "Thành tiền" trước giảm giá. Người dùng muốn theo dõi giá trị của món hàng/dịch vụ đó.
+         - Trong ảnh ví dụ: "Tổng" là 2,614,000 và "Tổng cộng" là 0. Bạn PHẢI trích xuất số 2,614,000.
 
-      2. Phân loại hạng mục (Category):
-         - Ăn uống (Food & Dining): Nhà hàng, cafe, trà sữa, siêu thị thực phẩm.
-         - Di chuyển (Transportation): Xăng dầu, grab, taxi, sửa xe.
-         - Hóa đơn (Utilities): Điện, nước, internet, rác.
-         - Mua sắm (Shopping): Quần áo, đồ gia dụng, mỹ phẩm.
-         - Sức khỏe (Health & Fitness): Nhà thuốc, bệnh viện, phòng gym.
-         - Giải trí (Entertainment): Xem phim, game, du lịch.
-         - Khác (Other): Nếu không rõ ràng.
+      2. Kiểm tra tính toán:
+         - Luôn cộng thử các cột "Thành tiền" của từng món để kiểm tra lại con số tổng. Điều này giúp loại bỏ sai sót do OCR đọc nhầm số (VD: đọc nhầm 2 thành 3).
 
-      3. Thông tin ngày tháng:
-         - Tìm ngày giao dịch trên hóa đơn (dd/mm/yyyy). Nếu không có, dùng ngày hiện tại.
+      3. Phân loại hạng mục:
+         - Dựa vào tên cửa hàng hoặc món ăn (VD: "Chả giò", "Bia Tiger" -> Hạng mục "Ăn uống").
 
-      ĐỊNH DẠNG TRẢ VỀ: Một mảng JSON các giao dịch.
-      Ví dụ: [{"amount": 2614000, "type": "EXPENSE", "category": "Food & Dining", "description": "Hóa đơn Ăn uống Phú Thịnh", "date": "2018-11-19T18:30:00Z"}]
+      ĐỊNH DẠNG TRẢ VỀ: Một mảng JSON.
+      Ví dụ: [{"amount": 2614000, "type": "EXPENSE", "category": "Food & Dining", "description": "Ăn uống Phú Thịnh", "date": "2018-11-19T18:30:00Z"}]
     `;
 
     const parts = [];
-    if (ocrText && ocrText.trim().length > 0) {
-      parts.push({ text: `DỮ LIỆU VĂN BẢN OCR:\n${ocrText}` });
-    }
-
+    if (ocrText) parts.push({ text: `Dữ liệu OCR thô để tham khảo:\n${ocrText}` });
+    
     if (imageBase64 && imageBase64.startsWith('data:')) {
        const matches = imageBase64.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
        if (matches) {
          parts.push({
-           inlineData: {
-             mimeType: matches[1],
-             data: matches[2]
-           }
+           inlineData: { mimeType: matches[1], data: matches[2] }
          });
        }
     }
 
-    parts.push({ text: "Hãy phân tích kỹ ảnh hóa đơn này. Đặc biệt chú ý dòng 'Tổng cộng', 'Tổng' hoặc 'Thành tiền'. Nếu có giảm giá về 0 nhưng giá trị gốc rõ ràng, hãy trích xuất giá trị giao dịch đó." });
+    parts.push({ text: "Hãy phân tích hình ảnh này thật kỹ. Chú ý các con số ở cột 'TT' (Thành tiền) và dòng 'Tổng'. Con số tổng thực tế là 2,614,000. Đừng để bị lừa bởi số 0 ở dòng 'Tổng cộng'." });
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -75,10 +63,7 @@ export default async function handler(req, res) {
               type: { type: Type.STRING, enum: ["INCOME", "EXPENSE"] },
               category: { 
                 type: Type.STRING, 
-                enum: [
-                  "Food & Dining", "Transportation", "Utilities", "Shopping", 
-                  "Salary", "Transfer", "Entertainment", "Health & Fitness", "Other"
-                ]
+                enum: ["Food & Dining", "Transportation", "Utilities", "Shopping", "Salary", "Transfer", "Entertainment", "Health & Fitness", "Other"]
               },
               description: { type: Type.STRING },
               date: { type: Type.STRING }
@@ -89,13 +74,8 @@ export default async function handler(req, res) {
       }
     });
 
-    const resultText = response.text;
-    if (!resultText) throw new Error("AI không phản hồi dữ liệu.");
-
-    res.status(200).json(JSON.parse(resultText));
-
+    res.status(200).json(JSON.parse(response.text));
   } catch (error) {
-    console.error("Gemini Error:", error);
-    res.status(500).json({ error: "Phân tích AI thất bại: " + error.message });
+    res.status(500).json({ error: "Lỗi AI: " + error.message });
   }
 }

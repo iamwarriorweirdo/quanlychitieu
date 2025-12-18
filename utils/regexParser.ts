@@ -19,52 +19,41 @@ export const parseWithRegex = (text: string): ParsedTransactionData => {
   let category = Category.OTHER;
   let description = "Chi tiêu (Quét Offline)";
   
-  // 1. Phân loại loại tài liệu
-  const isPayroll = normalized.includes('luong') || normalized.includes('payslip') || normalized.includes('thuc lanh');
-  if (isPayroll) {
-    type = TransactionType.INCOME;
-    category = Category.SALARY;
-    description = "Lương thực lãnh (Quét Offline)";
-  }
+  // Từ khóa tìm kiếm số tiền
+  const keywords = ['tong', 'thanh toan', 'thanh tien', 'gia tri', 'total', 'net'];
 
-  // 2. Tìm số tiền dựa trên từ khóa quan trọng (Tong cong, Thanh toan...)
-  const amountKeywords = ['tong cong', 'thanh toan', 'tong tien', 'thanh tien', 'total', 'net salary', 'thuc lanh'];
-  
-  for (let line of lines) {
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
     const normLine = normalizeText(line);
-    if (amountKeywords.some(kw => normLine.includes(kw))) {
-      // Tìm số trong cùng dòng hoặc dòng tiếp theo
-      const matches = line.match(/[\d.,]{5,}/g);
-      if (matches) {
-        const clean = matches[matches.length - 1].replace(/[.,]/g, '');
-        const val = parseInt(clean);
-        if (!isNaN(val) && val > amount) {
+
+    if (keywords.some(k => normLine.includes(k))) {
+      // Tìm số tiền trong dòng này hoặc 2 dòng tiếp theo
+      const checkBlock = lines.slice(i, i + 3).join(' ');
+      const moneyMatches = checkBlock.match(/[\d.,]{5,12}/g);
+      
+      if (moneyMatches) {
+        // Lấy số cuối cùng trong cụm từ khóa (thường là kết quả tổng)
+        const lastMatch = moneyMatches[moneyMatches.length - 1];
+        const val = parseInt(lastMatch.replace(/[.,]/g, ''));
+        if (!isNaN(val) && val > amount && val < 100000000) {
           amount = val;
         }
       }
     }
   }
 
-  // Nếu không tìm thấy qua từ khóa, mới lấy số lớn nhất (trừ các số có vẻ là số hóa đơn dài)
+  // Fallback: Nếu vẫn bằng 0, lấy số lớn nhất hợp lệ
   if (amount === 0) {
-    let potentialAmounts: number[] = [];
-    lines.forEach(line => {
-      const matches = line.match(/\b\d{1,3}(?:[.,]\d{3})*\b|\b\d{5,9}\b/g);
-      if (matches) {
-        matches.forEach(m => {
-          const val = parseInt(m.replace(/[.,]/g, ''));
-          if (!isNaN(val) && val > 1000 && val < 100000000) { // Giới hạn 100tr để tránh số ID hóa đơn
-            potentialAmounts.push(val);
-          }
-        });
-      }
-    });
-    amount = potentialAmounts.length > 0 ? Math.max(...potentialAmounts) : 0;
+    const allNumbers = text.match(/\b\d{1,3}(?:[.,]\d{3})+\b|\b\d{5,9}\b/g);
+    if (allNumbers) {
+      const vals = allNumbers.map(n => parseInt(n.replace(/[.,]/g, ''))).filter(v => v < 50000000);
+      amount = vals.length > 0 ? Math.max(...vals) : 0;
+    }
   }
 
-  // 3. Tìm ngày
+  // Tìm ngày
   let dateStr = new Date().toISOString();
-  const dateRegex = /\b(\d{1,2})[/-](\d{1,2})[/-](\d{4})\b/;
+  const dateRegex = /(\d{1,2})[/-](\d{1,2})[/-](\d{4})/;
   const dateMatch = text.match(dateRegex);
   if (dateMatch) {
     const d = new Date(`${dateMatch[3]}-${dateMatch[2].padStart(2, '0')}-${dateMatch[1].padStart(2, '0')}`);
