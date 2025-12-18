@@ -28,7 +28,6 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
   const [otpSent, setOtpSent] = useState(false);
 
   // Settings Modal Inputs
-  const [newPassword, setNewPassword] = useState('');
   const [linkEmailInput, setLinkEmailInput] = useState('');
   const [linkOtpInput, setLinkOtpInput] = useState('');
   const [isLinkingEmail, setIsLinkingEmail] = useState(false);
@@ -90,7 +89,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
   }, [isLocked, user.id]);
 
   const handleInitialSetup = async () => {
-    if (!passwordInput) return setError("Password required");
+    if (!passwordInput) return setError("Vui lòng nhập mật khẩu cấp 2.");
     await setupSecurity(user.id, passwordInput);
     setHasSetup(true);
     setPasswordInput('');
@@ -137,6 +136,38 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
     }
   };
 
+  // Logic Liên kết Email (FIXED: Added missing functions)
+  const handleSendLinkOtp = async () => {
+    if (!linkEmailInput || !linkEmailInput.includes('@')) return alert("Vui lòng nhập Email hợp lệ.");
+    setIsLinkingEmail(true);
+    try {
+        const res = await requestOtp(user.id, linkEmailInput);
+        if (res.success) {
+            setIsWaitingOtp(true);
+            alert("Mã xác thực đã được gửi!");
+        } else {
+            alert(res.error || "Gửi mã thất bại.");
+        }
+    } catch(e: any) { alert(e.message); }
+    finally { setIsLinkingEmail(false); }
+  };
+
+  const handleVerifyLinkOtp = async () => {
+    if (!linkOtpInput) return alert("Vui lòng nhập mã OTP.");
+    try {
+        const ok = await verifyOtp(user.id, linkOtpInput);
+        if (ok) {
+            await setupSecurity(user.id, '', linkEmailInput);
+            alert("Liên kết thành công!");
+            setIsWaitingOtp(false);
+            setLinkOtpInput('');
+            checkStatus();
+        } else {
+            alert("Mã OTP không chính xác.");
+        }
+    } catch(e: any) { alert(e.message); }
+  };
+
   const handleSaveSmtp = async () => {
       const cleanPass = smtpPass.trim().replace(/\s/g, '');
       if(!smtpEmail || !cleanPass) return alert("Vui lòng nhập đầy đủ Email và Mật khẩu ứng dụng.");
@@ -152,9 +183,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
         alert("Cấu hình thành công!");
         setShowSmtpConfig(false);
         checkStatus();
-      } catch(e) {
-        alert("Lưu thất bại.");
-      }
+      } catch(e) { alert("Lưu thất bại."); }
   };
 
   const handleSave = async () => {
@@ -205,7 +234,6 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
            return inv;
        });
        setInvestments(updatedInvestments);
-       // Save each updated price to DB
        for (const inv of updatedInvestments) {
           if (prices[inv.symbol]) await saveInvestment(user.id, inv);
        }
@@ -214,52 +242,6 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
        alert("Không thể cập nhật giá tự động.");
     } finally {
        setIsUpdatingPrices(false);
-    }
-  };
-
-  // Fixed missing handleSendLinkOtp function
-  const handleSendLinkOtp = async () => {
-    if (!linkEmailInput || !linkEmailInput.includes('@')) {
-      alert("Vui lòng nhập email hợp lệ.");
-      return;
-    }
-    setIsLinkingEmail(true);
-    try {
-      const res = await requestOtp(user.id, linkEmailInput);
-      if (res.success) {
-        setIsWaitingOtp(true);
-        alert("Mã xác thực đã được gửi đến email mới.");
-      } else {
-        alert(res.error || "Gửi OTP thất bại.");
-      }
-    } catch (err: any) {
-      alert(err.message || "Lỗi gửi OTP");
-    } finally {
-      setIsLinkingEmail(false);
-    }
-  };
-
-  // Fixed missing handleVerifyLinkOtp function
-  const handleVerifyLinkOtp = async () => {
-    if (linkOtpInput.length !== 6) {
-      alert("Mã OTP phải có 6 chữ số.");
-      return;
-    }
-    try {
-      const isValid = await verifyOtp(user.id, linkOtpInput);
-      if (isValid) {
-        // setupSecurity handles undefined/empty password by ignoring it in the backend logic
-        await setupSecurity(user.id, '', linkEmailInput);
-        setCurrentEmail(linkEmailInput);
-        setIsWaitingOtp(false);
-        setLinkOtpInput('');
-        alert("Liên kết email thành công!");
-        checkStatus();
-      } else {
-        alert("Mã OTP không chính xác.");
-      }
-    } catch (err: any) {
-      alert(err.message || "Lỗi xác thực OTP");
     }
   };
 
@@ -337,6 +319,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
          </div>
       </div>
 
+      {/* Asset Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -436,7 +419,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
         </div>
       )}
 
-      {/* SECURITY CENTER MODAL (Existing) */}
+      {/* SECURITY CENTER MODAL */}
       {isSecurityModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
           <div className="bg-white rounded-3xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in border border-white/20">
@@ -471,14 +454,14 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
                  </div>
               </div>
               
-              {/* CẤU HÌNH GỬI (GUIDE CHI TIẾT) */}
+              {/* SMTP Config */}
               <div className={`p-5 rounded-2xl border transition-all shadow-sm ${showSmtpConfig ? 'bg-indigo-50 border-indigo-200' : 'bg-slate-50 border-slate-200'}`}>
                  <button onClick={() => setShowSmtpConfig(!showSmtpConfig)} className="flex items-center justify-between w-full">
                     <div className="flex items-center gap-3">
                         <div className={`p-3 rounded-xl ${hasSmtp ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-500'}`}><Server size={22} /></div>
                         <div className="text-left">
-                            <h4 className="text-sm font-bold">Cấu hình Email gửi (Tùy chọn)</h4>
-                            <p className="text-[10px] text-slate-500 font-medium">{hasSmtp ? 'Hệ thống đang dùng tài khoản của bạn' : 'Dùng Gmail cá nhân để gửi OTP'}</p>
+                            <h4 className="text-sm font-bold">Cấu hình Email gửi</h4>
+                            <p className="text-[10px] text-slate-500 font-medium">{hasSmtp ? 'Đã cấu hình' : 'Dùng Gmail để gửi mã xác thực'}</p>
                         </div>
                     </div>
                     <Settings size={18} className={`text-slate-400 transition-transform ${showSmtpConfig ? 'rotate-90' : ''}`} />
@@ -487,20 +470,13 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
                  {showSmtpConfig && (
                      <div className="mt-5 space-y-4 animate-in slide-in-from-top-4">
                         <div className="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm space-y-3">
-                            <div className="flex items-center gap-2 text-indigo-700 border-b pb-2 mb-2">
-                                <HelpCircle size={16} />
-                                <span className="text-xs font-black">Hướng dẫn 3 bước Google</span>
-                            </div>
-                            <p className="text-[11px] text-slate-600">1. Truy cập <b>Google Account</b> {'>'} <b>Bảo mật</b> {'>'} <b>Xác minh 2 bước</b>.</p>
-                            <p className="text-[11px] text-slate-600">2. Tìm ô tìm kiếm: <b>"Mật khẩu ứng dụng"</b>.</p>
-                            <p className="text-[11px] text-slate-600">3. Nhấn <b>Tạo</b> và copy mã <b>16 ký tự</b> dán xuống ô bên dưới.</p>
+                            <div className="flex items-center gap-2 text-indigo-700 border-b pb-2 mb-2 text-xs font-bold">Hướng dẫn:</div>
+                            <p className="text-[11px] text-slate-600">Bật <b>Xác minh 2 bước</b> trong Tài khoản Google {'>'} Tạo <b>Mật khẩu ứng dụng</b>.</p>
                             <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full py-2 bg-slate-800 text-white text-[11px] font-bold rounded-lg"><ExternalLink size={12} /> Link trang mật khẩu ứng dụng</a>
                         </div>
-                        <div className="grid grid-cols-1 gap-3">
-                            <input title="SMTP Email" className="w-full p-3 text-sm border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Gmail của bạn" value={smtpEmail} onChange={e => setSmtpEmail(e.target.value)} />
-                            <input type="password" title="SMTP Pass" className="w-full p-3 text-sm border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Mật khẩu ứng dụng (16 ký tự)" value={smtpPass} onChange={e => setSmtpPass(e.target.value)} />
-                        </div>
-                        <button onClick={handleSaveSmtp} className="w-full bg-indigo-600 text-white py-3.5 rounded-xl text-sm font-black shadow-xl shadow-indigo-200 hover:bg-indigo-700">Lưu cấu hình</button>
+                        <input title="SMTP Email" className="w-full p-3 text-sm border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Gmail của bạn" value={smtpEmail} onChange={e => setSmtpEmail(e.target.value)} />
+                        <input type="password" title="SMTP Pass" className="w-full p-3 text-sm border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Mật khẩu ứng dụng (16 ký tự)" value={smtpPass} onChange={e => setSmtpPass(e.target.value)} />
+                        <button onClick={handleSaveSmtp} className="w-full bg-indigo-600 text-white py-3 rounded-xl text-sm font-black shadow-xl shadow-indigo-200 hover:bg-indigo-700">Lưu cấu hình</button>
                      </div>
                  )}
               </div>

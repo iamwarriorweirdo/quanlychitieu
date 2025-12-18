@@ -16,38 +16,27 @@ export default async function handler(req, res) {
 
   try {
     const systemPrompt = `
-      You are a smart financial assistant specializing in Vietnamese financial documents.
-      Task: Extract financial transactions from the provided input (text or image).
-      
-      CRITICAL RULES FOR DOCUMENTS:
-      1. **Salary Slips / Payslips (Bảng lương/Phiếu lương)**:
-         - If the document looks like a payroll (contains "Lương", "Net salary", "Thực lãnh", "BHXH", "Deductions").
-         - LOOK FOR "Tiền lương thực lãnh" or "Net salary". This is the final amount the user actually receives.
-         - Classify this final amount as a SINGLE "INCOME" transaction.
-         - Category: "Salary".
-         - Description: "Lương tháng [Month]" (infer month from document if available, e.g., "Lương tháng 3/2025").
+      You are a world-class financial document analyzer. 
+      Your goal is to extract income or expense transactions from screenshots, photos, or OCR text of Vietnamese bank notifications or payrolls.
 
-      2. **Expense Lists (Danh sách chi tiêu)**: 
-         - Items starting with "Tiền..." (e.g., Tiền sữa, Tiền học) are EXPENSES.
-         - If there's a "Tổng cộng" at the bottom of an expense list, extract it as one single "EXPENSE" summary.
+      SPECIFIC INSTRUCTIONS FOR PAYROLLS (Bảng lương):
+      - If you see terms like "Net salary", "Tiền lương thực lãnh", "Thực nhận", "Thực lãnh", "Total income".
+      - The most important number is the FINAL amount the employee actually receives.
+      - Ignore intermediate calculations (Insurance, Tax, Base Salary) unless they are clearly marked as a final "Income" transfer.
+      - ALWAYS return this as ONE transaction of type "INCOME" and category "Salary".
+      - Date: Use current date or find the month/year in the document (e.g., "Lương tháng 03/2024").
 
-      3. **General Bank Notifications**:
-         - "Cộng/+" = INCOME.
-         - "Trừ/-" = EXPENSE.
+      SPECIFIC INSTRUCTIONS FOR EXPENSES:
+      - If it's a list of daily expenses (e.g. Tiền học, Tiền sữa, Ăn sáng).
+      - Summarize them into one "EXPENSE" if there is a "Total" or extract each item if clearly separate.
 
-      4. **Categorization**: 
-         - Payroll/Income: "Salary"
-         - Education/Kids: "Other" (description "Tiền học/Sữa")
-         - Bills: "Utilities"
-         - Food: "Food & Dining"
-         - General/Summary: "Other"
-      
-      OUTPUT: Return a JSON ARRAY of objects. Example: [{"amount": 12604981, "type": "INCOME", "category": "Salary", "description": "Lương tháng 3/2025", "date": "2025-03-31T00:00:00Z"}]
+      FORMAT: Return a JSON ARRAY.
+      Example: [{"amount": 12604981, "type": "INCOME", "category": "Salary", "description": "Lương thực lãnh tháng 3", "date": "2024-03-31T00:00:00Z"}]
     `;
 
     const parts = [];
     if (ocrText && ocrText.trim().length > 0) {
-      parts.push({ text: `OCR Text Data:\n${ocrText}` });
+      parts.push({ text: `OCR TEXT DATA:\n${ocrText}` });
     }
 
     if (imageBase64 && imageBase64.startsWith('data:')) {
@@ -62,15 +51,8 @@ export default async function handler(req, res) {
        }
     }
 
-    if (imageUrl) {
-        parts.push({ text: `Reference Image URL: ${imageUrl}` });
-    }
-    
-    parts.push({ text: "If this is a salary slip, please find the Net Salary amount and return it as INCOME." });
-
-    if (parts.length <= 1) { 
-      return res.status(400).json({ error: "No valid input provided." });
-    }
+    // Add explicit hint for the current task
+    parts.push({ text: "Find the 'Net salary' or 'Tiền lương thực lãnh' amount. It is likely a large number like 12,000,000+." });
 
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -102,12 +84,12 @@ export default async function handler(req, res) {
     });
 
     const result = response.text;
-    if (!result) throw new Error("No content returned from AI");
+    if (!result) throw new Error("No response from AI");
 
     res.status(200).json(JSON.parse(result));
 
   } catch (error) {
-    console.error("Gemini Parsing Error:", error);
-    res.status(500).json({ error: "AI Processing Failed: " + error.message });
+    console.error("Gemini Error:", error);
+    res.status(500).json({ error: "AI Parsing Failed. Please try again or use manual entry." });
   }
 }

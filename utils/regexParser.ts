@@ -1,43 +1,61 @@
 
 import { ParsedTransactionData, TransactionType, Category } from '../types';
 
-// Helper: Xóa dấu tiếng Việt để so sánh chính xác hơn
-function removeVietnameseTones(str: string): string {
+// Helper: Xóa dấu tiếng Việt và chuẩn hóa text để so sánh
+function normalizeText(str: string): string {
     return str
         .normalize('NFD')
         .replace(/[\u0300-\u036f]/g, '')
         .replace(/đ/g, 'd').replace(/Đ/g, 'D')
-        .toLowerCase();
+        .toLowerCase()
+        .replace(/\s+/g, ' ');
 }
 
 export const parseWithRegex = (text: string): ParsedTransactionData => {
-  const normalized = removeVietnameseTones(text);
+  const normalized = normalizeText(text);
   
-  // 1. Tìm số tiền lớn nhất trong văn bản
-  // Regex nâng cao cho các con số có dấu chấm/phẩy phân cách hàng nghìn
-  const amountRegex = /\b\d{1,3}(?:[.,]\d{3})+(?:\s?[đdĐ]|\s?VND)?\b/gi; 
-  const potentialAmounts: string[] = text.match(amountRegex) || [];
-  
-  // Tìm các số dài đứng riêng lẻ (thường là tiền lương trong bảng tính)
-  const plainNumberRegex = /\b\d{5,12}\b/g;
-  const plainNumbers: string[] = text.match(plainNumberRegex) || [];
+  // 1. OCR Cleaning: Thường OCR nhầm 'l', 'I', 'o' thành số trong các chuỗi số
+  // Chúng ta sẽ cố gắng tìm các cụm số tiềm năng
+  const lines = text.split('\n');
+  let potentialAmounts: number[] = [];
 
-  let maxAmount = 0;
-  
-  // Xử lý các số có định dạng (1.000.000)
-  potentialAmounts.forEach((str) => {
-     const cleanStr = str.replace(/[^\d]/g, '');
-     const num = parseFloat(cleanStr);
-     if (!isNaN(num) && num > maxAmount) maxAmount = num;
+  lines.forEach(line => {
+      // Tìm các chuỗi số có thể có dấu phân cách hoặc không
+      // Hỗ trợ cả 12.604.981 và 12604981
+      const matches = line.match(/\b\d{1,3}(?:[.,]\d{3})*\b|\b\d{5,12}\b/g);
+      if (matches) {
+          matches.forEach(m => {
+              const clean = m.replace(/[.,]/g, '');
+              const val = parseInt(clean);
+              if (!isNaN(val) && val > 1000) { // Bỏ qua các số quá nhỏ (như mã số, thứ tự)
+                  potentialAmounts.push(val);
+              }
+          });
+      }
   });
 
-  // Xử lý các số thuần túy (12604981)
-  plainNumbers.forEach((str) => {
-      const num = parseFloat(str);
-      if (!isNaN(num) && num > maxAmount) maxAmount = num;
-  });
+  // 2. Phân loại tài liệu
+  const isPayroll = normalized.includes('luong') || 
+                     normalized.includes('payslip') || 
+                     normalized.includes('net salary') || 
+                     normalized.includes('thuc lanh') ||
+                     normalized.includes('thu nhap');
 
-  // 2. Tìm ngày tháng
+  let type = isPayroll ? TransactionType.INCOME : TransactionType.EXPENSE;
+  let category = isPayroll ? Category.SALARY : Category.OTHER;
+  let description = isPayroll ? "Lương thực lãnh (Quét Offline)" : "Chi tiêu (Quét Offline)";
+  let amount = 0;
+
+  if (isPayroll) {
+      // Trong bảng lương, con số "thực lãnh" thường là số lớn nhất hoặc số cuối cùng
+      // Chúng ta sẽ lấy số lớn nhất tìm thấy
+      amount = potentialAmounts.length > 0 ? Math.max(...potentialAmounts) : 0;
+  } else {
+      // Với hóa đơn thông thường, lấy số lớn nhất (thường là tổng tiền)
+      amount = potentialAmounts.length > 0 ? Math.max(...potentialAmounts) : 0;
+  }
+
+  // 3. Tìm ngày (nếu có)
   const dateRegex = /\b(\d{1,2})[/-](\d{1,2})[/-](\d{4})\b/;
   const dateMatch = text.match(dateRegex);
   let dateStr = new Date().toISOString(); 
@@ -52,56 +70,8 @@ export const parseWithRegex = (text: string): ParsedTransactionData => {
       }
   }
 
-  // 3. Logic phân loại
-  let type = TransactionType.EXPENSE;
-  let category = Category.OTHER;
-  let description = "Quét dữ liệu (Offline)";
-
-  // Kiểm tra bảng lương
-  const isPayroll = normalized.includes('luong') || normalized.includes('payslip') || normalized.includes('net salary') || normalized.includes('thuc lanh');
-
-  if (isPayroll) {
-      type = TransactionType.INCOME;
-      category = Category.SALARY;
-      description = "Thu nhập từ bảng lương (Offline)";
-  } else {
-      // Kiểm tra thu nhập thông thường
-      const hasIncomeKeywords = (
-          normalized.includes('nhan tien') || 
-          (normalized.includes('cong ') && !normalized.includes('tong cong')) || 
-          normalized.includes('salary') || 
-          normalized.includes('tk chinh')
-      );
-
-      if (hasIncomeKeywords) {
-          type = TransactionType.INCOME;
-          category = Category.SALARY;
-          description = "Thu nhập / Lương (Offline)";
-      }
-  }
-
-  // Phân loại hạng mục chi tiết cho EXPENSE (Nếu ko phải lương)
-  if (type === TransactionType.EXPENSE) {
-      if (normalized.includes('hoc') || normalized.includes('truong') || normalized.includes('lop')) {
-          category = Category.OTHER;
-          description = "Tiền học / Giáo dục";
-      }
-      else if (normalized.includes('sua') || normalized.includes('bim') || normalized.includes('tre em')) {
-          category = Category.OTHER;
-          description = "Bỉm sữa / Trẻ em";
-      }
-      else if (normalized.includes('dien') || normalized.includes('nuoc') || normalized.includes('internet')) {
-          category = Category.UTILITIES;
-          description = "Hóa đơn sinh hoạt";
-      }
-      else if (normalized.includes('an ') || normalized.includes('com') || normalized.includes('pho')) {
-          category = Category.FOOD;
-          description = "Ăn uống / Thực phẩm";
-      }
-  }
-
   return {
-    amount: maxAmount,
+    amount,
     type,
     category,
     description,
