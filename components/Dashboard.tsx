@@ -1,7 +1,8 @@
+
 import React, { useMemo } from 'react';
 import { User, Transaction, TransactionType } from '../types';
 import { TransactionItem } from './TransactionItem';
-import { Wallet, TrendingUp, TrendingDown, Search, Loader2 } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, Search, Loader2, Plus, Wand2, Image as ImageIcon } from 'lucide-react';
 import { translations, Language } from '../utils/i18n';
 import { DateFilter, FilterMode } from './DateFilter';
 
@@ -26,7 +27,7 @@ interface Props {
 }
 
 export const Dashboard: React.FC<Props> = ({ 
-  user, transactions, isLoading, onDelete, lang, 
+  user, transactions, isLoading, onDelete, lang, openAiScan, openManualModal,
   filterMode, setFilterMode, filterDate, setFilterDate, 
   rangeStart, setRangeStart, rangeEnd, setRangeEnd 
 }) => {
@@ -34,10 +35,9 @@ export const Dashboard: React.FC<Props> = ({
   const [searchQuery, setSearchQuery] = React.useState('');
   const t = translations[lang];
 
-  // Filtering Logic (Shared with Analysis via props but executed here for display)
+  // Filtering Logic
   const filteredTransactions = useMemo(() => {
     return transactions.filter(t => {
-      // 1. Text Search
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         return (
@@ -47,7 +47,6 @@ export const Dashboard: React.FC<Props> = ({
         );
       } 
       
-      // 2. Date Filtering
       const txDate = new Date(t.date);
       const selectedDate = new Date(filterDate);
 
@@ -99,35 +98,76 @@ export const Dashboard: React.FC<Props> = ({
   return (
     <div className="space-y-6 pb-20 md:pb-0">
       
-      {/* Header & Filter */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-         <h2 className="text-2xl font-bold text-slate-800">{t.dashboard.overview}</h2>
-         <DateFilter 
-            mode={filterMode} setMode={setFilterMode}
-            date={filterDate} setDate={setFilterDate}
-            rangeStart={rangeStart} setRangeStart={setRangeStart}
-            rangeEnd={rangeEnd} setRangeEnd={setRangeEnd}
-            lang={lang}
-         />
+      {/* Header with Actions */}
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+         <div>
+            <h2 className="text-2xl font-bold text-slate-800">{t.dashboard.overview}</h2>
+            <p className="text-slate-500 text-sm hidden md:block">Chào mừng trở lại, {user.username}</p>
+         </div>
+         
+         <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+            <div className="hidden sm:block">
+               <DateFilter 
+                  mode={filterMode} setMode={setFilterMode}
+                  date={filterDate} setDate={setFilterDate}
+                  rangeStart={rangeStart} setRangeStart={setRangeStart}
+                  rangeEnd={rangeEnd} setRangeEnd={setRangeEnd}
+                  lang={lang}
+               />
+            </div>
+            
+            {/* Action Buttons in Header */}
+            <div className="flex items-center gap-2 ml-auto lg:ml-0">
+               <button 
+                onClick={() => openAiScan('image')}
+                className="bg-white text-indigo-600 border border-indigo-100 p-2.5 rounded-xl shadow-sm hover:bg-indigo-50 transition-all flex items-center gap-2"
+                title={t.dashboard.aiScan}
+               >
+                 <ImageIcon size={20} />
+                 <span className="text-sm font-bold hidden xl:inline">{t.dashboard.aiScan}</span>
+               </button>
+               <button 
+                onClick={openManualModal}
+                className="bg-indigo-600 text-white p-2.5 rounded-xl shadow-md hover:bg-indigo-700 transition-all flex items-center gap-2"
+               >
+                 <Plus size={20} />
+                 <span className="text-sm font-bold">{t.dashboard.quickAdd}</span>
+               </button>
+            </div>
+         </div>
       </div>
 
-      {/* Search Bar */}
-      <div className="relative">
-        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search size={18} className="text-slate-400" />
+      {/* Search Bar & Mobile Filter */}
+      <div className="flex flex-col md:flex-row gap-3">
+        <div className="relative flex-1">
+          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search size={18} className="text-slate-400" />
+          </div>
+          <input 
+            type="text" 
+            placeholder={t.dashboard.search}
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 bg-white shadow-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-slate-800 text-sm"
+          />
         </div>
-        <input 
-          type="text" 
-          placeholder={t.dashboard.search}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-10 pr-4 py-3 bg-white shadow-sm border border-slate-200 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-slate-800 text-sm"
-        />
+        <div className="sm:hidden">
+            <DateFilter 
+              mode={filterMode} setMode={setFilterMode}
+              date={filterDate} setDate={setFilterDate}
+              rangeStart={rangeStart} setRangeStart={setRangeStart}
+              rangeEnd={rangeEnd} setRangeEnd={setRangeEnd}
+              lang={lang}
+            />
+        </div>
       </div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-gradient-to-br from-indigo-500 to-violet-600 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200">
+          <div className="bg-gradient-to-br from-indigo-500 to-violet-600 rounded-2xl p-6 text-white shadow-lg shadow-indigo-200 relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+              <Wallet size={80} />
+            </div>
             <p className="text-indigo-100 text-sm font-medium mb-1">{searchQuery ? t.dashboard.filteredBalance : t.dashboard.balance}</p>
             <h3 className="text-3xl font-bold">{stats.balance.toLocaleString('vi-VN')} ₫</h3>
             <div className="mt-4 flex items-center gap-2 text-indigo-100 text-xs">
@@ -160,7 +200,10 @@ export const Dashboard: React.FC<Props> = ({
 
       {/* Transaction List */}
       <div className="space-y-4">
-        <h3 className="font-semibold text-slate-800">{t.dashboard.history}</h3>
+        <h3 className="font-semibold text-slate-800 flex items-center gap-2">
+           {t.dashboard.history}
+           <span className="text-xs font-normal text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">{filteredTransactions.length}</span>
+        </h3>
         {isLoading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="animate-spin text-indigo-600" size={32} />

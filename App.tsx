@@ -10,7 +10,7 @@ import { AdminPanel } from './components/AdminPanel';
 import { AIParserModal } from './components/AIParserModal';
 import { ManualTransactionModal } from './components/ManualTransactionModal';
 import { FilterMode } from './components/DateFilter';
-import { Wallet, ArrowRight, Lock, User as UserIcon, Eye, EyeOff, Loader2, Globe, LayoutDashboard, PieChart, LogOut, Plus, Wand2, ClipboardList, TrendingUp, Mail, Phone, ShieldCheck, Lightbulb, Shield } from 'lucide-react';
+import { Wallet, ArrowRight, Lock, User as UserIcon, Eye, EyeOff, Loader2, Globe, LayoutDashboard, PieChart, LogOut, Plus, Wand2, ClipboardList, TrendingUp, Mail, Phone, ShieldCheck, Lightbulb, Shield, Image as ImageIcon } from 'lucide-react';
 import { translations, Language } from './utils/i18n';
 
 type View = 'dashboard' | 'analysis' | 'planning' | 'investment' | 'admin' | 'settings';
@@ -52,6 +52,7 @@ const App: React.FC = () => {
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [aiModalMode, setAiModalMode] = useState<'text' | 'image'>('text');
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
+  const [showMobileActionMenu, setShowMobileActionMenu] = useState(false);
 
   const t = translations[lang];
 
@@ -185,6 +186,12 @@ const App: React.FC = () => {
   const openAiScan = (mode: 'text' | 'image' = 'text') => {
     setAiModalMode(mode);
     setIsAiModalOpen(true);
+    setShowMobileActionMenu(false);
+  };
+
+  const openManualModal = () => {
+    setIsManualModalOpen(true);
+    setShowMobileActionMenu(false);
   };
 
   if (isInitializing) {
@@ -289,7 +296,7 @@ const App: React.FC = () => {
 
       <main className="flex-1 md:ml-64 h-full overflow-y-auto pt-20 md:pt-6 px-4 md:px-8 pb-24 md:pb-6 bg-slate-50">
          <div className="max-w-5xl mx-auto">
-            {currentView === 'dashboard' && <Dashboard user={user} transactions={transactions} isLoading={isLoadingTx} onDelete={handleDelete} lang={lang} openAiScan={openAiScan} openManualModal={() => setIsManualModalOpen(true)} filterMode={filterMode} setFilterMode={setFilterMode} filterDate={filterDate} setFilterDate={setFilterDate} rangeStart={rangeStart} setRangeStart={setRangeStart} rangeEnd={rangeEnd} setRangeEnd={setRangeEnd} />}
+            {currentView === 'dashboard' && <Dashboard user={user} transactions={transactions} isLoading={isLoadingTx} onDelete={handleDelete} lang={lang} openAiScan={openAiScan} openManualModal={openManualModal} filterMode={filterMode} setFilterMode={setFilterMode} filterDate={filterDate} setFilterDate={setFilterDate} rangeStart={rangeStart} setRangeStart={setRangeStart} rangeEnd={rangeEnd} setRangeEnd={setRangeEnd} />}
             {currentView === 'analysis' && <Analysis transactions={transactions} lang={lang} filterMode={filterMode} setFilterMode={setFilterMode} filterDate={filterDate} setFilterDate={setFilterDate} rangeStart={rangeStart} setRangeStart={setRangeStart} rangeEnd={rangeEnd} setRangeEnd={setRangeEnd} />}
             {currentView === 'planning' && <Planning user={user} transactions={transactions} goals={goals} budgets={budgets} onAddGoal={handleAddGoal} onDeleteGoal={handleDeleteGoal} onUpdateGoal={handleAddGoal} onAddBudget={handleAddBudget} onDeleteBudget={handleDeleteBudget} lang={lang} />}
             {currentView === 'investment' && <InvestmentPage user={user} lang={lang} />}
@@ -297,20 +304,77 @@ const App: React.FC = () => {
          </div>
       </main>
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-violet-600 z-30 px-2 py-3 flex justify-around items-center h-20 shadow-[0_-4px_20px_rgba(124,58,237,0.3)]">
+      {/* MOBILE NAV WITH ENHANCED ACTION MENU */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-violet-600 z-50 px-2 py-3 flex justify-around items-center h-20 shadow-[0_-4px_20px_rgba(124,58,237,0.3)]">
          <button onClick={() => setCurrentView('dashboard')} className={`flex flex-col items-center gap-1 flex-1 transition-all ${currentView === 'dashboard' ? 'text-white' : 'text-violet-300'}`}><LayoutDashboard size={22} className={currentView === 'dashboard' ? 'scale-110' : ''} /><span className="text-[10px] font-medium opacity-90">{t.nav.dashboard}</span></button>
          <button onClick={() => setCurrentView('analysis')} className={`flex flex-col items-center gap-1 flex-1 transition-all ${currentView === 'analysis' ? 'text-white' : 'text-violet-300'}`}><PieChart size={22} className={currentView === 'analysis' ? 'scale-110' : ''} /><span className="text-[10px] font-medium opacity-90">{t.nav.analysis}</span></button>
-         <div className="w-16 flex-none"></div>
+         
+         {/* Center FAB with Action Menu */}
+         <div className="relative w-16 flex-none">
+            {showMobileActionMenu && (
+               <div className="absolute -top-32 left-1/2 -translate-x-1/2 flex flex-col items-center gap-3 animate-in slide-in-from-bottom-4 fade-in duration-200">
+                  <button 
+                    onClick={() => openAiScan('image')}
+                    className="bg-white text-indigo-600 p-3 rounded-full shadow-xl flex items-center gap-2"
+                  >
+                    <ImageIcon size={20} />
+                    <span className="text-xs font-bold pr-1">{t.dashboard.aiScan}</span>
+                  </button>
+                  <button 
+                    onClick={openManualModal}
+                    className="bg-indigo-600 text-white p-3 rounded-full shadow-xl flex items-center gap-2"
+                  >
+                    <Plus size={20} />
+                    <span className="text-xs font-bold pr-1">Thêm tay</span>
+                  </button>
+               </div>
+            )}
+            <div className="absolute -top-10 left-1/2 -translate-x-1/2">
+              <button 
+                onClick={() => setShowMobileActionMenu(!showMobileActionMenu)} 
+                className={`bg-white text-violet-600 p-4 rounded-full shadow-2xl transition-all border-4 border-violet-600 ${showMobileActionMenu ? 'rotate-45' : ''}`}
+              >
+                <Plus size={28} strokeWidth={3} />
+              </button>
+            </div>
+         </div>
+
          <button onClick={() => setCurrentView('planning')} className={`flex flex-col items-center gap-1 flex-1 transition-all ${currentView === 'planning' ? 'text-white' : 'text-violet-300'}`}><ClipboardList size={22} className={currentView === 'planning' ? 'scale-110' : ''} /><span className="text-[10px] font-medium opacity-90">{t.nav.planning}</span></button>
          <button onClick={() => (user.role === 'admin' ? setCurrentView('admin') : setCurrentView('investment'))} className={`flex flex-col items-center gap-1 flex-1 transition-all ${currentView === 'investment' || currentView === 'admin' ? 'text-white' : 'text-violet-300'}`}>
             {user.role === 'admin' ? <Shield size={22} /> : <TrendingUp size={22} />}
             <span className="text-[10px] font-medium opacity-90">{user.role === 'admin' ? t.nav.admin : t.nav.investment}</span>
          </button>
-         <div className="absolute -top-10 left-1/2 -translate-x-1/2 z-40"><button onClick={() => setIsManualModalOpen(true)} className="bg-white text-violet-600 p-4 rounded-full shadow-2xl hover:scale-105 transition-transform border-4 border-violet-600"><Plus size={28} strokeWidth={3} /></button></div>
       </nav>
+
+      {/* DESKTOP FABs - RE-ENFORCED WITH HIGH Z-INDEX */}
+      <div className="hidden md:flex fixed bottom-8 right-8 flex-col gap-4 z-[100]">
+         <button 
+          onClick={() => openAiScan('image')}
+          className="group flex items-center gap-2 bg-white text-indigo-600 border border-indigo-100 px-5 py-3 rounded-full shadow-lg hover:bg-indigo-50 transition-all"
+        >
+          <ImageIcon size={20} className="group-hover:scale-110 transition-transform" />
+          <span className="font-semibold">{t.dashboard.aiScan} (Ảnh/Bill)</span>
+        </button>
+
+        <button 
+          onClick={openManualModal}
+          className="flex items-center gap-2 bg-indigo-600 text-white px-5 py-4 rounded-full shadow-lg shadow-indigo-300 hover:bg-indigo-700 transition-all"
+        >
+          <Plus size={24} />
+          <span className="font-semibold">{t.dashboard.quickAdd}</span>
+        </button>
+      </div>
 
       <AIParserModal isOpen={isAiModalOpen} onClose={() => setIsAiModalOpen(false)} onSuccess={handleAddTransactions} initialMode={aiModalMode} lang={lang} />
       <ManualTransactionModal isOpen={isManualModalOpen} onClose={() => setIsManualModalOpen(false)} onSave={(data) => handleAddTransactions([data])} lang={lang} />
+      
+      {/* Overlay for Mobile Action Menu */}
+      {showMobileActionMenu && (
+        <div 
+          className="fixed inset-0 bg-black/20 backdrop-blur-[2px] z-[45] md:hidden" 
+          onClick={() => setShowMobileActionMenu(false)}
+        />
+      )}
     </div>
   );
 };
