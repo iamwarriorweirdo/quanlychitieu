@@ -59,9 +59,10 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true });
     }
 
-    // 3. Setup SMTP (Trim inputs to avoid whitespace errors)
+    // 3. Setup SMTP
     if (action === 'setup_smtp') {
         const cleanEmail = smtpEmail ? smtpEmail.trim() : null;
+        // Strip all spaces from password to ensure it's exactly 16 characters
         const cleanPass = smtpPassword ? smtpPassword.trim().replace(/\s/g, '') : null;
 
         const existing = await sql`SELECT user_id FROM investment_security WHERE user_id = ${userId}`;
@@ -95,6 +96,7 @@ export default async function handler(req, res) {
 
         if (!emailToSend) return res.status(400).json({ error: "Không tìm thấy Email để gửi OTP. Vui lòng liên kết Gmail trước." });
 
+        // Default credentials from Env if user hasn't set their own
         let senderUser = process.env.EMAIL_USER;
         let senderPass = process.env.EMAIL_PASS;
         
@@ -111,7 +113,8 @@ export default async function handler(req, res) {
         }
 
         const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
-        // Cập nhật hoặc chèn bản ghi bảo mật nếu chưa có
+        
+        // Save OTP to DB
         const checkSec = await sql`SELECT user_id FROM investment_security WHERE user_id = ${userId}`;
         if (checkSec.length === 0) {
             await sql`INSERT INTO investment_security (user_id, secondary_password, otp_code) VALUES (${userId}, 'default123', ${otpCode})`;
@@ -120,14 +123,20 @@ export default async function handler(req, res) {
         }
 
         try {
-            // Cấu hình tường minh hơn cho Gmail
+            /** 
+             * REFINED SMTP CONFIG: 
+             * Using 'service: gmail' is the most robust way in Nodemailer to handle 
+             * the specific ports and security settings required for Google.
+             */
             const transporter = nodemailer.createTransport({
-                host: 'smtp.gmail.com',
-                port: 465,
-                secure: true, // use SSL
+                service: 'gmail',
                 auth: {
                     user: senderUser,
                     pass: senderPass
+                },
+                tls: {
+                    // This can help avoid connection issues in some cloud environments
+                    rejectUnauthorized: false
                 }
             });
 
@@ -143,12 +152,15 @@ export default async function handler(req, res) {
             });
             return res.status(200).json({ success: true });
         } catch (e) {
-            console.error("Nodemailer Error Details:", e);
-            // Trả về lỗi cụ thể hơn để người dùng biết vấn đề nằm ở xác thực
+            console.error("Nodemailer Detail Error:", e);
             if (e.code === 'EAUTH') {
-                return res.status(500).json({ error: "Lỗi xác thực Gmail: Mật khẩu hoặc tài khoản không đúng. Bạn PHẢI sử dụng 'Mật khẩu ứng dụng' 16 ký tự." });
+                return res.status(500).json({ 
+                  error: "Lỗi xác thực (EAUTH): Gmail đã từ chối thông tin đăng nhập. " +
+                         "Lưu ý: Bạn phải bật 'Xác minh 2 bước' TRƯỚC khi tạo 'Mật khẩu ứng dụng'. " +
+                         "Hãy thử xóa mật khẩu ứng dụng cũ và tạo lại cái mới."
+                });
             }
-            return res.status(500).json({ error: "Lỗi gửi Email: " + (e.message || "Vui lòng kiểm tra lại cấu hình SMTP.") });
+            return res.status(500).json({ error: "Lỗi kết nối máy chủ Mail: " + (e.message || "Vui lòng kiểm tra lại mạng.") });
         }
     }
 
