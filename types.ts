@@ -67,9 +67,9 @@ export interface Budget {
 export interface Investment {
   id: string;
   userId: string;
-  symbol: string; // e.g., VCB, BTC, GOLD
-  name: string;
-  type: 'Stock' | 'Crypto' | 'RealEstate' | 'Gold' | 'Fund' | 'Other';
+  symbol?: string; // Ticker (Optional for some types)
+  name: string; // Asset name (Required)
+  type: 'Stock' | 'Crypto' | 'RealEstate' | 'Gold' | 'Fund' | 'EducationFund' | 'Other';
   quantity: number;
   unit?: string; // e.g., 'Lượng', 'Chỉ', 'Cổ phiếu', 'Coin'
   buyPrice: number; // Giá mua trung bình

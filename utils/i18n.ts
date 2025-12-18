@@ -134,10 +134,9 @@ export const translations = {
       addAsset: 'Thêm tài sản',
       totalValue: 'Tổng giá trị tài sản',
       totalProfit: 'Tổng lợi nhuận (P/L)',
-      symbol: 'Mã / Tên',
-      // Added missing name translation
+      symbol: 'Mã Ticker',
       name: 'Tên tài sản',
-      quantity: 'Số lượng',
+      quantity: 'Số lượng / Trọng lượng',
       currentPrice: 'Giá hiện tại',
       types: {
         Stock: 'Cổ phiếu',
@@ -145,6 +144,7 @@ export const translations = {
         RealEstate: 'Bất động sản',
         Gold: 'Vàng / Kim loại quý',
         Fund: 'Chứng chỉ quỹ',
+        EducationFund: 'Quỹ tiền học',
         Other: 'Tài sản khác'
       } as Record<string, string>,
       unit: 'Đơn vị tính',
@@ -310,10 +310,9 @@ export const translations = {
       addAsset: 'Add Asset',
       totalValue: 'Total Asset Value',
       totalProfit: 'Total Profit/Loss',
-      symbol: 'Symbol / Name',
-      // Added missing name translation
+      symbol: 'Ticker Symbol',
       name: 'Asset Name',
-      quantity: 'Quantity',
+      quantity: 'Quantity / Weight',
       currentPrice: 'Current Price',
       types: {
         Stock: 'Stock',
@@ -321,6 +320,7 @@ export const translations = {
         RealEstate: 'Real Estate',
         Gold: 'Gold / Precious Metal',
         Fund: 'Mutual Fund',
+        EducationFund: 'Education Fund',
         Other: 'Other Assets'
       } as Record<string, string>,
       unit: 'Unit',
@@ -487,7 +487,6 @@ export const translations = {
       totalValue: '资产总值',
       totalProfit: '总盈亏 (P/L)',
       symbol: '代码 / 名称',
-      // Added missing name translation
       name: '资产名称',
       quantity: '数量',
       currentPrice: '当前价格',
@@ -497,6 +496,7 @@ export const translations = {
         RealEstate: '房地产',
         Gold: '黄金 / 贵金属',
         Fund: '基金',
+        EducationFund: '教育基金',
         Other: '其他资产'
       } as Record<string, string>,
       unit: '单位',
