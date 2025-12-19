@@ -89,8 +89,20 @@ export const Dashboard: React.FC<Props> = ({
             <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Xin chào, {user.username}</p>
          </div>
          <div className="flex gap-2">
-            <button onClick={() => openAiScan('image')} className="md:hidden bg-indigo-100 text-indigo-600 p-2.5 rounded-xl active:scale-90 transition-transform">
+            <button 
+              onClick={() => openAiScan('image')} 
+              className="bg-indigo-100 text-indigo-600 p-2.5 rounded-xl active:scale-90 transition-all hover:bg-indigo-600 hover:text-white flex items-center gap-2"
+              title="Quét AI"
+            >
                <Wand2 size={20} />
+               <span className="hidden md:inline text-xs font-bold">Quét AI</span>
+            </button>
+            <button 
+              onClick={openManualModal}
+              className="hidden md:flex bg-slate-100 text-slate-700 p-2.5 rounded-xl active:scale-90 transition-all hover:bg-slate-200 items-center gap-2"
+            >
+               <Plus size={20} />
+               <span className="text-xs font-bold">Thêm thủ công</span>
             </button>
          </div>
       </div>

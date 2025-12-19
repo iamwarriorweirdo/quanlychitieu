@@ -10,7 +10,6 @@ import { AdminPanel } from './components/AdminPanel';
 import { AIParserModal } from './components/AIParserModal';
 import { ManualTransactionModal } from './components/ManualTransactionModal';
 import { FilterMode } from './components/DateFilter';
-// Added Loader2 to the lucide-react imports to fix missing component errors
 import { Wallet, LogOut, Plus, Wand2, LayoutDashboard, PieChart, ClipboardList, TrendingUp, Shield, User as UserIcon, Settings, Globe, ChevronRight, Bell, Smartphone, ShieldCheck, Loader2 } from 'lucide-react';
 import { translations, Language } from './utils/i18n';
 
@@ -194,14 +193,29 @@ const App: React.FC = () => {
     <div className="flex flex-col md:flex-row h-screen bg-slate-50 overflow-hidden">
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200">
-        <div className="p-6 flex items-center gap-3 border-b"><div className="bg-indigo-600 text-white p-2 rounded-lg"><Wallet /></div><h1 className="font-bold text-lg">{t.app.title}</h1></div>
+        <div className="p-6 flex items-center gap-3 border-b">
+          <div className="bg-indigo-600 text-white p-2 rounded-lg"><Wallet /></div>
+          <h1 className="font-bold text-lg">{t.app.title}</h1>
+        </div>
+        
+        <div className="p-4 border-b">
+          <button 
+            onClick={() => setIsManualModalOpen(true)}
+            className="w-full bg-indigo-600 text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 hover:bg-indigo-700 shadow-lg shadow-indigo-100 transition-all active:scale-95"
+          >
+            <Plus size={20} /> Thêm giao dịch
+          </button>
+        </div>
+
         <nav className="flex-1 p-4 space-y-1">
           <button onClick={() => setCurrentView('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'dashboard' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}><LayoutDashboard size={20} />{t.nav.dashboard}</button>
           <button onClick={() => setCurrentView('analysis')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'analysis' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}><PieChart size={20} />{t.nav.analysis}</button>
           <button onClick={() => setCurrentView('planning')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'planning' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}><ClipboardList size={20} />{t.nav.planning}</button>
           <button onClick={() => setCurrentView('investment')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'investment' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}><TrendingUp size={20} />{t.nav.investment}</button>
           {user.role === 'admin' && <button onClick={() => setCurrentView('admin')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'admin' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}><Shield size={20} />{t.nav.admin}</button>}
+          <button onClick={() => setCurrentView('account')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'account' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}><UserIcon size={20} />Tài khoản</button>
         </nav>
+        
         <div className="p-4 border-t flex items-center justify-between">
           <div className="flex items-center gap-2 overflow-hidden">{user.avatar ? <img src={user.avatar} className="w-8 h-8 rounded-full border border-slate-100" alt="avatar" /> : <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-400"><UserIcon size={16}/></div>}<span className="text-sm font-bold truncate text-slate-700">{user.username}</span></div>
           <button onClick={handleLogout} className="text-slate-400 hover:text-rose-500 transition-colors"><LogOut size={20} /></button>
