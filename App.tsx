@@ -10,34 +10,25 @@ import { AdminPanel } from './components/AdminPanel';
 import { AIParserModal } from './components/AIParserModal';
 import { ManualTransactionModal } from './components/ManualTransactionModal';
 import { FilterMode } from './components/DateFilter';
-import { Wallet, ArrowRight, Lock, User as UserIcon, Eye, EyeOff, Loader2, Globe, LayoutDashboard, PieChart, LogOut, Plus, Wand2, ClipboardList, TrendingUp, Mail, Phone, ShieldCheck, Lightbulb, Shield, Image as ImageIcon } from 'lucide-react';
+import { Wallet, ArrowRight, Lock, User as UserIcon, Eye, EyeOff, Loader2, Globe, LayoutDashboard, PieChart, LogOut, Plus, Wand2, ClipboardList, TrendingUp, Mail, Phone, ShieldCheck, Lightbulb, Shield, Image as ImageIcon, Menu, X, MoreHorizontal } from 'lucide-react';
 import { translations, Language } from './utils/i18n';
 
-/** 
- * ĐÃ CẬP NHẬT CLIENT ID CHÍNH XÁC
- */
 const GOOGLE_CLIENT_ID = "598430888470-bnchhoarr75hoas2rjbgn0ue54ud4i7k.apps.googleusercontent.com";
 
 type View = 'dashboard' | 'analysis' | 'planning' | 'investment' | 'admin' | 'settings';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
-  
-  // App Global State
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [goals, setGoals] = useState<Goal[]>([]);
   const [budgets, setBudgets] = useState<Budget[]>([]);
   const [isLoadingTx, setIsLoadingTx] = useState(false);
-
-  // Filter States
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
   const [filterDate, setFilterDate] = useState<string>(new Date().toLocaleDateString('en-CA'));
   const [rangeStart, setRangeStart] = useState<string>(() => {
      const d = new Date(); d.setDate(1); return d.toLocaleDateString('en-CA');
   });
   const [rangeEnd, setRangeEnd] = useState<string>(new Date().toLocaleDateString('en-CA'));
-
-  // Auth State
   const [usernameInput, setUsernameInput] = useState('');
   const [passwordInput, setPasswordInput] = useState('');
   const [emailInput, setEmailInput] = useState('');
@@ -47,15 +38,12 @@ const App: React.FC = () => {
   const [error, setError] = useState('');
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
-  
   const [lang, setLang] = useState<Language>('vi');
   const [currentView, setCurrentView] = useState<View>('dashboard');
-  
-  // Modals
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [aiModalMode, setAiModalMode] = useState<'text' | 'image'>('text');
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
-  const [showMobileActionMenu, setShowMobileActionMenu] = useState(false);
+  const [showMobileMore, setShowMobileMore] = useState(false);
 
   const t = translations[lang];
 
@@ -69,7 +57,6 @@ const App: React.FC = () => {
     init();
   }, []);
 
-  // Google OAuth Initialization with robust checking
   useEffect(() => {
     if (!user && !isInitializing) {
       const handleCredentialResponse = async (response: any) => {
@@ -81,42 +68,28 @@ const App: React.FC = () => {
           setCurrentSession(loggedInUser);
         } catch (err: any) {
           setError("Xác thực Google thất bại: " + err.message);
-          console.error("Google Auth Error:", err);
         } finally {
           setIsAuthLoading(false);
         }
       };
 
       const renderGoogleBtn = () => {
-        // @ts-ignore
-        if (window.google?.accounts?.id) {
-          // @ts-ignore
-          google.accounts.id.initialize({
+        if ((window as any).google?.accounts?.id) {
+          (window as any).google.accounts.id.initialize({
             client_id: GOOGLE_CLIENT_ID,
             callback: handleCredentialResponse,
             auto_select: false,
-            context: 'signin'
           });
-          
           const btnContainer = document.getElementById("googleBtn");
           if (btnContainer) {
-            // @ts-ignore
-            google.accounts.id.renderButton(btnContainer, { 
-              theme: "outline", 
-              size: "large", 
-              width: "100%", 
-              text: "continue_with",
-              shape: "rectangular"
+            (window as any).google.accounts.id.renderButton(btnContainer, { 
+              theme: "outline", size: "large", width: "100%", text: "continue_with", shape: "rectangular"
             });
           }
-          // @ts-ignore
-          google.accounts.id.prompt(); 
         } else {
-          // Script might not be ready yet
           setTimeout(renderGoogleBtn, 300);
         }
       };
-      
       renderGoogleBtn();
     }
   }, [user, isInitializing]);
@@ -169,12 +142,8 @@ const App: React.FC = () => {
   };
 
   const handleLogout = () => { 
-    setUser(null); 
-    setCurrentSession(null); 
-    setCurrentView('dashboard'); 
-    // Clear Google session prompt
-    // @ts-ignore
-    if (window.google?.accounts?.id) google.accounts.id.disableAutoSelect();
+    setUser(null); setCurrentSession(null); setCurrentView('dashboard'); 
+    if ((window as any).google?.accounts?.id) (window as any).google.accounts.id.disableAutoSelect();
   };
 
   const handleAddGoal = async (g: Goal) => { if (user) setGoals(await saveGoal(user.id, g)); };
@@ -202,7 +171,7 @@ const App: React.FC = () => {
                 {isAuthLoading ? <Loader2 className="animate-spin" /> : (isLoginView ? t.auth.login : t.auth.createAccount)}
               </button>
             </form>
-            <div className="relative flex items-center py-2"><div className="flex-grow border-t"></div><span className="mx-3 text-slate-400 text-xs">Hoặc đăng nhập bằng</span><div className="flex-grow border-t"></div></div>
+            <div className="relative flex items-center py-2"><div className="flex-grow border-t"></div><span className="mx-3 text-slate-400 text-xs">Hoặc</span><div className="flex-grow border-t"></div></div>
             <div id="googleBtn" className="flex justify-center min-h-[50px] overflow-hidden"></div>
             <button onClick={() => setIsLoginView(!isLoginView)} className="w-full text-center text-indigo-600 text-sm font-medium hover:underline">{isLoginView ? t.auth.newHere : t.auth.haveAccount}</button>
           </div>
@@ -211,25 +180,37 @@ const App: React.FC = () => {
     );
   }
 
+  const BottomNavItem = ({ view, icon: Icon, label }: { view: View, icon: any, label: string }) => (
+    <button 
+      onClick={() => { setCurrentView(view); setShowMobileMore(false); }} 
+      className={`flex flex-col items-center gap-1 flex-1 py-2 transition-all ${currentView === view ? 'text-indigo-600' : 'text-slate-400'}`}
+    >
+      <Icon size={22} className={currentView === view ? 'scale-110' : ''} />
+      <span className="text-[10px] font-bold">{label}</span>
+    </button>
+  );
+
   return (
-    <div className="flex h-screen bg-slate-50">
+    <div className="flex flex-col md:flex-row h-screen bg-slate-50 overflow-hidden">
+      {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200">
         <div className="p-6 flex items-center gap-3 border-b"><div className="bg-indigo-600 text-white p-2 rounded-lg"><Wallet /></div><h1 className="font-bold text-lg">{t.app.title}</h1></div>
         <nav className="flex-1 p-4 space-y-1">
-          <button onClick={() => setCurrentView('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'dashboard' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}><LayoutDashboard size={20} />{t.nav.dashboard}</button>
-          <button onClick={() => setCurrentView('analysis')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'analysis' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}><PieChart size={20} />{t.nav.analysis}</button>
-          <button onClick={() => setCurrentView('planning')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'planning' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}><ClipboardList size={20} />{t.nav.planning}</button>
-          <button onClick={() => setCurrentView('investment')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'investment' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}><TrendingUp size={20} />{t.nav.investment}</button>
-          {user.role === 'admin' && <button onClick={() => setCurrentView('admin')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'admin' ? 'bg-indigo-50 text-indigo-700' : 'text-slate-600 hover:bg-slate-50'}`}><Shield size={20} />{t.nav.admin}</button>}
+          <button onClick={() => setCurrentView('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'dashboard' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}><LayoutDashboard size={20} />{t.nav.dashboard}</button>
+          <button onClick={() => setCurrentView('analysis')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'analysis' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}><PieChart size={20} />{t.nav.analysis}</button>
+          <button onClick={() => setCurrentView('planning')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'planning' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}><ClipboardList size={20} />{t.nav.planning}</button>
+          <button onClick={() => setCurrentView('investment')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'investment' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}><TrendingUp size={20} />{t.nav.investment}</button>
+          {user.role === 'admin' && <button onClick={() => setCurrentView('admin')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'admin' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}><Shield size={20} />{t.nav.admin}</button>}
         </nav>
         <div className="p-4 border-t flex items-center justify-between">
           <div className="flex items-center gap-2 overflow-hidden">{user.avatar ? <img src={user.avatar} className="w-8 h-8 rounded-full border border-slate-100" alt="avatar" /> : <div className="w-8 h-8 bg-slate-100 rounded-full flex items-center justify-center text-slate-400"><UserIcon size={16}/></div>}<span className="text-sm font-bold truncate text-slate-700">{user.username}</span></div>
-          <button onClick={handleLogout} className="text-slate-400 hover:text-rose-500 transition-colors" title="Đăng xuất"><LogOut size={20} /></button>
+          <button onClick={handleLogout} className="text-slate-400 hover:text-rose-500 transition-colors"><LogOut size={20} /></button>
         </div>
       </aside>
 
-      <main className="flex-1 overflow-y-auto p-4 md:p-8">
-        <div className="max-w-5xl mx-auto">
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-y-auto pt-4 pb-24 md:p-8">
+        <div className="max-w-5xl mx-auto px-4 sm:px-0">
           {currentView === 'dashboard' && <Dashboard user={user} transactions={transactions} isLoading={isLoadingTx} onDelete={handleDelete} onTransactionsUpdated={setTransactions} lang={lang} openAiScan={(m) => { setAiModalMode(m); setIsAiModalOpen(true); }} openManualModal={() => setIsManualModalOpen(true)} filterMode={filterMode} setFilterMode={setFilterMode} filterDate={filterDate} setFilterDate={setFilterDate} rangeStart={rangeStart} setRangeStart={setRangeStart} rangeEnd={rangeEnd} setRangeEnd={setRangeEnd} />}
           {currentView === 'analysis' && <Analysis transactions={transactions} lang={lang} filterMode={filterMode} setFilterMode={setFilterMode} filterDate={filterDate} setFilterDate={setFilterDate} rangeStart={rangeStart} setRangeStart={setRangeStart} rangeEnd={rangeEnd} setRangeEnd={setRangeEnd} />}
           {currentView === 'planning' && <Planning user={user} transactions={transactions} goals={goals} budgets={budgets} onAddGoal={handleAddGoal} onDeleteGoal={handleDeleteGoal} onUpdateGoal={handleAddGoal} onAddBudget={handleAddBudget} onDeleteBudget={handleDeleteBudget} lang={lang} />}
@@ -237,6 +218,61 @@ const App: React.FC = () => {
           {currentView === 'admin' && user.role === 'admin' && <AdminPanel user={user} lang={lang} />}
         </div>
       </main>
+
+      {/* Mobile Floating Action Button */}
+      <div className="md:hidden fixed bottom-20 right-6 z-40">
+        <button 
+          onClick={() => setIsManualModalOpen(true)}
+          className="bg-indigo-600 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all border-4 border-white"
+        >
+          <Plus size={28} />
+        </button>
+      </div>
+
+      {/* Mobile Bottom Navigation Bar */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-2 py-1 flex items-center justify-around z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.03)] pb-safe">
+        <BottomNavItem view="dashboard" icon={LayoutDashboard} label={t.nav.dashboard} />
+        <BottomNavItem view="analysis" icon={PieChart} label={t.nav.analysis} />
+        <div className="flex-1 flex justify-center -mt-8 pointer-events-none">
+           <div className="w-16 h-16 rounded-full bg-slate-50 border-t border-slate-100"></div>
+        </div>
+        <BottomNavItem view="planning" icon={ClipboardList} label={t.nav.planning} />
+        <button 
+          onClick={() => setShowMobileMore(!showMobileMore)} 
+          className={`flex flex-col items-center gap-1 flex-1 py-2 transition-all ${showMobileMore ? 'text-indigo-600' : 'text-slate-400'}`}
+        >
+          <MoreHorizontal size={22} />
+          <span className="text-[10px] font-bold">Khác</span>
+        </button>
+      </nav>
+
+      {/* Mobile "More" Menu Overlay */}
+      {showMobileMore && (
+        <div className="md:hidden fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm animate-in fade-in" onClick={() => setShowMobileMore(false)}>
+          <div className="absolute bottom-20 left-4 right-4 bg-white rounded-3xl p-6 shadow-2xl animate-in slide-in-from-bottom-10" onClick={e => e.stopPropagation()}>
+            <div className="grid grid-cols-3 gap-4">
+              <button onClick={() => { setCurrentView('investment'); setShowMobileMore(false); }} className="flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-slate-50">
+                <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center"><TrendingUp /></div>
+                <span className="text-xs font-bold">{t.nav.investment}</span>
+              </button>
+              {user.role === 'admin' && (
+                <button onClick={() => { setCurrentView('admin'); setShowMobileMore(false); }} className="flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-slate-50">
+                  <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center"><Shield /></div>
+                  <span className="text-xs font-bold">{t.nav.admin}</span>
+                </button>
+              )}
+              <button onClick={() => { setIsAiModalOpen(true); setShowMobileMore(false); }} className="flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-slate-50">
+                <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center"><Wand2 /></div>
+                <span className="text-xs font-bold">Quét AI</span>
+              </button>
+              <button onClick={handleLogout} className="flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-slate-50">
+                <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center"><LogOut /></div>
+                <span className="text-xs font-bold">Thoát</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <AIParserModal isOpen={isAiModalOpen} onClose={() => setIsAiModalOpen(false)} onSuccess={handleAddTransactions} initialMode={aiModalMode} lang={lang} />
       <ManualTransactionModal isOpen={isManualModalOpen} onClose={() => setIsManualModalOpen(false)} onSave={d => handleAddTransactions([d])} lang={lang} />

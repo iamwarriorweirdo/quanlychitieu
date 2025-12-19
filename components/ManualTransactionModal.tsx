@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { X, Calendar, Clock, Banknote, FileText, CheckCircle2 } from 'lucide-react';
 import { ParsedTransactionData, TransactionType, Category } from '../types';
@@ -12,7 +13,6 @@ interface Props {
 
 export const ManualTransactionModal: React.FC<Props> = ({ isOpen, onClose, onSave, lang }) => {
   const t = translations[lang];
-
   const [amount, setAmount] = useState<string>('');
   const [type, setType] = useState<TransactionType>(TransactionType.EXPENSE);
   const [category, setCategory] = useState<string>(Category.OTHER);
@@ -22,19 +22,10 @@ export const ManualTransactionModal: React.FC<Props> = ({ isOpen, onClose, onSav
 
   useEffect(() => {
     if (isOpen) {
-      // Set defaults when opening
       const now = new Date();
-      // Format YYYY-MM-DD
-      const dateStr = now.toLocaleDateString('en-CA'); 
-      // Format HH:MM
-      const timeStr = now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
-      
-      setDate(dateStr);
-      setTime(timeStr);
-      setAmount('');
-      setDescription('');
-      setType(TransactionType.EXPENSE);
-      setCategory(Category.OTHER);
+      setDate(now.toLocaleDateString('en-CA'));
+      setTime(now.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }));
+      setAmount(''); setDescription(''); setType(TransactionType.EXPENSE); setCategory(Category.OTHER);
     }
   }, [isOpen]);
 
@@ -43,145 +34,91 @@ export const ManualTransactionModal: React.FC<Props> = ({ isOpen, onClose, onSav
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!amount || isNaN(parseFloat(amount))) return;
-
-    // Combine Date and Time
     const combinedDateTime = new Date(`${date}T${time}:00`).toISOString();
-
-    onSave({
-      amount: parseFloat(amount),
-      type,
-      category,
-      description: description || 'No description',
-      date: combinedDateTime
-    });
+    onSave({ amount: parseFloat(amount), type, category, description: description || 'Ghi chép thủ công', date: combinedDateTime });
     onClose();
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl overflow-hidden">
-        <div className="bg-slate-800 p-4 text-white flex justify-between items-center">
-          <h2 className="text-lg font-bold">{t.manual.title}</h2>
-          <button onClick={onClose} className="text-white/70 hover:text-white">
-            <X size={20} />
-          </button>
+    <div className="fixed inset-0 z-[100] flex items-end md:items-center justify-center bg-black/50 backdrop-blur-sm p-0 md:p-4 animate-in fade-in duration-200">
+      <div className="bg-white rounded-t-3xl md:rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in slide-in-from-bottom-20 duration-300">
+        <div className="bg-indigo-600 p-5 text-white flex justify-between items-center">
+          <h2 className="text-lg font-black tracking-tight">{t.manual.title}</h2>
+          <button onClick={onClose} className="bg-white/20 p-1.5 rounded-full hover:bg-white/30 transition-colors"><X size={20} /></button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          
-          {/* Amount & Type Toggle */}
-          <div className="flex gap-4">
-             <div className="flex-1">
-                <label className="block text-xs font-semibold text-slate-500 mb-1">{t.manual.amount}</label>
-                <div className="relative">
-                  <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+        <form onSubmit={handleSubmit} className="p-6 space-y-5 max-h-[85vh] overflow-y-auto">
+          <div className="space-y-4">
+             <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">{t.manual.amount}</label>
+                <div className="flex items-center gap-3">
+                  <span className="text-2xl font-black text-slate-300">₫</span>
                   <input 
-                    type="number" 
-                    step="0.01"
-                    required
-                    value={amount}
+                    type="number" autoFocus required value={amount}
                     onChange={(e) => setAmount(e.target.value)}
-                    className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none font-medium text-lg"
+                    className="w-full bg-transparent text-3xl font-black text-slate-800 outline-none placeholder:text-slate-200"
                     placeholder="0"
                   />
                 </div>
              </div>
              
-             <div className="flex flex-col justify-end">
-                <div className="flex bg-slate-100 p-1 rounded-lg">
-                  <button
-                    type="button"
-                    onClick={() => setType(TransactionType.INCOME)}
-                    className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${type === TransactionType.INCOME ? 'bg-emerald-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                  >
-                    {t.manual.income}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setType(TransactionType.EXPENSE)}
-                    className={`px-3 py-2 text-sm font-medium rounded-md transition-colors ${type === TransactionType.EXPENSE ? 'bg-rose-500 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
-                  >
-                    {t.manual.expense}
-                  </button>
-                </div>
+             <div className="flex p-1 bg-slate-100 rounded-2xl">
+                <button
+                  type="button" onClick={() => setType(TransactionType.INCOME)}
+                  className={`flex-1 py-2.5 text-xs font-black rounded-xl transition-all ${type === TransactionType.INCOME ? 'bg-white text-emerald-600 shadow-sm' : 'text-slate-400'}`}
+                >
+                  {t.manual.income}
+                </button>
+                <button
+                  type="button" onClick={() => setType(TransactionType.EXPENSE)}
+                  className={`flex-1 py-2.5 text-xs font-black rounded-xl transition-all ${type === TransactionType.EXPENSE ? 'bg-white text-rose-600 shadow-sm' : 'text-slate-400'}`}
+                >
+                  {t.manual.expense}
+                </button>
              </div>
           </div>
 
-          {/* Category */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1">{t.manual.category}</label>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className="w-full p-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none bg-white"
-            >
-              {Object.entries(translations[lang].categories).map(([key, label]) => (
-                <option key={key} value={key}>{label}</option>
-              ))}
-            </select>
-          </div>
+          <div className="grid grid-cols-1 gap-4">
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">{t.manual.category}</label>
+              <select
+                value={category} onChange={(e) => setCategory(e.target.value)}
+                className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-bold appearance-none"
+              >
+                {Object.entries(translations[lang].categories).map(([key, label]) => (
+                  <option key={key} value={key}>{label}</option>
+                ))}
+              </select>
+            </div>
 
-          {/* Date & Time */}
-          <div className="flex gap-4">
-            <div className="flex-1">
-              <label className="block text-xs font-semibold text-slate-500 mb-1">{t.manual.date}</label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                <input 
-                  type="date" 
-                  required
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
-                />
+            <div className="flex gap-3">
+              <div className="flex-1">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">{t.manual.date}</label>
+                <input type="date" required value={date} onChange={(e) => setDate(e.target.value)} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none" />
+              </div>
+              <div className="w-1/3">
+                <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">{t.manual.time}</label>
+                <input type="time" required value={time} onChange={(e) => setTime(e.target.value)} className="w-full p-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-sm font-bold outline-none" />
               </div>
             </div>
-            <div className="w-1/3">
-              <label className="block text-xs font-semibold text-slate-500 mb-1">{t.manual.time}</label>
-              <div className="relative">
-                <Clock className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                <input 
-                  type="time" 
-                  required
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
-                  className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none text-sm"
-                />
-              </div>
-            </div>
-          </div>
 
-          {/* Note / Description */}
-          <div>
-            <label className="block text-xs font-semibold text-slate-500 mb-1">{t.manual.note}</label>
-            <div className="relative">
-              <FileText className="absolute left-3 top-3 text-slate-400" size={16} />
+            <div>
+              <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 ml-1">{t.manual.note}</label>
               <textarea 
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                rows={3}
-                className="w-full pl-9 pr-3 py-2 border border-slate-200 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none resize-none text-sm"
-                placeholder="..."
+                value={description} onChange={(e) => setDescription(e.target.value)} rows={2}
+                className="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none resize-none text-sm font-medium"
+                placeholder="Mua sắm gì đó..."
               />
             </div>
           </div>
 
-          <div className="flex gap-3 pt-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-3 text-slate-600 font-medium hover:bg-slate-50 rounded-xl transition-colors border border-slate-200"
-            >
-              {t.manual.cancel}
-            </button>
-            <button
-              type="submit"
-              className="flex-1 py-3 bg-indigo-600 text-white font-medium hover:bg-indigo-700 rounded-xl transition-colors shadow-lg shadow-indigo-200 flex items-center justify-center gap-2"
-            >
-              <CheckCircle2 size={18} />
-              {t.manual.save}
-            </button>
-          </div>
+          <button
+            type="submit"
+            className="w-full py-4 bg-indigo-600 text-white font-black rounded-2xl shadow-xl shadow-indigo-100 flex items-center justify-center gap-2 hover:bg-indigo-700 active:scale-95 transition-all"
+          >
+            <CheckCircle2 size={20} />
+            {t.manual.save}
+          </button>
         </form>
       </div>
     </div>
