@@ -83,31 +83,35 @@ export const Dashboard: React.FC<Props> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center mb-2 md:mb-4">
+      <div className="flex justify-between items-center mb-2 md:mb-4 px-1">
          <div>
             <h2 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight">{t.dashboard.overview}</h2>
-            <p className="text-slate-500 text-xs font-medium">Xin chào, {user.username}</p>
+            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Xin chào, {user.username}</p>
          </div>
-         <button onClick={() => openAiScan('image')} className="md:hidden bg-indigo-50 text-indigo-600 p-2.5 rounded-xl">
-            <Wand2 size={20} />
-         </button>
+         <div className="flex gap-2">
+            <button onClick={() => openAiScan('image')} className="md:hidden bg-indigo-100 text-indigo-600 p-2.5 rounded-xl active:scale-90 transition-transform">
+               <Wand2 size={20} />
+            </button>
+         </div>
       </div>
 
-      <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-3xl p-6 text-white shadow-2xl shadow-indigo-100 relative overflow-hidden">
+      <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-3xl p-6 text-white shadow-2xl shadow-indigo-100/50 relative overflow-hidden mx-1">
         <div className="absolute top-0 right-0 p-4 opacity-10"><Wallet size={120} /></div>
         <p className="text-indigo-100 text-[10px] uppercase font-bold tracking-widest mb-1">{t.dashboard.balance}</p>
-        <h3 className="text-3xl font-black tracking-tight">{stats.balance.toLocaleString('vi-VN')} ₫</h3>
-        <div className="mt-6 flex gap-4 items-center">
-          <div className="bg-white/10 px-3 py-1 rounded-full text-[10px] font-bold backdrop-blur-md flex items-center gap-1.5 border border-white/10">
-            <TrendingUp size={12} className="text-emerald-400" /> +{stats.income.toLocaleString('vi-VN')}
+        <h3 className="text-2xl md:text-3xl font-black tracking-tight truncate">
+          {stats.balance.toLocaleString('vi-VN')} ₫
+        </h3>
+        <div className="mt-6 flex flex-wrap gap-2 items-center">
+          <div className="bg-white/10 px-3 py-1.5 rounded-full text-[10px] font-bold backdrop-blur-md flex items-center gap-1.5 border border-white/10">
+            <TrendingUp size={12} className="text-emerald-400" /> <span className="text-emerald-50">+{stats.income.toLocaleString('vi-VN')}</span>
           </div>
-          <div className="bg-white/10 px-3 py-1 rounded-full text-[10px] font-bold backdrop-blur-md flex items-center gap-1.5 border border-white/10">
-            <TrendingDown size={12} className="text-rose-400" /> -{stats.expense.toLocaleString('vi-VN')}
+          <div className="bg-white/10 px-3 py-1.5 rounded-full text-[10px] font-bold backdrop-blur-md flex items-center gap-1.5 border border-white/10">
+            <TrendingDown size={12} className="text-rose-400" /> <span className="text-rose-50">-{stats.expense.toLocaleString('vi-VN')}</span>
           </div>
         </div>
       </div>
 
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-3 px-1">
         <div className="relative group">
           <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
             <Search size={16} className="text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
@@ -120,7 +124,7 @@ export const Dashboard: React.FC<Props> = ({
             className="w-full pl-10 pr-4 py-3.5 bg-white shadow-sm border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-slate-800 text-sm font-medium"
           />
         </div>
-        <div className="flex overflow-x-auto pb-1 no-scrollbar gap-2">
+        <div className="flex overflow-x-auto pb-2 no-scrollbar gap-2 -mx-1 px-1">
             <DateFilter 
               mode={filterMode} setMode={setFilterMode}
               date={filterDate} setDate={setFilterDate}
@@ -131,11 +135,11 @@ export const Dashboard: React.FC<Props> = ({
         </div>
       </div>
 
-      <div className="space-y-4">
-        <div className="flex justify-between items-center px-1">
-          <h3 className="font-black text-slate-800 text-sm uppercase tracking-wider flex items-center gap-2">
+      <div className="space-y-4 px-1 pb-10">
+        <div className="flex justify-between items-center">
+          <h3 className="font-black text-slate-800 text-xs uppercase tracking-widest flex items-center gap-2">
              {t.dashboard.history}
-             <span className="text-[10px] bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded-full">{filteredTransactions.length}</span>
+             <span className="text-[10px] bg-indigo-100 text-indigo-600 px-2.5 py-1 rounded-full">{filteredTransactions.length}</span>
           </h3>
         </div>
         {isLoading ? (
