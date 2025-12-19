@@ -10,12 +10,13 @@ import { AdminPanel } from './components/AdminPanel';
 import { AIParserModal } from './components/AIParserModal';
 import { ManualTransactionModal } from './components/ManualTransactionModal';
 import { FilterMode } from './components/DateFilter';
-import { Wallet, ArrowRight, Lock, User as UserIcon, Eye, EyeOff, Loader2, Globe, LayoutDashboard, PieChart, LogOut, Plus, Wand2, ClipboardList, TrendingUp, Mail, Phone, ShieldCheck, Lightbulb, Shield, Image as ImageIcon, Menu, X, MoreHorizontal } from 'lucide-react';
+// Added Loader2 to the lucide-react imports to fix missing component errors
+import { Wallet, LogOut, Plus, Wand2, LayoutDashboard, PieChart, ClipboardList, TrendingUp, Shield, User as UserIcon, Settings, Globe, ChevronRight, Bell, Smartphone, ShieldCheck, Loader2 } from 'lucide-react';
 import { translations, Language } from './utils/i18n';
 
 const GOOGLE_CLIENT_ID = "598430888470-bnchhoarr75hoas2rjbgn0ue54ud4i7k.apps.googleusercontent.com";
 
-type View = 'dashboard' | 'analysis' | 'planning' | 'investment' | 'admin' | 'settings';
+type View = 'dashboard' | 'analysis' | 'planning' | 'investment' | 'admin' | 'settings' | 'account';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -43,7 +44,6 @@ const App: React.FC = () => {
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [aiModalMode, setAiModalMode] = useState<'text' | 'image'>('text');
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
-  const [showMobileMore, setShowMobileMore] = useState(false);
 
   const t = translations[lang];
 
@@ -182,11 +182,11 @@ const App: React.FC = () => {
 
   const BottomNavItem = ({ view, icon: Icon, label }: { view: View, icon: any, label: string }) => (
     <button 
-      onClick={() => { setCurrentView(view); setShowMobileMore(false); }} 
+      onClick={() => { setCurrentView(view); }} 
       className={`flex flex-col items-center gap-1 flex-1 py-2 transition-all ${currentView === view ? 'text-indigo-600' : 'text-slate-400'}`}
     >
-      <Icon size={22} className={currentView === view ? 'scale-110' : ''} />
-      <span className="text-[10px] font-bold">{label}</span>
+      <Icon size={20} className={currentView === view ? 'scale-110' : ''} />
+      <span className="text-[10px] font-bold tracking-tight">{label}</span>
     </button>
   );
 
@@ -216,63 +216,109 @@ const App: React.FC = () => {
           {currentView === 'planning' && <Planning user={user} transactions={transactions} goals={goals} budgets={budgets} onAddGoal={handleAddGoal} onDeleteGoal={handleDeleteGoal} onUpdateGoal={handleAddGoal} onAddBudget={handleAddBudget} onDeleteBudget={handleDeleteBudget} lang={lang} />}
           {currentView === 'investment' && <InvestmentPage user={user} lang={lang} />}
           {currentView === 'admin' && user.role === 'admin' && <AdminPanel user={user} lang={lang} />}
+          
+          {currentView === 'account' && (
+            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center text-center">
+                    <div className="relative">
+                        {user.avatar ? <img src={user.avatar} className="w-24 h-24 rounded-full border-4 border-indigo-50 shadow-lg" /> : <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-300"><UserIcon size={48}/></div>}
+                        <div className="absolute bottom-1 right-1 bg-emerald-500 border-4 border-white w-6 h-6 rounded-full"></div>
+                    </div>
+                    <h2 className="mt-4 text-2xl font-black text-slate-800 tracking-tight">{user.username}</h2>
+                    <p className="text-slate-400 text-sm font-bold">{user.email || user.phone || 'ID: ' + user.id.slice(0,8)}</p>
+                    <div className="mt-6 flex gap-2">
+                        <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-wider ${user.role === 'admin' ? 'bg-indigo-100 text-indigo-700' : 'bg-slate-100 text-slate-500'}`}>
+                            {user.role === 'admin' ? 'Administrator' : 'Premium Member'}
+                        </span>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div className="p-4 border-b border-slate-50 bg-slate-50/50">
+                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Cài đặt giao diện</h3>
+                    </div>
+                    <div className="divide-y divide-slate-50">
+                        <div className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg"><Globe size={18} /></div>
+                                <span className="text-sm font-bold text-slate-700">Ngôn ngữ</span>
+                            </div>
+                            <select value={lang} onChange={e => setLang(e.target.value as Language)} className="text-sm font-black text-indigo-600 bg-transparent outline-none">
+                                <option value="vi">Tiếng Việt</option>
+                                <option value="en">English</option>
+                                <option value="zh">中文</option>
+                            </select>
+                        </div>
+                        <div className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg"><Smartphone size={18} /></div>
+                                <span className="text-sm font-bold text-slate-700">Chế độ tối</span>
+                            </div>
+                            <div className="w-10 h-6 bg-slate-200 rounded-full relative"><div className="absolute left-1 top-1 w-4 h-4 bg-white rounded-full"></div></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+                    <div className="p-4 border-b border-slate-50 bg-slate-50/50">
+                        <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Bảo mật & Hệ thống</h3>
+                    </div>
+                    <div className="divide-y divide-slate-50">
+                        <button onClick={() => setCurrentView('investment')} className="w-full p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-amber-50 text-amber-600 rounded-lg"><ShieldCheck size={18} /></div>
+                                <span className="text-sm font-bold text-slate-700">Bảo mật cấp 2</span>
+                            </div>
+                            <ChevronRight size={16} className="text-slate-300" />
+                        </button>
+                        {user.role === 'admin' && (
+                            <button onClick={() => setCurrentView('admin')} className="w-full p-4 flex items-center justify-between hover:bg-slate-50 transition-colors text-indigo-600">
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg"><Shield size={18} /></div>
+                                    <span className="text-sm font-bold">Bảng quản trị</span>
+                                </div>
+                                <ChevronRight size={16} className="text-indigo-300" />
+                            </button>
+                        )}
+                        <button onClick={() => { setAiModalMode('image'); setIsAiModalOpen(true); }} className="w-full p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-violet-50 text-violet-600 rounded-lg"><Wand2 size={18} /></div>
+                                <span className="text-sm font-bold text-slate-700">Quét hóa đơn AI</span>
+                            </div>
+                            <ChevronRight size={16} className="text-slate-300" />
+                        </button>
+                    </div>
+                </div>
+
+                <button onClick={handleLogout} className="w-full p-5 bg-white border border-rose-100 text-rose-500 rounded-3xl font-black flex items-center justify-center gap-3 shadow-sm hover:bg-rose-50 transition-colors">
+                    <LogOut size={20} /> Đăng xuất khỏi thiết bị
+                </button>
+
+                <p className="text-center text-[10px] text-slate-400 font-bold uppercase tracking-widest pb-10">Finance Manager v1.0.4 • Made with ❤️</p>
+            </div>
+          )}
         </div>
       </main>
 
-      {/* Mobile Floating Action Button */}
-      <div className="md:hidden fixed bottom-20 right-6 z-40">
-        <button 
-          onClick={() => setIsManualModalOpen(true)}
-          className="bg-indigo-600 text-white w-14 h-14 rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-90 transition-all border-4 border-white"
-        >
-          <Plus size={28} />
-        </button>
-      </div>
-
-      {/* Mobile Bottom Navigation Bar */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-slate-100 px-2 py-1 flex items-center justify-around z-50 shadow-[0_-4px_10px_rgba(0,0,0,0.03)] pb-safe">
+      {/* Mobile Navigation Bar with Centered FAB */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/80 backdrop-blur-xl border-t border-slate-100 px-2 py-1 flex items-center justify-around z-50 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] pb-safe">
         <BottomNavItem view="dashboard" icon={LayoutDashboard} label={t.nav.dashboard} />
         <BottomNavItem view="analysis" icon={PieChart} label={t.nav.analysis} />
-        <div className="flex-1 flex justify-center -mt-8 pointer-events-none">
-           <div className="w-16 h-16 rounded-full bg-slate-50 border-t border-slate-100"></div>
+        
+        {/* The Centered Add Button */}
+        <div className="flex-1 flex justify-center -mt-8 relative h-full">
+           <button 
+             onClick={() => setIsManualModalOpen(true)}
+             className="bg-indigo-600 text-white w-14 h-14 rounded-full shadow-2xl shadow-indigo-300 flex items-center justify-center hover:scale-110 active:scale-90 transition-all border-4 border-white z-[60]"
+           >
+             <Plus size={28} />
+           </button>
+           <div className="absolute top-8 w-16 h-16 bg-white rounded-full -z-10 border-t border-slate-100 shadow-inner"></div>
         </div>
-        <BottomNavItem view="planning" icon={ClipboardList} label={t.nav.planning} />
-        <button 
-          onClick={() => setShowMobileMore(!showMobileMore)} 
-          className={`flex flex-col items-center gap-1 flex-1 py-2 transition-all ${showMobileMore ? 'text-indigo-600' : 'text-slate-400'}`}
-        >
-          <MoreHorizontal size={22} />
-          <span className="text-[10px] font-bold">Khác</span>
-        </button>
-      </nav>
 
-      {/* Mobile "More" Menu Overlay */}
-      {showMobileMore && (
-        <div className="md:hidden fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm animate-in fade-in" onClick={() => setShowMobileMore(false)}>
-          <div className="absolute bottom-20 left-4 right-4 bg-white rounded-3xl p-6 shadow-2xl animate-in slide-in-from-bottom-10" onClick={e => e.stopPropagation()}>
-            <div className="grid grid-cols-3 gap-4">
-              <button onClick={() => { setCurrentView('investment'); setShowMobileMore(false); }} className="flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-slate-50">
-                <div className="w-12 h-12 bg-indigo-50 text-indigo-600 rounded-full flex items-center justify-center"><TrendingUp /></div>
-                <span className="text-xs font-bold">{t.nav.investment}</span>
-              </button>
-              {user.role === 'admin' && (
-                <button onClick={() => { setCurrentView('admin'); setShowMobileMore(false); }} className="flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-slate-50">
-                  <div className="w-12 h-12 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center"><Shield /></div>
-                  <span className="text-xs font-bold">{t.nav.admin}</span>
-                </button>
-              )}
-              <button onClick={() => { setIsAiModalOpen(true); setShowMobileMore(false); }} className="flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-slate-50">
-                <div className="w-12 h-12 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center"><Wand2 /></div>
-                <span className="text-xs font-bold">Quét AI</span>
-              </button>
-              <button onClick={handleLogout} className="flex flex-col items-center gap-2 p-3 rounded-2xl hover:bg-slate-50">
-                <div className="w-12 h-12 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center"><LogOut /></div>
-                <span className="text-xs font-bold">Thoát</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        <BottomNavItem view="planning" icon={ClipboardList} label={t.nav.planning} />
+        <BottomNavItem view="account" icon={UserIcon} label="Tài khoản" />
+      </nav>
 
       <AIParserModal isOpen={isAiModalOpen} onClose={() => setIsAiModalOpen(false)} onSuccess={handleAddTransactions} initialMode={aiModalMode} lang={lang} />
       <ManualTransactionModal isOpen={isManualModalOpen} onClose={() => setIsManualModalOpen(false)} onSave={d => handleAddTransactions([d])} lang={lang} />
