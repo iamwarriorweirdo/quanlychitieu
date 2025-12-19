@@ -1,6 +1,6 @@
 
-import React, { useState, useEffect } from 'react';
 import { X, Upload, Wand2, Loader2, Image as ImageIcon, Type, ScanLine, Cloud, Zap, AlertCircle, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
 import { parseBankNotification } from '../services/geminiService';
 import { ParsedTransactionData } from '../types';
 import { translations, Language } from '../utils/i18n';
@@ -48,14 +48,14 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
-          const MAX = 1200;
+          const MAX = 1600; // Tăng độ phân giải một chút để AI nhìn rõ số hơn
           if (width > MAX || height > MAX) {
             if (width > height) { height *= MAX / width; width = MAX; }
             else { width *= MAX / height; height = MAX; }
           }
           canvas.width = width; canvas.height = height;
           canvas.getContext('2d')?.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL('image/jpeg', 0.9));
+          resolve(canvas.toDataURL('image/jpeg', 0.95));
         };
         img.src = e.target?.result as string;
       };
@@ -76,7 +76,7 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
   const handleOfflineExtract = async () => {
       setIsLoading(true);
       setError(null);
-      setStatusText("Đang xử lý Offline...");
+      setStatusText("Đang nhận diện ký tự...");
       try {
           let textToParse = inputText;
           if (mode === 'image' && imageFile) {
@@ -97,15 +97,20 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
   const handleProcess = async () => {
     setIsLoading(true);
     setError(null);
-    setStatusText("Đang kết nối AI Server...");
+    setStatusText("Đang phân tích hình ảnh & Kiểm tra logic...");
     try {
       let ocrTextResult = inputText;
       let compressedBase64 = null;
 
       if (mode === 'image' && imageFile) {
         compressedBase64 = await resizeImage(imageFile);
-        const { data: { text } } = await Tesseract.recognize(compressedBase64, 'eng+vie');
-        ocrTextResult = text;
+        // Tesseract chỉ làm nền, Gemini sẽ nhìn trực tiếp vào ảnh
+        try {
+          const { data: { text } } = await Tesseract.recognize(compressedBase64, 'eng+vie');
+          ocrTextResult = text;
+        } catch (e) {
+          console.warn("Tesseract failed, proceeding with image only");
+        }
       }
       
       const results = await parseBankNotification(ocrTextResult, compressedBase64);
@@ -120,7 +125,7 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-3xl w-full max-w-md shadow-2xl overflow-hidden animate-in zoom-in duration-300">
+      <div className="bg-white rounded-3xl w-full max-md:fixed max-md:bottom-0 max-md:rounded-b-none max-w-md shadow-2xl overflow-hidden animate-in zoom-in slide-in-from-bottom-20 duration-300">
         <div className="bg-indigo-600 p-6 text-white flex justify-between items-center">
           <div className="flex items-center gap-3">
              <div className="bg-white/20 p-2 rounded-xl"><Wand2 size={24}/></div>
@@ -138,31 +143,39 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
           </div>
 
           {mode === 'text' ? (
-            <textarea className="w-full h-32 p-4 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm" placeholder={t.modal.paste} value={inputText} onChange={e => setInputText(e.target.value)} />
+            <textarea className="w-full h-32 p-4 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none text-sm font-medium" placeholder={t.modal.paste} value={inputText} onChange={e => setInputText(e.target.value)} />
           ) : (
-            <label className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-slate-200 rounded-2xl cursor-pointer bg-slate-50 hover:bg-indigo-50 transition-colors overflow-hidden group">
-              {selectedImage ? <img src={selectedImage} className="h-full w-full object-contain" /> : (
+            <label className="flex flex-col items-center justify-center w-full h-56 border-2 border-dashed border-slate-200 rounded-2xl cursor-pointer bg-slate-50 hover:bg-indigo-50 transition-colors overflow-hidden group">
+              {selectedImage ? <img src={selectedImage} className="h-full w-full object-contain p-2" /> : (
                 <div className="text-center p-4">
                    <Upload className="mx-auto mb-2 text-slate-400 group-hover:scale-110 transition-transform" />
-                   <p className="text-xs text-slate-500">{t.modal.upload}</p>
+                   <p className="text-xs text-slate-500 font-bold">{t.modal.upload}</p>
                 </div>
               )}
               <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
             </label>
           )}
 
+          {isLoading && (
+            <div className="flex items-center gap-3 p-3 bg-indigo-50 text-indigo-700 rounded-xl animate-pulse">
+              <Loader2 className="animate-spin" size={18} />
+              <span className="text-xs font-bold">{statusText}</span>
+            </div>
+          )}
+
           <div className="space-y-3">
-             <button onClick={handleProcess} disabled={isLoading} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-bold shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 group">
-                {isLoading ? <Loader2 className="animate-spin" /> : <><CheckCircle size={18} className="group-hover:scale-125 transition-transform" /> {t.modal.extract} (Gợi ý - Độ chính xác cao)</>}
+             <button onClick={handleProcess} disabled={isLoading} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all flex items-center justify-center gap-2 group">
+                {!isLoading && <><CheckCircle size={18} className="group-hover:scale-125 transition-transform" /> {t.modal.extract}</>}
+                {isLoading && <span>Đang xử lý...</span>}
              </button>
              <button onClick={handleOfflineExtract} disabled={isLoading} className="w-full py-3 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 transition-all flex items-center justify-center gap-2 text-sm">
-                <Zap size={16} className="text-amber-500" /> Quét nhanh Offline (Độ chính xác thấp)
+                <Zap size={16} className="text-amber-500" /> Quét nhanh (Offline)
              </button>
           </div>
           
           <div className="p-3 bg-blue-50 rounded-xl flex gap-3 items-start border border-blue-100">
              <AlertCircle size={16} className="text-blue-500 shrink-0 mt-0.5" />
-             <p className="text-[10px] text-blue-700 leading-relaxed font-medium">Lưu ý: Chế độ <b>AI Server</b> sử dụng trí tuệ nhân tạo để "hiểu" cấu hình bảng biểu, giúp tránh sai sót về con số và xử lý được cả các hóa đơn giảm giá/ghi nợ.</p>
+             <p className="text-[10px] text-blue-700 leading-relaxed font-bold">Mẹo: Chế độ AI sẽ tự động tính toán lại [Số lượng x Đơn giá] để sửa lỗi OCR khi các con số 3, 5, 8 bị nhòe.</p>
           </div>
         </div>
       </div>
