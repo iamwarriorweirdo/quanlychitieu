@@ -86,6 +86,7 @@ const App: React.FC = () => {
     init();
   }, []);
 
+  // Logic render Google Login Button
   useEffect(() => {
     if (!user && !isInitializing && isOnline) {
       const handleCredentialResponse = async (response: any) => {
@@ -96,39 +97,40 @@ const App: React.FC = () => {
           setUser(loggedInUser);
           setCurrentSession(loggedInUser);
         } catch (err: any) {
-          setError("Xác thực Google thất bại. Vui lòng kiểm tra cấu hình Origin trong Google Console.");
+          setError("Xác thực Google thất bại. Hãy kiểm tra cài đặt Origins trong Google Console.");
           console.error(err);
         } finally {
           setIsAuthLoading(false);
         }
       };
 
+      let retryCount = 0;
       const renderGoogleBtn = () => {
         if ((window as any).google?.accounts?.id) {
           (window as any).google.accounts.id.initialize({
             client_id: GOOGLE_CLIENT_ID,
             callback: handleCredentialResponse,
             auto_select: false,
-            // Thêm log để bắt lỗi origin nếu có
             error_callback: (err: any) => {
                if (err.type === 'origin_mismatch') {
-                  setError("Lỗi: Origin Mismatch. Hãy thêm URL này vào Authorized JavaScript origins trong Google Console.");
+                  setError("Lỗi: Origin Mismatch. Bạn cần thêm URL này vào Google Cloud Console.");
                }
             }
           });
           const btnContainer = document.getElementById("googleBtn");
           if (btnContainer) {
             (window as any).google.accounts.id.renderButton(btnContainer, { 
-              theme: "outline", size: "large", width: "100%", text: "continue_with", shape: "rectangular"
+              theme: "outline", size: "large", width: "320", text: "signin_with", shape: "pill"
             });
           }
-        } else {
-          setTimeout(renderGoogleBtn, 300);
+        } else if (retryCount < 20) {
+          retryCount++;
+          setTimeout(renderGoogleBtn, 500);
         }
       };
       renderGoogleBtn();
     }
-  }, [user, isInitializing, isOnline]);
+  }, [user, isInitializing, isOnline, isLoginView]); // Re-render khi chuyển tab login/register
 
   useEffect(() => {
     if (user?.id) {
@@ -210,14 +212,21 @@ const App: React.FC = () => {
               </div>
             )}
             <form onSubmit={handleAuth} className="space-y-4">
-              <input type="text" value={usernameInput} onChange={e => setUsernameInput(e.target.value)} className="w-full px-4 py-3 rounded-lg border dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none" placeholder={t.auth.username} />
-              <input type={showPassword ? "text" : "password"} value={passwordInput} onChange={e => setPasswordInput(e.target.value)} className="w-full px-4 py-3 rounded-lg border dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none" placeholder={t.auth.password} />
-              <button type="submit" disabled={isAuthLoading} className="w-full bg-indigo-600 text-white font-bold py-3 rounded-lg hover:bg-indigo-700 flex justify-center transition-colors">
+              <input type="text" value={usernameInput} onChange={e => setUsernameInput(e.target.value)} className="w-full px-4 py-3 rounded-lg border dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder={t.auth.username} />
+              <input type={showPassword ? "text" : "password"} value={passwordInput} onChange={e => setPasswordInput(e.target.value)} className="w-full px-4 py-3 rounded-lg border dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder={t.auth.password} />
+              <button type="submit" disabled={isAuthLoading} className="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl hover:bg-indigo-700 flex justify-center transition-all active:scale-[0.98]">
                 {isAuthLoading ? <Loader2 className="animate-spin" /> : (isLoginView ? t.auth.login : t.auth.createAccount)}
               </button>
             </form>
-            <div id="googleBtn" className="flex justify-center min-h-[50px] overflow-hidden"></div>
-            <button onClick={() => setIsLoginView(!isLoginView)} className="w-full text-center text-indigo-600 text-sm font-medium hover:underline">{isLoginView ? t.auth.newHere : t.auth.haveAccount}</button>
+            
+            <div className="relative py-2 flex items-center justify-center">
+              <div className="border-t border-slate-200 dark:border-slate-800 w-full absolute"></div>
+              <span className="bg-white dark:bg-slate-900 px-3 text-[10px] text-slate-400 font-bold uppercase tracking-widest relative z-10">hoặc</span>
+            </div>
+
+            <div id="googleBtn" className="flex justify-center min-h-[44px]"></div>
+            
+            <button onClick={() => setIsLoginView(!isLoginView)} className="w-full text-center text-indigo-600 text-sm font-bold hover:underline py-2">{isLoginView ? t.auth.newHere : t.auth.haveAccount}</button>
           </div>
         </div>
       </div>
@@ -293,7 +302,7 @@ const App: React.FC = () => {
                         <button onClick={() => setIsDarkMode(!isDarkMode)} className={`w-10 h-6 rounded-full relative transition-all ${isDarkMode ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-slate-700'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${isDarkMode ? 'left-5' : 'left-1'}`}></div></button>
                     </div>
                 </div>
-                <button onClick={handleLogout} className="w-full p-5 bg-white dark:bg-slate-900 border border-rose-100 dark:border-rose-900/30 text-rose-500 rounded-3xl font-black shadow-sm flex items-center justify-center gap-2"><LogOut size={20} /> Đăng xuất</button>
+                <button onClick={handleLogout} className="w-full p-5 bg-white dark:bg-slate-900 border border-rose-100 dark:border-rose-900/30 text-rose-500 rounded-3xl font-black shadow-sm flex items-center justify-center gap-2 transition-all active:scale-95"><LogOut size={20} /> Đăng xuất</button>
             </div>
           )}
         </div>

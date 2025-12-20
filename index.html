@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
@@ -10,6 +11,8 @@
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2910/2910224.png" />
     <link rel="manifest" href="/manifest.json" />
     <title>Finance Manager Pro</title>
+    <!-- Thư viện Google GSI -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
@@ -42,6 +45,16 @@
       .safe-area-padding {
         padding-top: var(--sat);
         padding-bottom: var(--sab);
+      }
+      /* Đảm bảo nút Google không bị méo trên mobile */
+      #googleBtn {
+        min-height: 44px;
+        display: flex;
+        justify-content: center;
+        width: 100%;
+      }
+      #googleBtn iframe {
+        border-radius: 12px !important;
       }
     </style>
   <script type="importmap">
