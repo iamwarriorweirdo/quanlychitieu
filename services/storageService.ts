@@ -1,12 +1,7 @@
 
 import { Transaction, User, Goal, Budget, Investment, InvestmentSecurity } from '../types';
 
-// Tự động xác định URL API tương đối để chạy tốt trên mọi domain Vercel
-const getApiUrl = () => {
-  return '/api';
-};
-
-const API_URL = getApiUrl();
+const API_URL = '/api';
 const CURRENT_USER_KEY = 'fintrack_current_user';
 const LOCAL_TX_CACHE = 'fintrack_tx_cache_';
 const OFFLINE_QUEUE = 'fintrack_offline_queue_';
@@ -43,7 +38,6 @@ export const initDB = async () => {
 
 export const getTransactions = async (userId: string): Promise<Transaction[]> => {
   const cacheKey = LOCAL_TX_CACHE + userId;
-  
   if (navigator.onLine) {
     try {
       const response = await fetch(`${API_URL}/transactions?userId=${userId}`);
@@ -88,7 +82,6 @@ export const saveTransaction = async (userId: string, transaction: Transaction):
     const queue = getLocalData<Transaction>(queueKey);
     setLocalData(queueKey, [...queue, transaction]);
   }
-  
   return updatedLocal;
 };
 
@@ -97,12 +90,9 @@ export const deleteTransaction = async (userId: string, transactionId: string): 
   const currentLocal = getLocalData<Transaction>(cacheKey);
   const updatedLocal = currentLocal.filter(t => t.id !== transactionId);
   setLocalData(cacheKey, updatedLocal);
-
   if (navigator.onLine) {
     try {
-      await fetch(`${API_URL}/transactions?id=${transactionId}&userId=${userId}`, {
-        method: 'DELETE',
-      }).then(handleResponse);
+      await fetch(`${API_URL}/transactions?id=${transactionId}&userId=${userId}`, { method: 'DELETE' }).then(handleResponse);
       return await getTransactions(userId);
     } catch (e) {}
   }
@@ -114,7 +104,6 @@ export const syncOfflineData = async (userId: string) => {
   const queueKey = OFFLINE_QUEUE + userId;
   const queue = getLocalData<Transaction>(queueKey);
   if (queue.length === 0) return;
-
   for (const tx of queue) {
     try {
       await fetch(`${API_URL}/transactions`, {
