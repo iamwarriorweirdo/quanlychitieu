@@ -4,7 +4,6 @@ import { Transaction, User, Goal, Budget, Investment, InvestmentSecurity } from 
 // Tự động xác định URL API dựa trên môi trường hiện tại
 const getApiUrl = () => {
   if (typeof window !== 'undefined') {
-    // Nếu đang chạy trên Vercel hoặc local, dùng đường dẫn tương đối để tránh mismatch
     return window.location.origin + '/api';
   }
   return 'https://quanlychitieu-dusky.vercel.app/api';
@@ -41,7 +40,7 @@ export const initDB = async () => {
   try {
     await fetch(`${API_URL}/init`, { method: 'POST' });
   } catch (error) {
-    console.warn("Backend connection failed, running in offline mode.");
+    console.warn("Backend connection failed.");
   }
 };
 
@@ -83,7 +82,6 @@ export const saveTransaction = async (userId: string, transaction: Transaction):
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, transaction })
       }).then(handleResponse);
-      // Re-fetch to ensure consistency
       return await getTransactions(userId);
     } catch (e) {
       const queue = getLocalData<Transaction>(queueKey);
@@ -299,7 +297,10 @@ export const loginWithGoogle = async (credential: string): Promise<User> => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ credential })
     });
-    return await handleResponse(response);
+    const user = await handleResponse(response);
+    // Sau khi login Google thành công, xóa sạch cache cũ của máy để tải dữ liệu mới từ Database
+    localStorage.removeItem(LOCAL_TX_CACHE + user.id);
+    return user;
   } catch (error) { throw error; }
 };
 
