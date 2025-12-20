@@ -1,83 +1,20 @@
-# Quản Lý Chi Tiêu Cá Nhân | Personal Finance Manager
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+</div>
 
-👉 [https://quanlychitieu-dusky.vercel.app/](https://quanlychitieu-dusky.vercel.app/)
+# Run and deploy your AI Studio app
 
-Ứng dụng web giúp người dùng **"theo dõi thu nhập – chi tiêu cá nhân"**, kiểm soát tài chính hằng ngày một cách **"đơn giản, trực quan và hiệu quả"**.
+This contains everything you need to run your app locally.
 
-A web application that helps users tracking income and expenses, manage personal finances efficiently with a clean and user-friendly interface.
+View your app in AI Studio: https://ai.studio/apps/drive/1XqHRbqMkto1abz5l1bEKrMu-sSSXBkGT
 
----
+## Run Locally
 
-## 🎯 Mục tiêu dự án | Project Goals
+**Prerequisites:**  Node.js
 
-- Rèn luyện kỹ năng frontend & tư duy sản phẩm
-- Giúp người dùng kiểm soát dòng tiền cá nhân
-- Phù hợp cho sinh viên, người đi làm, người mới học quản lý tài chính
 
-- Practice frontend development and product thinking
-- Help users manage daily financial activities
-- Suitable for students and working professionals
-
----
-
-## ✨ Tính năng chính | Features
-
-### ➕ Quản lý giao dịch | Transaction Management
-- Thêm / xóa khoản thu và chi
-- Nhập:
-  - Tên giao dịch
-  - Số tiền
-  - Loại (Thu / Chi)
-  - Ngày giao dịch
-
-- Add / delete income & expense records
-- Input:
-  - Transaction name
-  - Amount
-  - Type (Income / Expense)
-  - Date
-
----
-
-### 📊 Thống kê tài chính | Financial Summary
-- Tổng thu nhập
-- Tổng chi tiêu
-- Số dư hiện tại
-- Cập nhật realtime
-
-- Total income
-- Total expenses
-- Current balance
-- Real-time updates
-
----
-
-### 🎨 Giao diện | UI/UX
-- Thiết kế đơn giản, dễ sử dụng
-- Responsive cho mobile & desktop
-- Tối ưu trải nghiệm người dùng
-
-- Clean and minimal UI
-- Fully responsive
-- User-friendly experience
-
----
-
-## 🛠 Công nghệ sử dụng | Tech Stack
-
-- **Frontend:** React / Next.js  
-- **Language:** JavaScript (or TypeScript)  
-- **Styling:** CSS / TailwindCSS  
-- **Deployment:** Vercel  
-- **Storage:** LocalStorage (Client-side)
-
-> Dữ liệu hiện được lưu trên neon và cloudinary.  
-> Data is stored on neon and cloudinary platform.
-
----
-
-## 👨‍💻 Tác giả | Author
-
-**Name:** Đồng Thuận Trịnh  
-**Project:** Personal Finance Manager  
-**Live Demo:** [https://quanlychitieu-dusky.vercel.app/](https://quanlychitieu-dusky.vercel.app/)
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`
