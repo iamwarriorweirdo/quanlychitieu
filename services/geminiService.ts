@@ -2,8 +2,7 @@
 import { ParsedTransactionData } from '../types';
 import { parseWithRegex } from '../utils/regexParser';
 
-// QUAN TRỌNG: Thay link này bằng URL Vercel thật của bạn
-const API_URL = 'https://quanlychitieu-dusky.vercel.app/api';
+const API_URL = '/api';
 
 export const parseBankNotification = async (
   ocrText: string, 

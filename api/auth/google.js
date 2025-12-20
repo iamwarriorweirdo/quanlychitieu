@@ -1,11 +1,11 @@
 
 import { OAuth2Client } from 'google-auth-library';
 import { neon } from '@neondatabase/serverless';
+import crypto from 'crypto';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method Not Allowed' });
 
-  // Lấy Client ID từ biến môi trường
   const SERVER_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ? process.env.GOOGLE_CLIENT_ID.trim() : null;
   
   if (!SERVER_CLIENT_ID) {
@@ -14,6 +14,10 @@ export default async function handler(req, res) {
 
   const { credential } = req.body;
   if (!credential) return res.status(400).json({ error: "Thiếu mã xác thực (credential)." });
+
+  if (!process.env.DATABASE_URL) {
+    return res.status(500).json({ error: "Missing DATABASE_URL" });
+  }
 
   const sql = neon(process.env.DATABASE_URL);
   const client = new OAuth2Client(SERVER_CLIENT_ID);
@@ -28,7 +32,6 @@ export default async function handler(req, res) {
 
     const { sub: googleId, email, name, picture } = payload;
     
-    // Email admin chỉ định
     const isAdminEmail = email === 'tdt19092004@gmail.com';
 
     let users = await sql`SELECT * FROM users WHERE google_id = ${googleId} OR email = ${email} LIMIT 1`;
@@ -59,6 +62,6 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error("GOOGLE AUTH ERROR:", error);
-    return res.status(401).json({ error: "Lỗi xác thực: Origin mismatch hoặc Token hết hạn. Hãy kiểm tra URL trong Google Console." });
+    return res.status(401).json({ error: "Lỗi xác thực: " + error.message });
   }
 }
