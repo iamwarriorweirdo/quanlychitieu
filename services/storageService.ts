@@ -1,22 +1,25 @@
 
 import { Transaction, User, Goal, Budget, Investment, InvestmentSecurity } from '../types';
 
-// QUAN TRỌNG: Thay link này bằng URL Vercel thật của bạn
-const PRODUCTION_API_URL = 'https://quanlychitieu-dusky.vercel.app/api'; 
+// Tự động xác định URL API dựa trên môi trường hiện tại
+const getApiUrl = () => {
+  if (typeof window !== 'undefined') {
+    // Nếu đang chạy trên Vercel hoặc local, dùng đường dẫn tương đối để tránh mismatch
+    return window.location.origin + '/api';
+  }
+  return 'https://quanlychitieu-dusky.vercel.app/api';
+};
 
-const API_URL = PRODUCTION_API_URL;
-
+const API_URL = getApiUrl();
 const CURRENT_USER_KEY = 'fintrack_current_user';
 const LOCAL_TX_CACHE = 'fintrack_tx_cache_';
 const OFFLINE_QUEUE = 'fintrack_offline_queue_';
 
-// Helper xử lý response
 const handleResponse = async (response: Response) => {
   if (!response.ok) {
     let errorMsg = `HTTP Error: ${response.status}`;
     try {
-      const text = await response.text();
-      const errorData = JSON.parse(text);
+      const errorData = await response.json();
       if (errorData?.error) errorMsg = errorData.error;
     } catch {}
     throw new Error(errorMsg);
@@ -24,7 +27,6 @@ const handleResponse = async (response: Response) => {
   return response.json();
 };
 
-// --- LOGIC OFFLINE ---
 const getLocalData = <T>(key: string): T[] => {
   const data = localStorage.getItem(key);
   return data ? JSON.parse(data) : [];
@@ -39,26 +41,24 @@ export const initDB = async () => {
   try {
     await fetch(`${API_URL}/init`, { method: 'POST' });
   } catch (error) {
-    console.error("Backend connection failed, running in offline-ready mode.");
+    console.warn("Backend connection failed, running in offline mode.");
   }
 };
 
-// --- TRANSACTIONS ---
 export const getTransactions = async (userId: string): Promise<Transaction[]> => {
   const cacheKey = LOCAL_TX_CACHE + userId;
   
-  if (!navigator.onLine) {
-    return getLocalData<Transaction>(cacheKey);
+  if (navigator.onLine) {
+    try {
+      const response = await fetch(`${API_URL}/transactions?userId=${userId}`);
+      const data = await handleResponse(response);
+      setLocalData(cacheKey, data); 
+      return data;
+    } catch (error) {
+      console.error("Fetch failed, using local cache:", error);
+    }
   }
-
-  try {
-    const response = await fetch(`${API_URL}/transactions?userId=${userId}`);
-    const data = await handleResponse(response);
-    setLocalData(cacheKey, data); 
-    return data;
-  } catch (error) {
-    return getLocalData<Transaction>(cacheKey);
-  }
+  return getLocalData<Transaction>(cacheKey);
 };
 
 export const saveTransaction = async (userId: string, transaction: Transaction): Promise<Transaction[]> => {
@@ -83,6 +83,7 @@ export const saveTransaction = async (userId: string, transaction: Transaction):
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ userId, transaction })
       }).then(handleResponse);
+      // Re-fetch to ensure consistency
       return await getTransactions(userId);
     } catch (e) {
       const queue = getLocalData<Transaction>(queueKey);

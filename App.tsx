@@ -6,11 +6,10 @@ import { Dashboard } from './components/Dashboard';
 import { Analysis } from './components/Analysis';
 import { Planning } from './components/Planning';
 import { InvestmentPage } from './components/Investment';
-import { AdminPanel } from './components/AdminPanel';
 import { AIParserModal } from './components/AIParserModal';
 import { ManualTransactionModal } from './components/ManualTransactionModal';
 import { FilterMode } from './components/DateFilter';
-import { Wallet, LogOut, Plus, Wand2, LayoutDashboard, PieChart, ClipboardList, TrendingUp, Shield, User as UserIcon, Settings, Globe, ChevronRight, Bell, Smartphone, ShieldCheck, Loader2, CloudOff, Cloud } from 'lucide-react';
+import { Wallet, LogOut, Plus, LayoutDashboard, PieChart, ClipboardList, TrendingUp, User as UserIcon, Globe, Smartphone, Loader2, CloudOff, AlertCircle } from 'lucide-react';
 import { translations, Language } from './utils/i18n';
 
 const GOOGLE_CLIENT_ID = "598430888470-bnchhoarr75hoas2rjbgn0ue54ud4i7k.apps.googleusercontent.com";
@@ -45,7 +44,6 @@ const App: React.FC = () => {
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-  // Dark Mode Logic
   const [isDarkMode, setIsDarkMode] = useState(() => {
     return localStorage.getItem('theme') === 'dark' || 
            (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
@@ -61,7 +59,6 @@ const App: React.FC = () => {
     }
   }, [isDarkMode]);
 
-  // Online/Offline Sync
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
@@ -99,7 +96,8 @@ const App: React.FC = () => {
           setUser(loggedInUser);
           setCurrentSession(loggedInUser);
         } catch (err: any) {
-          setError("Xác thực Google thất bại: " + err.message);
+          setError("Xác thực Google thất bại. Vui lòng kiểm tra cấu hình Origin trong Google Console.");
+          console.error(err);
         } finally {
           setIsAuthLoading(false);
         }
@@ -111,6 +109,12 @@ const App: React.FC = () => {
             client_id: GOOGLE_CLIENT_ID,
             callback: handleCredentialResponse,
             auto_select: false,
+            // Thêm log để bắt lỗi origin nếu có
+            error_callback: (err: any) => {
+               if (err.type === 'origin_mismatch') {
+                  setError("Lỗi: Origin Mismatch. Hãy thêm URL này vào Authorized JavaScript origins trong Google Console.");
+               }
+            }
           });
           const btnContainer = document.getElementById("googleBtn");
           if (btnContainer) {
@@ -199,6 +203,12 @@ const App: React.FC = () => {
             <p className="text-indigo-100 text-sm">{t.app.subtitle}</p>
           </div>
           <div className="p-8 space-y-4">
+            {error && (
+              <div className="p-3 bg-rose-50 text-rose-600 text-xs rounded-xl flex gap-2 items-center border border-rose-100">
+                <AlertCircle size={14} className="shrink-0" />
+                <span>{error}</span>
+              </div>
+            )}
             <form onSubmit={handleAuth} className="space-y-4">
               <input type="text" value={usernameInput} onChange={e => setUsernameInput(e.target.value)} className="w-full px-4 py-3 rounded-lg border dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none" placeholder={t.auth.username} />
               <input type={showPassword ? "text" : "password"} value={passwordInput} onChange={e => setPasswordInput(e.target.value)} className="w-full px-4 py-3 rounded-lg border dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none" placeholder={t.auth.password} />
@@ -226,7 +236,6 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col md:flex-row h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden transition-colors duration-300">
-      {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800">
         <div className="p-6 flex items-center gap-3 border-b dark:border-slate-800">
           <div className="bg-indigo-600 text-white p-2 rounded-lg"><Wallet /></div>
@@ -245,7 +254,6 @@ const App: React.FC = () => {
         </div>
       </aside>
 
-      {/* Main Content Area */}
       <main className="flex-1 overflow-y-auto pb-24 md:p-8 pt-[env(safe-area-inset-top)]">
         <div className="max-w-5xl mx-auto px-4 sm:px-0">
           {!isOnline && (
@@ -291,7 +299,6 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      {/* Mobile Bottom Nav - Optimized for Native App */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-100 dark:border-slate-800 px-2 flex items-center justify-around z-50 pb-[env(safe-area-inset-bottom)] h-[calc(64px+env(safe-area-inset-bottom))] transition-colors">
         <BottomNavItem view="dashboard" icon={LayoutDashboard} label={t.nav.dashboard} />
         <BottomNavItem view="analysis" icon={PieChart} label={t.nav.analysis} />
