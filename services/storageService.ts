@@ -1,101 +1,151 @@
 
 import { Transaction, User, Goal, Budget, Investment, InvestmentSecurity } from '../types';
 
-// Determine API base URL based on deployment path
 const BASE_URL = (import.meta as any).env?.BASE_URL || '/';
 const CLEAN_BASE_URL = BASE_URL.endsWith('/') ? BASE_URL.slice(0, -1) : BASE_URL;
 const API_URL = `${CLEAN_BASE_URL}/api`;
 
 const CURRENT_USER_KEY = 'fintrack_current_user';
+const LOCAL_TX_CACHE = 'fintrack_tx_cache_';
+const OFFLINE_QUEUE = 'fintrack_offline_queue_';
 
-// Helper để xử lý response
+// Helper xử lý response
 const handleResponse = async (response: Response) => {
   if (!response.ok) {
     let errorMsg = `HTTP Error: ${response.status}`;
     try {
       const text = await response.text();
-      try {
-        const errorData = JSON.parse(text);
-        if (errorData && errorData.error) {
-          errorMsg = errorData.error;
-        } else {
-          console.warn("API Error JSON missing 'error' field:", errorData);
-        }
-      } catch {
-        if (text) {
-           if (text.trim().startsWith('<')) {
-             errorMsg = `Server Error (${response.status}). See console for details.`;
-             console.error("Server HTML Error:", text);
-           } else {
-             errorMsg = text.slice(0, 150) + (text.length > 150 ? '...' : '');
-           }
-        }
-      }
-    } catch (e) {
-      console.error("Error reading response text:", e);
-    }
+      const errorData = JSON.parse(text);
+      if (errorData?.error) errorMsg = errorData.error;
+    } catch {}
     throw new Error(errorMsg);
   }
   return response.json();
 };
 
+// --- LOGIC OFFLINE ---
+const getLocalData = <T>(key: string): T[] => {
+  const data = localStorage.getItem(key);
+  return data ? JSON.parse(data) : [];
+};
+
+const setLocalData = <T>(key: string, data: T[]) => {
+  localStorage.setItem(key, JSON.stringify(data));
+};
+
 export const initDB = async () => {
+  if (!navigator.onLine) return;
   try {
     await fetch(`${API_URL}/init`, { method: 'POST' });
-    console.log("Database check/init requested to:", `${API_URL}/init`);
   } catch (error) {
-    console.error("Failed to connect to backend.", error);
+    console.error("Backend connection failed, running in offline-ready mode.");
   }
 };
 
-// Transactions
+// --- TRANSACTIONS ---
 export const getTransactions = async (userId: string): Promise<Transaction[]> => {
+  const cacheKey = LOCAL_TX_CACHE + userId;
+  
+  if (!navigator.onLine) {
+    return getLocalData<Transaction>(cacheKey);
+  }
+
   try {
     const response = await fetch(`${API_URL}/transactions?userId=${userId}`);
-    return await handleResponse(response);
+    const data = await handleResponse(response);
+    setLocalData(cacheKey, data); // Cập nhật cache
+    return data;
   } catch (error) {
-    console.error("Error fetching transactions:", error);
-    return [];
+    console.warn("Fetch failed, loading from local cache");
+    return getLocalData<Transaction>(cacheKey);
   }
 };
 
 export const saveTransaction = async (userId: string, transaction: Transaction): Promise<Transaction[]> => {
-  try {
-    await fetch(`${API_URL}/transactions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ userId, transaction })
-    }).then(handleResponse);
-
-    return await getTransactions(userId);
-  } catch (error) {
-    console.error("Error saving transaction:", error);
-    throw error;
+  const cacheKey = LOCAL_TX_CACHE + userId;
+  const queueKey = OFFLINE_QUEUE + userId;
+  
+  // 1. Cập nhật Local UI ngay lập tức (Optimistic UI)
+  const currentLocal = getLocalData<Transaction>(cacheKey);
+  const exists = currentLocal.findIndex(t => t.id === transaction.id);
+  let updatedLocal;
+  if (exists > -1) {
+    updatedLocal = [...currentLocal];
+    updatedLocal[exists] = transaction;
+  } else {
+    updatedLocal = [transaction, ...currentLocal];
   }
+  setLocalData(cacheKey, updatedLocal);
+
+  // 2. Nếu Online thì gửi lên Server
+  if (navigator.onLine) {
+    try {
+      await fetch(`${API_URL}/transactions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, transaction })
+      }).then(handleResponse);
+      return await getTransactions(userId);
+    } catch (e) {
+      // Nếu gửi lỗi (mạng chập chờn), cho vào hàng chờ
+      const queue = getLocalData<Transaction>(queueKey);
+      setLocalData(queueKey, [...queue, transaction]);
+    }
+  } else {
+    // 3. Nếu Offline, cho vào hàng chờ để đồng bộ sau
+    const queue = getLocalData<Transaction>(queueKey);
+    setLocalData(queueKey, [...queue, transaction]);
+  }
+  
+  return updatedLocal;
 };
 
 export const deleteTransaction = async (userId: string, transactionId: string): Promise<Transaction[]> => {
-  try {
-    await fetch(`${API_URL}/transactions?id=${transactionId}&userId=${userId}`, {
-      method: 'DELETE',
-    }).then(handleResponse);
+  const cacheKey = LOCAL_TX_CACHE + userId;
+  
+  // Xóa local trước
+  const currentLocal = getLocalData<Transaction>(cacheKey);
+  const updatedLocal = currentLocal.filter(t => t.id !== transactionId);
+  setLocalData(cacheKey, updatedLocal);
 
-    return await getTransactions(userId);
-  } catch (error) {
-    console.error("Error deleting transaction:", error);
-    throw error;
+  if (navigator.onLine) {
+    try {
+      await fetch(`${API_URL}/transactions?id=${transactionId}&userId=${userId}`, {
+        method: 'DELETE',
+      }).then(handleResponse);
+      return await getTransactions(userId);
+    } catch (e) {}
   }
+  return updatedLocal;
 };
 
-// Goals
+// Đồng bộ hóa khi Online trở lại
+export const syncOfflineData = async (userId: string) => {
+  if (!navigator.onLine) return;
+  const queueKey = OFFLINE_QUEUE + userId;
+  const queue = getLocalData<Transaction>(queueKey);
+  
+  if (queue.length === 0) return;
+
+  console.log(`Syncing ${queue.length} offline transactions...`);
+  for (const tx of queue) {
+    try {
+      await fetch(`${API_URL}/transactions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, transaction: tx })
+      });
+    } catch (e) { break; }
+  }
+  setLocalData(queueKey, []); // Xóa hàng chờ sau khi xong
+};
+
+// --- CÁC HÀM KHÁC (Giữ nguyên hoặc áp dụng tương tự nếu cần) ---
 export const getGoals = async (userId: string): Promise<Goal[]> => {
   try {
     const response = await fetch(`${API_URL}/goals?userId=${userId}`);
     return await handleResponse(response);
-  } catch (error) {
-    console.error("Error fetching goals:", error);
-    return [];
-  }
+  } catch (error) { return []; }
 };
 
 export const saveGoal = async (userId: string, goal: Goal): Promise<Goal[]> => {
@@ -116,15 +166,11 @@ export const deleteGoal = async (userId: string, goalId: string): Promise<Goal[]
   } catch (error) { throw error; }
 };
 
-// Budgets
 export const getBudgets = async (userId: string): Promise<Budget[]> => {
   try {
     const response = await fetch(`${API_URL}/budgets?userId=${userId}`);
     return await handleResponse(response);
-  } catch (error) {
-    console.error("Error fetching budgets:", error);
-    return [];
-  }
+  } catch (error) { return []; }
 };
 
 export const saveBudget = async (userId: string, budget: Budget): Promise<Budget[]> => {
@@ -145,15 +191,11 @@ export const deleteBudget = async (userId: string, budgetId: string): Promise<Bu
   } catch (error) { throw error; }
 };
 
-// Investments
 export const getInvestments = async (userId: string): Promise<Investment[]> => {
   try {
     const response = await fetch(`${API_URL}/investments?userId=${userId}`);
     return await handleResponse(response);
-  } catch (error) {
-    console.error("Error fetching investments:", error);
-    return [];
-  }
+  } catch (error) { return []; }
 };
 
 export const saveInvestment = async (userId: string, investment: Investment): Promise<Investment[]> => {
@@ -183,13 +225,9 @@ export const fetchMarketPrices = async (symbols: string[]): Promise<Record<strin
         });
         const data = await handleResponse(response);
         return data.prices;
-    } catch (e) {
-        console.error("Market fetch failed", e);
-        throw e;
-    }
+    } catch (e) { throw e; }
 };
 
-// Security Services
 export const checkSecurityStatus = async (userId: string): Promise<InvestmentSecurity> => {
     try {
         const response = await fetch(`${API_URL}/security`, {
@@ -220,7 +258,6 @@ export const verifySecondaryPassword = async (userId: string, password: string):
     } catch { return false; }
 };
 
-// Returns an object containing { success: boolean, demoOtpCode?: string, message?: string }
 export const requestOtp = async (userId: string, targetEmail?: string): Promise<any> => {
     const res = await fetch(`${API_URL}/security`, {
         method: 'POST',
@@ -241,16 +278,8 @@ export const verifyOtp = async (userId: string, otp: string): Promise<boolean> =
     } catch { return false; }
 };
 
-// User Auth
 export const registerUser = async (username: string, password: string, email?: string, phone?: string): Promise<User> => {
-  const newUser = {
-    id: crypto.randomUUID(),
-    username,
-    password,
-    email,
-    phone
-  };
-
+  const newUser = { id: crypto.randomUUID(), username, password, email, phone };
   try {
     const registeredUser = await fetch(`${API_URL}/register`, {
       method: 'POST',
@@ -258,10 +287,7 @@ export const registerUser = async (username: string, password: string, email?: s
       body: JSON.stringify(newUser)
     }).then(handleResponse);
     return registeredUser as User;
-  } catch (error) {
-    console.error("Registration failed:", error);
-    throw error;
-  }
+  } catch (error) { throw error; }
 };
 
 export const loginUser = async (username: string, password: string): Promise<User | null> => {
@@ -271,12 +297,8 @@ export const loginUser = async (username: string, password: string): Promise<Use
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ username, password })
     }).then(handleResponse);
-    
     return user as User;
-  } catch (error: any) {
-    console.error("Login failed:", error);
-    throw error;
-  }
+  } catch (error: any) { throw error; }
 };
 
 export const loginWithGoogle = async (credential: string): Promise<User> => {
@@ -287,10 +309,7 @@ export const loginWithGoogle = async (credential: string): Promise<User> => {
       body: JSON.stringify({ credential })
     });
     return await handleResponse(response);
-  } catch (error) {
-    console.error("Google Login failed:", error);
-    throw error;
-  }
+  } catch (error) { throw error; }
 };
 
 export const getCurrentSession = (): User | null => {
@@ -299,9 +318,6 @@ export const getCurrentSession = (): User | null => {
 };
 
 export const setCurrentSession = (user: User | null) => {
-  if (user) {
-    localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
-  } else {
-    localStorage.removeItem(CURRENT_USER_KEY);
-  }
+  if (user) localStorage.setItem(CURRENT_USER_KEY, JSON.stringify(user));
+  else localStorage.removeItem(CURRENT_USER_KEY);
 };
