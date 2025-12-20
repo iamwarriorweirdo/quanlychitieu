@@ -71,8 +71,8 @@ A web application that helps users tracking income and expenses, manage personal
 - **Deployment:** Vercel  
 - **Storage:** LocalStorage (Client-side)
 
-> Dữ liệu hiện được lưu trên groq và cloudinary.  
-> Data is stored on groq and cloudinary platform.
+> Dữ liệu hiện được lưu trên neon và cloudinary.  
+> Data is stored on neon and cloudinary platform.
 
 ---
 
