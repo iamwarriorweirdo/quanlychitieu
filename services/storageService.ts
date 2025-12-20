@@ -1,12 +1,9 @@
 
 import { Transaction, User, Goal, Budget, Investment, InvestmentSecurity } from '../types';
 
-// Tự động xác định URL API dựa trên môi trường hiện tại
+// Tự động xác định URL API tương đối để chạy tốt trên mọi domain Vercel
 const getApiUrl = () => {
-  if (typeof window !== 'undefined') {
-    return window.location.origin + '/api';
-  }
-  return 'https://quanlychitieu-dusky.vercel.app/api';
+  return '/api';
 };
 
 const API_URL = getApiUrl();
@@ -298,7 +295,6 @@ export const loginWithGoogle = async (credential: string): Promise<User> => {
       body: JSON.stringify({ credential })
     });
     const user = await handleResponse(response);
-    // Sau khi login Google thành công, xóa sạch cache cũ của máy để tải dữ liệu mới từ Database
     localStorage.removeItem(LOCAL_TX_CACHE + user.id);
     return user;
   } catch (error) { throw error; }

@@ -97,8 +97,7 @@ const App: React.FC = () => {
           setUser(loggedInUser);
           setCurrentSession(loggedInUser);
         } catch (err: any) {
-          setError("Xác thực Google thất bại. Hãy kiểm tra cài đặt Origins trong Google Console.");
-          console.error(err);
+          setError(`Lỗi xác thực: ${err.message || "Hãy kiểm tra Google Console."}`);
         } finally {
           setIsAuthLoading(false);
         }
@@ -113,7 +112,8 @@ const App: React.FC = () => {
             auto_select: false,
             error_callback: (err: any) => {
                if (err.type === 'origin_mismatch') {
-                  setError("Lỗi: Origin Mismatch. Bạn cần thêm URL này vào Google Cloud Console.");
+                  const currentOrigin = window.location.origin;
+                  setError(`Lỗi: Thiếu link gốc trong Google Console. Bạn cần thêm "${currentOrigin}" vào mục "Authorized JavaScript origins".`);
                }
             }
           });
@@ -130,7 +130,7 @@ const App: React.FC = () => {
       };
       renderGoogleBtn();
     }
-  }, [user, isInitializing, isOnline, isLoginView]); // Re-render khi chuyển tab login/register
+  }, [user, isInitializing, isOnline, isLoginView]);
 
   useEffect(() => {
     if (user?.id) {
@@ -208,7 +208,7 @@ const App: React.FC = () => {
             {error && (
               <div className="p-3 bg-rose-50 text-rose-600 text-xs rounded-xl flex gap-2 items-center border border-rose-100">
                 <AlertCircle size={14} className="shrink-0" />
-                <span>{error}</span>
+                <span className="leading-tight">{error}</span>
               </div>
             )}
             <form onSubmit={handleAuth} className="space-y-4">
