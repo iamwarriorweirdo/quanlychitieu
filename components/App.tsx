@@ -86,6 +86,7 @@ const App: React.FC = () => {
     init();
   }, []);
 
+  // Logic render Google Login Button
   useEffect(() => {
     if (!user && !isInitializing && isOnline) {
       const handleCredentialResponse = async (response: any) => {
@@ -108,7 +109,13 @@ const App: React.FC = () => {
           (window as any).google.accounts.id.initialize({
             client_id: GOOGLE_CLIENT_ID,
             callback: handleCredentialResponse,
-            auto_select: false
+            auto_select: false,
+            error_callback: (err: any) => {
+               if (err.type === 'origin_mismatch') {
+                  const currentOrigin = window.location.origin;
+                  setError(`Lỗi: Thiếu link gốc trong Google Console. Bạn cần thêm "${currentOrigin}" vào mục "Authorized JavaScript origins".`);
+               }
+            }
           });
           const btnContainer = document.getElementById("googleBtn");
           if (btnContainer) {
@@ -211,11 +218,14 @@ const App: React.FC = () => {
                 {isAuthLoading ? <Loader2 className="animate-spin" /> : (isLoginView ? t.auth.login : t.auth.createAccount)}
               </button>
             </form>
+            
             <div className="relative py-2 flex items-center justify-center">
               <div className="border-t border-slate-200 dark:border-slate-800 w-full absolute"></div>
               <span className="bg-white dark:bg-slate-900 px-3 text-[10px] text-slate-400 font-bold uppercase tracking-widest relative z-10">hoặc</span>
             </div>
+
             <div id="googleBtn" className="flex justify-center min-h-[44px]"></div>
+            
             <button onClick={() => setIsLoginView(!isLoginView)} className="w-full text-center text-indigo-600 text-sm font-bold hover:underline py-2">{isLoginView ? t.auth.newHere : t.auth.haveAccount}</button>
           </div>
         </div>
@@ -238,7 +248,7 @@ const App: React.FC = () => {
       <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800">
         <div className="p-6 flex items-center gap-3 border-b dark:border-slate-800">
           <div className="bg-indigo-600 text-white p-2 rounded-lg"><Wallet /></div>
-          <h1 className="font-bold text-lg dark:text-white leading-tight">{t.app.title}</h1>
+          <div><h1 className="font-bold text-lg dark:text-white leading-tight">{t.app.title}</h1></div>
         </div>
         <nav className="flex-1 p-4 space-y-1">
           <button onClick={() => setCurrentView('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'dashboard' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 font-bold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}><LayoutDashboard size={20} />{t.nav.dashboard}</button>
@@ -261,6 +271,7 @@ const App: React.FC = () => {
                 <p className="text-xs font-bold text-amber-800 dark:text-amber-400 uppercase tracking-wider">Chế độ Ngoại tuyến</p>
              </div>
           )}
+
           {currentView === 'dashboard' && <Dashboard user={user} transactions={transactions} isLoading={isLoadingTx} onDelete={handleDelete} onTransactionsUpdated={setTransactions} lang={lang} openAiScan={(m) => { setAiModalMode(m); setIsAiModalOpen(true); }} openManualModal={() => setIsManualModalOpen(true)} filterMode={filterMode} setFilterMode={setFilterMode} filterDate={filterDate} setFilterDate={setFilterDate} rangeStart={rangeStart} setRangeStart={setRangeStart} rangeEnd={rangeEnd} setRangeEnd={setRangeEnd} />}
           {currentView === 'analysis' && <Analysis transactions={transactions} lang={lang} filterMode={filterMode} setFilterMode={setFilterMode} filterDate={filterDate} setFilterDate={setFilterDate} rangeStart={rangeStart} setRangeStart={setRangeStart} rangeEnd={rangeEnd} setRangeEnd={setRangeEnd} />}
           {currentView === 'planning' && <Planning user={user} transactions={transactions} goals={goals} budgets={budgets} onAddGoal={handleAddGoal} onDeleteGoal={handleDeleteGoal} onUpdateGoal={handleAddGoal} onAddBudget={handleAddBudget} onDeleteBudget={handleDeleteBudget} lang={lang} />}
