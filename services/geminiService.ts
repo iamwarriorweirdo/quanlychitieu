@@ -1,14 +1,18 @@
+
 import { ParsedTransactionData } from '../types';
 import { parseWithRegex } from '../utils/regexParser';
+
+// QUAN TRỌNG: Thay link này bằng URL Vercel thật của bạn
+const API_URL = 'https://quanlychitieu-dusky.vercel.app/api';
 
 export const parseBankNotification = async (
   ocrText: string, 
   imageBase64?: string | null,
   imageUrl?: string | null
-): Promise<ParsedTransactionData[]> => { // Return Array
+): Promise<ParsedTransactionData[]> => {
   
   try {
-    const response = await fetch('/api/parse', {
+    const response = await fetch(`${API_URL}/parse`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
@@ -29,26 +33,14 @@ export const parseBankNotification = async (
     }
 
     const data = await response.json();
-    
-    // Ensure we always return an array, even if API somehow returns a single object
-    if (Array.isArray(data)) {
-        return data as ParsedTransactionData[];
-    } else {
-        return [data] as ParsedTransactionData[];
-    }
+    return Array.isArray(data) ? data : [data];
 
   } catch (error: any) {
-    console.warn("AI Parsing Error:", error);
-    
-    // FALLBACK: Regex Parser (Currently only supports single item extraction)
-    // We wrap it in an array to match the new signature
     if (ocrText && ocrText.trim().length > 0) {
-        console.log("Falling back to Offline Regex Parser...");
         const fallbackData = parseWithRegex(ocrText);
         fallbackData.description += " (Offline Scan)";
         return [fallbackData];
     }
-
     throw new Error(error.message || "Unable to parse transaction.");
   }
 };

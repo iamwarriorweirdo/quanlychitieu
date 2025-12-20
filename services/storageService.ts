@@ -1,9 +1,10 @@
 
 import { Transaction, User, Goal, Budget, Investment, InvestmentSecurity } from '../types';
 
-const BASE_URL = (import.meta as any).env?.BASE_URL || '/';
-const CLEAN_BASE_URL = BASE_URL.endsWith('/') ? BASE_URL.slice(0, -1) : BASE_URL;
-const API_URL = `${CLEAN_BASE_URL}/api`;
+// QUAN TRỌNG: Thay link này bằng URL Vercel thật của bạn
+const PRODUCTION_API_URL = 'https://quanlychitieu-dusky.vercel.app/api'; 
+
+const API_URL = PRODUCTION_API_URL;
 
 const CURRENT_USER_KEY = 'fintrack_current_user';
 const LOCAL_TX_CACHE = 'fintrack_tx_cache_';
@@ -53,10 +54,9 @@ export const getTransactions = async (userId: string): Promise<Transaction[]> =>
   try {
     const response = await fetch(`${API_URL}/transactions?userId=${userId}`);
     const data = await handleResponse(response);
-    setLocalData(cacheKey, data); // Cập nhật cache
+    setLocalData(cacheKey, data); 
     return data;
   } catch (error) {
-    console.warn("Fetch failed, loading from local cache");
     return getLocalData<Transaction>(cacheKey);
   }
 };
@@ -65,7 +65,6 @@ export const saveTransaction = async (userId: string, transaction: Transaction):
   const cacheKey = LOCAL_TX_CACHE + userId;
   const queueKey = OFFLINE_QUEUE + userId;
   
-  // 1. Cập nhật Local UI ngay lập tức (Optimistic UI)
   const currentLocal = getLocalData<Transaction>(cacheKey);
   const exists = currentLocal.findIndex(t => t.id === transaction.id);
   let updatedLocal;
@@ -77,7 +76,6 @@ export const saveTransaction = async (userId: string, transaction: Transaction):
   }
   setLocalData(cacheKey, updatedLocal);
 
-  // 2. Nếu Online thì gửi lên Server
   if (navigator.onLine) {
     try {
       await fetch(`${API_URL}/transactions`, {
@@ -87,12 +85,10 @@ export const saveTransaction = async (userId: string, transaction: Transaction):
       }).then(handleResponse);
       return await getTransactions(userId);
     } catch (e) {
-      // Nếu gửi lỗi (mạng chập chờn), cho vào hàng chờ
       const queue = getLocalData<Transaction>(queueKey);
       setLocalData(queueKey, [...queue, transaction]);
     }
   } else {
-    // 3. Nếu Offline, cho vào hàng chờ để đồng bộ sau
     const queue = getLocalData<Transaction>(queueKey);
     setLocalData(queueKey, [...queue, transaction]);
   }
@@ -102,8 +98,6 @@ export const saveTransaction = async (userId: string, transaction: Transaction):
 
 export const deleteTransaction = async (userId: string, transactionId: string): Promise<Transaction[]> => {
   const cacheKey = LOCAL_TX_CACHE + userId;
-  
-  // Xóa local trước
   const currentLocal = getLocalData<Transaction>(cacheKey);
   const updatedLocal = currentLocal.filter(t => t.id !== transactionId);
   setLocalData(cacheKey, updatedLocal);
@@ -119,15 +113,12 @@ export const deleteTransaction = async (userId: string, transactionId: string): 
   return updatedLocal;
 };
 
-// Đồng bộ hóa khi Online trở lại
 export const syncOfflineData = async (userId: string) => {
   if (!navigator.onLine) return;
   const queueKey = OFFLINE_QUEUE + userId;
   const queue = getLocalData<Transaction>(queueKey);
-  
   if (queue.length === 0) return;
 
-  console.log(`Syncing ${queue.length} offline transactions...`);
   for (const tx of queue) {
     try {
       await fetch(`${API_URL}/transactions`, {
@@ -137,10 +128,9 @@ export const syncOfflineData = async (userId: string) => {
       });
     } catch (e) { break; }
   }
-  setLocalData(queueKey, []); // Xóa hàng chờ sau khi xong
+  setLocalData(queueKey, []);
 };
 
-// --- CÁC HÀM KHÁC (Giữ nguyên hoặc áp dụng tương tự nếu cần) ---
 export const getGoals = async (userId: string): Promise<Goal[]> => {
   try {
     const response = await fetch(`${API_URL}/goals?userId=${userId}`);
