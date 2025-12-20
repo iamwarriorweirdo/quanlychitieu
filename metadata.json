@@ -1,6 +1,6 @@
 {
-  "name": "Quản lý thu nhập",
-  "description": "A smart personal finance tracker that uses Gemini AI to automatically parse bank notifications (text or screenshots) into transactions. Supports multiple users and daily summaries.",
+  "name": "Finance Pro: AI Tracker",
+  "description": "A secure personal finance tool. Uses Gemini AI for manual-entry assistance and receipt parsing. No real-money transactions or banking services provided.",
   "requestFramePermissions": [
     "camera"
   ]

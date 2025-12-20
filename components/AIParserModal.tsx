@@ -1,5 +1,5 @@
 
-import { X, Upload, Wand2, Loader2, Image as ImageIcon, Type, ScanLine, Cloud, Zap, AlertCircle, CheckCircle, Camera, RefreshCcw } from 'lucide-react';
+import { X, Upload, Wand2, Loader2, Image as ImageIcon, Type, ScanLine, Cloud, Zap, AlertCircle, CheckCircle, Camera, RefreshCcw, Info } from 'lucide-react';
 import React, { useState, useEffect, useRef } from 'react';
 import { parseBankNotification } from '../services/geminiService';
 import { ParsedTransactionData } from '../types';
@@ -24,7 +24,6 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
   const [statusText, setStatusText] = useState('');
   const [error, setError] = useState<string | null>(null);
   
-  // Camera refs & state
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [isCameraActive, setIsCameraActive] = useState(false);
@@ -79,7 +78,6 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
       ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
       setSelectedImage(dataUrl);
-      // Create a dummy file object for consistency if needed
       fetch(dataUrl)
         .then(res => res.blob())
         .then(blob => {
@@ -129,14 +127,13 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
   const handleOfflineExtract = async () => {
       setIsLoading(true);
       setError(null);
-      setStatusText("Đang nhận diện ký tự...");
+      setStatusText("Đang nhận diện...");
       try {
           let textToParse = inputText;
           if ((mode === 'image' || mode === 'camera') && (imageFile || selectedImage)) {
               let compressed;
               if (imageFile) compressed = await resizeImage(imageFile);
               else compressed = selectedImage!;
-              
               const { data: { text } } = await Tesseract.recognize(compressed, 'eng+vie');
               textToParse = text;
           }
@@ -144,7 +141,7 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
           onSuccess([result]);
           onClose();
       } catch (err: any) {
-          setError("Lỗi Offline: " + err.message);
+          setError("Lỗi: " + err.message);
       } finally {
           setIsLoading(false);
       }
@@ -153,26 +150,19 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
   const handleProcess = async () => {
     setIsLoading(true);
     setError(null);
-    setStatusText("Đang phân tích hình ảnh & Kiểm tra logic...");
+    setStatusText("AI đang phân tích...");
     try {
       let ocrTextResult = inputText;
       let compressedBase64 = null;
 
       if ((mode === 'image' || mode === 'camera') && (imageFile || selectedImage)) {
-        if (imageFile) {
-          compressedBase64 = await resizeImage(imageFile);
-        } else {
-          compressedBase64 = selectedImage;
-        }
-
+        if (imageFile) compressedBase64 = await resizeImage(imageFile);
+        else compressedBase64 = selectedImage;
         try {
           const { data: { text } } = await Tesseract.recognize(compressedBase64!, 'eng+vie');
           ocrTextResult = text;
-        } catch (e) {
-          console.warn("Tesseract failed, proceeding with image only");
-        }
+        } catch (e) {}
       }
-      
       const results = await parseBankNotification(ocrTextResult, compressedBase64);
       onSuccess(results);
       onClose();
@@ -185,7 +175,7 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-3xl w-full max-md:fixed max-md:bottom-0 max-md:rounded-b-none max-w-md shadow-2xl overflow-hidden animate-in zoom-in slide-in-from-bottom-20 duration-300 flex flex-col max-h-[90vh]">
+      <div className="bg-white rounded-3xl w-full max-md:fixed max-md:bottom-0 max-md:rounded-b-none max-w-md shadow-2xl overflow-hidden animate-in zoom-in slide-in-from-bottom-20 duration-300 flex flex-col max-h-[95vh]">
         <div className="bg-indigo-600 p-6 text-white flex justify-between items-center shrink-0">
           <div className="flex items-center gap-3">
              <div className="bg-white/20 p-2 rounded-xl"><Wand2 size={24}/></div>
@@ -195,6 +185,14 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
         </div>
 
         <div className="p-6 space-y-4 overflow-y-auto">
+          {/* AI Disclosure for Google Play Policy */}
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex gap-3 items-start">
+             <Info size={16} className="text-amber-600 shrink-0 mt-0.5" />
+             <p className="text-[10px] text-amber-800 font-medium">
+               Tính năng này sử dụng <b>Google Gemini AI</b> để hỗ trợ trích xuất dữ liệu. Vui lòng kiểm tra lại kết quả trước khi lưu.
+             </p>
+          </div>
+
           {error && <div className="p-3 bg-rose-50 text-rose-600 text-xs rounded-xl flex items-center gap-2 border border-rose-100"><AlertCircle size={14}/> {error}</div>}
 
           <div className="flex p-1 bg-slate-100 rounded-2xl shrink-0">
@@ -225,9 +223,6 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
                 {isCameraActive ? (
                   <>
                     <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                       <div className="w-48 h-48 border-2 border-white/50 rounded-xl opacity-20"></div>
-                    </div>
                     <button onClick={takePhoto} className="absolute bottom-4 left-1/2 -translate-x-1/2 w-14 h-14 bg-white rounded-full flex items-center justify-center shadow-lg active:scale-90 transition-transform">
                       <div className="w-12 h-12 border-2 border-slate-800 rounded-full"></div>
                     </button>
@@ -249,26 +244,14 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
             )}
           </div>
 
-          {isLoading && (
-            <div className="flex items-center gap-3 p-3 bg-indigo-50 text-indigo-700 rounded-xl animate-pulse">
-              <Loader2 className="animate-spin" size={18} />
-              <span className="text-xs font-bold">{statusText}</span>
-            </div>
-          )}
-
           <div className="space-y-3 shrink-0">
-             <button onClick={handleProcess} disabled={isLoading || (mode !== 'text' && !selectedImage && !imageFile)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-100 hover:bg-indigo-700 disabled:opacity-50 disabled:shadow-none transition-all flex items-center justify-center gap-2 group">
-                {!isLoading && <><CheckCircle size={18} className="group-hover:scale-125 transition-transform" /> {t.modal.extract}</>}
-                {isLoading && <span>Xử lý dữ liệu...</span>}
+             <button onClick={handleProcess} disabled={isLoading || (mode !== 'text' && !selectedImage && !imageFile)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-100 hover:bg-indigo-700 disabled:opacity-50 disabled:shadow-none transition-all flex items-center justify-center gap-2">
+                {isLoading ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle size={20} />}
+                {isLoading ? "Đang xử lý..." : t.modal.extract}
              </button>
              <button onClick={handleOfflineExtract} disabled={isLoading || (mode !== 'text' && !selectedImage && !imageFile)} className="w-full py-3 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 disabled:opacity-50 transition-all flex items-center justify-center gap-2 text-sm">
-                <Zap size={16} className="text-amber-500" /> Quét nhanh (Offline)
+                <Zap size={16} className="text-amber-500" /> Quét thủ công
              </button>
-          </div>
-          
-          <div className="p-3 bg-blue-50 rounded-xl flex gap-3 items-start border border-blue-100 shrink-0">
-             <AlertCircle size={16} className="text-blue-500 shrink-0 mt-0.5" />
-             <p className="text-[10px] text-blue-700 leading-relaxed font-bold">Mẹo: Chụp ảnh rõ ràng trong điều kiện đủ sáng để AI phân tích con số 3, 5 chính xác nhất.</p>
           </div>
         </div>
       </div>
