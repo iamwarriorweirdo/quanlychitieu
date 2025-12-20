@@ -3,8 +3,8 @@
   "appId": "com.financemanager.app",
   "appName": "Finance Manager",
   "webDir": "dist",
-  "bundledWebRuntime": false,
   "server": {
-    "androidScheme": "https"
+    "androidScheme": "https",
+    "cleartext": true
   }
 }

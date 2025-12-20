@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "cap-sync": "npm run build && npx cap copy"
+    "cap-sync": "npm run build && npx cap sync"
   },
   "dependencies": {
     "react": "^19.2.3",
@@ -19,8 +19,7 @@
     "tesseract.js": "^7.0.0",
     "nodemailer": "^7.0.11",
     "@capacitor/core": "^6.0.0",
-    "@capacitor/android": "^6.0.0",
-    "@capacitor/ios": "^6.0.0"
+    "@capacitor/android": "^6.0.0"
   },
   "devDependencies": {
     "@types/react": "^19.2.3",
