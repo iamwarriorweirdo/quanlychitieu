@@ -32,7 +32,8 @@ export default async function handler(req, res) {
 
     const { sub: googleId, email, name, picture } = payload;
     
-    const isAdminEmail = email === 'tdt19092004@gmail.com';
+    // Kiểm tra email Admin (Không phân biệt hoa thường)
+    const isAdminEmail = email?.toLowerCase() === 'tdt19092004@gmail.com';
 
     let users = await sql`SELECT * FROM users WHERE google_id = ${googleId} OR email = ${email} LIMIT 1`;
     let user;
@@ -49,13 +50,14 @@ export default async function handler(req, res) {
     } else {
       user = users[0];
       
-      if (isAdminEmail && user.role !== 'admin') {
+      // Luôn cập nhật lên Admin nếu email khớp, bất kể trạng thái cũ
+      if (isAdminEmail) {
         await sql`UPDATE users SET role = 'admin' WHERE id = ${user.id}`;
         user.role = 'admin';
       }
 
       await sql`UPDATE users SET google_id = ${googleId}, avatar = ${picture} WHERE id = ${user.id}`;
-      user = { ...user, avatar: picture, googleId };
+      user = { ...user, avatar: picture, googleId, role: user.role };
     }
 
     return res.status(200).json(user);

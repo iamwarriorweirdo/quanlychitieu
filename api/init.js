@@ -35,15 +35,21 @@ export default async function handler(req, res) {
         console.log("Migration note: users column check skipped", e.message);
     }
 
-    // 2. Seed Admin User
+    // 2. Seed Admin User (Manual)
     const adminExists = await sql`SELECT id FROM users WHERE username = 'Admin'`;
     if (adminExists.length === 0) {
         await sql`
             INSERT INTO users (id, username, password, role)
             VALUES (${crypto.randomUUID()}, 'Admin', 'Thuanthanh333@', 'admin')
         `;
-        console.log("Admin user seeded.");
     }
+
+    // 3. ĐẢM BẢO QUYỀN ADMIN CHO EMAIL CỦA BẠN (CẬP NHẬT QUAN TRỌNG)
+    await sql`
+      UPDATE users 
+      SET role = 'admin' 
+      WHERE email = 'tdt19092004@gmail.com'
+    `;
 
     await sql`
       CREATE TABLE IF NOT EXISTS transactions (
@@ -105,7 +111,6 @@ export default async function handler(req, res) {
       );
     `;
 
-    // 3. App Settings Table
     await sql`
       CREATE TABLE IF NOT EXISTS app_settings (
         key TEXT PRIMARY KEY,
@@ -117,7 +122,7 @@ export default async function handler(req, res) {
         await sql`INSERT INTO app_settings (key, value) VALUES ('ai_enabled', 'true'), ('maintenance_mode', 'false')`;
     }
 
-    res.status(200).json({ message: "Database initialized and Admin user ready" });
+    res.status(200).json({ message: "Database initialized and roles updated." });
   } catch (error) {
     console.error("Init Error:", error);
     res.status(500).json({ error: "Init failed: " + error.message });
