@@ -12,6 +12,7 @@ import { FilterMode } from './components/DateFilter';
 import { Wallet, LogOut, Plus, LayoutDashboard, PieChart, ClipboardList, TrendingUp, User as UserIcon, Globe, Smartphone, Loader2, CloudOff, AlertCircle } from 'lucide-react';
 import { translations, Language } from './utils/i18n';
 
+// Client ID chính xác từ ảnh của bạn
 const GOOGLE_CLIENT_ID = "598430888470-bnchhoarr75hoas2rjbgn0ue54ud4i7k.apps.googleusercontent.com";
 
 type View = 'dashboard' | 'analysis' | 'planning' | 'investment' | 'admin' | 'settings' | 'account';
@@ -32,7 +33,6 @@ const App: React.FC = () => {
   const [passwordInput, setPasswordInput] = useState('');
   const [emailInput, setEmailInput] = useState('');
   const [phoneInput, setPhoneInput] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
   const [isLoginView, setIsLoginView] = useState(true);
   const [error, setError] = useState('');
   const [isAuthLoading, setIsAuthLoading] = useState(false);
@@ -96,7 +96,7 @@ const App: React.FC = () => {
           setUser(loggedInUser);
           setCurrentSession(loggedInUser);
         } catch (err: any) {
-          setError(`Lỗi xác thực: ${err.message || "Hãy kiểm tra Google Console."}`);
+          setError(`Lỗi backend: ${err.message || "Hãy kiểm tra Vercel Logs."}`);
         } finally {
           setIsAuthLoading(false);
         }
@@ -104,17 +104,29 @@ const App: React.FC = () => {
 
       let retryCount = 0;
       const renderGoogleBtn = () => {
-        if ((window as any).google?.accounts?.id) {
-          (window as any).google.accounts.id.initialize({
-            client_id: GOOGLE_CLIENT_ID,
-            callback: handleCredentialResponse,
-            auto_select: false
-          });
-          const btnContainer = document.getElementById("googleBtn");
-          if (btnContainer) {
-            (window as any).google.accounts.id.renderButton(btnContainer, { 
-              theme: "outline", size: "large", width: "320", text: "signin_with", shape: "pill"
+        const google = (window as any).google;
+        if (google?.accounts?.id) {
+          try {
+            google.accounts.id.initialize({
+              client_id: GOOGLE_CLIENT_ID,
+              callback: handleCredentialResponse,
+              auto_select: false,
+              cancel_on_tap_outside: true,
+              error_callback: (err: any) => {
+                if (err.type === 'origin_mismatch') {
+                  const currentOrigin = window.location.origin;
+                  setError(`Google báo lỗi "mismatch origin". Hãy thêm chính xác "${currentOrigin}" vào mục "Authorized JavaScript origins" trong Google Cloud Console.`);
+                }
+              }
             });
+            const btnContainer = document.getElementById("googleBtn");
+            if (btnContainer) {
+              google.accounts.id.renderButton(btnContainer, { 
+                theme: "outline", size: "large", width: "320", text: "signin_with", shape: "pill"
+              });
+            }
+          } catch (e: any) {
+            console.error("Google Init Error:", e);
           }
         } else if (retryCount < 20) {
           retryCount++;
@@ -206,7 +218,7 @@ const App: React.FC = () => {
             )}
             <form onSubmit={handleAuth} className="space-y-4">
               <input type="text" value={usernameInput} onChange={e => setUsernameInput(e.target.value)} className="w-full px-4 py-3 rounded-lg border dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder={t.auth.username} />
-              <input type={showPassword ? "text" : "password"} value={passwordInput} onChange={e => setPasswordInput(e.target.value)} className="w-full px-4 py-3 rounded-lg border dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder={t.auth.password} />
+              <input type="password" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} className="w-full px-4 py-3 rounded-lg border dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder={t.auth.password} />
               <button type="submit" disabled={isAuthLoading} className="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl hover:bg-indigo-700 flex justify-center transition-all active:scale-[0.98]">
                 {isAuthLoading ? <Loader2 className="animate-spin" /> : (isLoginView ? t.auth.login : t.auth.createAccount)}
               </button>
