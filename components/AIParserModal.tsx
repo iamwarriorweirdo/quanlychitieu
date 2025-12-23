@@ -76,7 +76,8 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
     const ctx = canvas.getContext('2d');
     if (ctx) {
       ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.6); // Low quality for preview/processing
+      // REVERT: Tăng chất lượng ảnh chụp camera lên 0.95 để đảm bảo OCR
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.95); 
       setSelectedImage(dataUrl);
       fetch(dataUrl)
         .then(res => res.blob())
@@ -99,9 +100,9 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
-          // OPTIMIZATION: Giảm kích thước ảnh xuống 384px để tiết kiệm token
-          // Kích thước này đủ để đọc hóa đơn nhưng nhỏ hơn nhiều so với ảnh gốc
-          const MAX = 384; 
+          
+          // REVERT: Tăng kích thước tối đa lên 480px như cũ để AI đọc rõ chữ
+          const MAX = 480; 
           if (width > MAX || height > MAX) {
             if (width > height) { height *= MAX / width; width = MAX; } 
             else { width *= MAX / height; height = MAX; }
@@ -111,11 +112,11 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
           const ctx = canvas.getContext('2d');
           if (ctx) {
               ctx.imageSmoothingEnabled = true;
-              ctx.imageSmoothingQuality = 'medium'; // Giảm quality vẽ
+              ctx.imageSmoothingQuality = 'medium';
               ctx.drawImage(img, 0, 0, width, height);
           }
-          // OPTIMIZATION: Nén JPEG xuống 60% chất lượng
-          resolve(canvas.toDataURL('image/jpeg', 0.6));
+          // REVERT: Tăng chất lượng nén lên 0.95
+          resolve(canvas.toDataURL('image/jpeg', 0.95));
         };
         img.src = e.target?.result as string;
       };
@@ -143,14 +144,10 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
 
       if ((mode === 'image' || mode === 'camera') && (imageFile || selectedImage)) {
         if (imageFile) compressedBase64 = await resizeImage(imageFile);
-        else compressedBase64 = selectedImage; // Should ideally also be resized if directly set
+        else compressedBase64 = selectedImage; 
         
-        // Chỉ chạy Tesseract nếu cần fallback, nhưng với AI thì ta gửi ảnh trực tiếp
-        // Nếu muốn tiết kiệm request AI thì dùng Tesseract làm ocrTextResult
         try {
-           // Tắt Tesseract tạm thời để tăng tốc UX, AI sẽ tự đọc ảnh
-           // const { data: { text } } = await Tesseract.recognize(compressedBase64!, 'eng+vie');
-           // ocrTextResult = text;
+           // Tesseract fallback logic (nếu cần bật lại sau này)
         } catch (e) {}
       }
       const results = await parseBankNotification(ocrTextResult, compressedBase64);
