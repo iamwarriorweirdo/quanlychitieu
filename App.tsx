@@ -177,7 +177,7 @@ const App: React.FC = () => {
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!isOnline && isLoginView) return setError("Cần mạng để đăng nhập.");
+    if (!isOnline && isLoginView) return setError(t.auth.networkError);
     setError('');
     if (!usernameInput.trim() || !passwordInput.trim()) return setError(t.auth.errorUser);
     setIsAuthLoading(true);
@@ -194,9 +194,9 @@ const App: React.FC = () => {
   };
 
   const handleAddGoal = async (g: Goal) => { if (user) setGoals(await saveGoal(user.id, g)); };
-  const handleDeleteGoal = async (id: string) => { if (user && confirm('Xóa?')) setGoals(await deleteGoal(user.id, id)); };
+  const handleDeleteGoal = async (id: string) => { if (user && confirm(t.common.deleteConfirm)) setGoals(await deleteGoal(user.id, id)); };
   const handleAddBudget = async (b: Budget) => { if (user) setBudgets(await saveBudget(user.id, b)); };
-  const handleDeleteBudget = async (id: string) => { if (user && confirm('Xóa?')) setBudgets(await deleteBudget(user.id, id)); };
+  const handleDeleteBudget = async (id: string) => { if (user && confirm(t.common.deleteConfirm)) setBudgets(await deleteBudget(user.id, id)); };
 
   if (isInitializing) return <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center"><Loader2 className="animate-spin text-indigo-600 w-10 h-10" /></div>;
 
@@ -263,7 +263,7 @@ const App: React.FC = () => {
           {canAccessAdmin && (
             <button onClick={() => setCurrentView('admin')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'admin' ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 font-bold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}><Shield size={20} />{t.nav.admin}</button>
           )}
-          <button onClick={() => setCurrentView('account')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'account' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 font-bold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}><UserIcon size={20} />Tài khoản</button>
+          <button onClick={() => setCurrentView('account')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'account' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 font-bold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}><UserIcon size={20} />{t.nav.account}</button>
         </nav>
         <div className="p-4 border-t dark:border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2 overflow-hidden">{user.avatar ? <img src={user.avatar} className="w-8 h-8 rounded-full" alt="avatar" /> : <UserIcon size={16}/>}<span className="text-sm font-bold truncate text-slate-700 dark:text-slate-300">{user.username}</span></div>
@@ -276,7 +276,7 @@ const App: React.FC = () => {
           {!isOnline && (
              <div className="mb-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 rounded-2xl flex items-center gap-3">
                 <CloudOff className="text-amber-600" size={20} />
-                <p className="text-xs font-bold text-amber-800 dark:text-amber-400 uppercase tracking-wider">Chế độ Ngoại tuyến</p>
+                <p className="text-xs font-bold text-amber-800 dark:text-amber-400 uppercase tracking-wider">{t.app.offlineMode}</p>
              </div>
           )}
           {currentView === 'dashboard' && <Dashboard user={user} transactions={transactions} isLoading={isLoadingTx} onDelete={handleDelete} onTransactionsUpdated={setTransactions} lang={lang} openAiScan={(m) => { setAiModalMode(m); setIsAiModalOpen(true); }} openManualModal={() => setIsManualModalOpen(true)} filterMode={filterMode} setFilterMode={setFilterMode} filterDate={filterDate} setFilterDate={setFilterDate} rangeStart={rangeStart} setRangeStart={setRangeStart} rangeEnd={rangeEnd} setRangeEnd={setRangeEnd} />}
@@ -306,19 +306,23 @@ const App: React.FC = () => {
                     <div className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-lg"><Globe size={18} /></div>
-                            <span className="text-sm font-bold dark:text-slate-300">Ngôn ngữ</span>
+                            <span className="text-sm font-bold dark:text-slate-300">{t.settings.language}</span>
                         </div>
-                        <select value={lang} onChange={e => setLang(e.target.value as Language)} className="text-sm font-black text-indigo-600 bg-transparent outline-none"><option value="vi">Tiếng Việt</option><option value="en">English</option></select>
+                        <select value={lang} onChange={e => setLang(e.target.value as Language)} className="text-sm font-black text-indigo-600 bg-transparent outline-none">
+                          <option value="vi">Tiếng Việt</option>
+                          <option value="en">English</option>
+                          <option value="zh">中文</option>
+                        </select>
                     </div>
                     <div className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-lg"><Smartphone size={18} /></div>
-                            <span className="text-sm font-bold dark:text-slate-300">Chế độ tối</span>
+                            <span className="text-sm font-bold dark:text-slate-300">{t.settings.darkMode}</span>
                         </div>
                         <button onClick={() => setIsDarkMode(!isDarkMode)} className={`w-10 h-6 rounded-full relative transition-all ${isDarkMode ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-slate-700'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${isDarkMode ? 'left-5' : 'left-1'}`}></div></button>
                     </div>
                 </div>
-                <button onClick={handleLogout} className="w-full p-5 bg-white dark:bg-slate-900 border border-rose-100 dark:border-rose-900/30 text-rose-500 rounded-3xl font-black shadow-sm flex items-center justify-center gap-2 transition-all active:scale-95"><LogOut size={20} /> Đăng xuất</button>
+                <button onClick={handleLogout} className="w-full p-5 bg-white dark:bg-slate-900 border border-rose-100 dark:border-rose-900/30 text-rose-500 rounded-3xl font-black shadow-sm flex items-center justify-center gap-2 transition-all active:scale-95"><LogOut size={20} /> {t.settings.logout}</button>
             </div>
           )}
         </div>
@@ -331,11 +335,11 @@ const App: React.FC = () => {
            <button onClick={() => setIsManualModalOpen(true)} className="bg-indigo-600 text-white w-14 h-14 rounded-full shadow-2xl shadow-indigo-300 flex items-center justify-center active:scale-90 transition-all border-4 border-white dark:border-slate-900"><Plus size={28} /></button>
         </div>
         {canAccessAdmin ? (
-            <BottomNavItem view="admin" icon={Shield} label="Quản trị" />
+            <BottomNavItem view="admin" icon={Shield} label={t.nav.admin} />
         ) : (
             <BottomNavItem view="planning" icon={ClipboardList} label={t.nav.planning} />
         )}
-        <BottomNavItem view="account" icon={UserIcon} label="Tôi" />
+        <BottomNavItem view="account" icon={UserIcon} label={t.nav.me} />
       </nav>
 
       <AIParserModal isOpen={isAiModalOpen} onClose={() => setIsAiModalOpen(false)} onSuccess={handleAddTransactions} initialMode={aiModalMode} lang={lang} />
