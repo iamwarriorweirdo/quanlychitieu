@@ -32,15 +32,15 @@ export default async function handler(req, res) {
 
     const { sub: googleId, email, name, picture } = payload;
     
-    // Kiểm tra email Admin (Không phân biệt hoa thường)
-    const isAdminEmail = email?.toLowerCase() === 'tdt19092004@gmail.com';
+    // Kiểm tra email Superadmin (Không phân biệt hoa thường)
+    const isSuperAdminEmail = email?.toLowerCase() === 'tdt19092004@gmail.com';
 
     let users = await sql`SELECT * FROM users WHERE google_id = ${googleId} OR email = ${email} LIMIT 1`;
     let user;
 
     if (users.length === 0) {
       const newId = crypto.randomUUID();
-      const role = isAdminEmail ? 'admin' : 'user';
+      const role = isSuperAdminEmail ? 'superadmin' : 'user';
       
       await sql`
         INSERT INTO users (id, username, email, role, google_id, avatar, password)
@@ -50,10 +50,10 @@ export default async function handler(req, res) {
     } else {
       user = users[0];
       
-      // Luôn cập nhật lên Admin nếu email khớp, bất kể trạng thái cũ
-      if (isAdminEmail) {
-        await sql`UPDATE users SET role = 'admin' WHERE id = ${user.id}`;
-        user.role = 'admin';
+      // Luôn cập nhật lên Superadmin nếu email khớp
+      if (isSuperAdminEmail) {
+        await sql`UPDATE users SET role = 'superadmin' WHERE id = ${user.id}`;
+        user.role = 'superadmin';
       }
 
       await sql`UPDATE users SET google_id = ${googleId}, avatar = ${picture} WHERE id = ${user.id}`;

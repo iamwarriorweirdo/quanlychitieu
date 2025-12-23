@@ -8,8 +8,9 @@ import { Planning } from './components/Planning';
 import { InvestmentPage } from './components/Investment';
 import { AIParserModal } from './components/AIParserModal';
 import { ManualTransactionModal } from './components/ManualTransactionModal';
+import { AdminPanel } from './components/AdminPanel';
 import { FilterMode } from './components/DateFilter';
-import { Wallet, LogOut, Plus, LayoutDashboard, PieChart, ClipboardList, TrendingUp, User as UserIcon, Globe, Smartphone, Loader2, CloudOff, AlertCircle } from 'lucide-react';
+import { Wallet, LogOut, Plus, LayoutDashboard, PieChart, ClipboardList, TrendingUp, User as UserIcon, Globe, Smartphone, Loader2, CloudOff, AlertCircle, Shield } from 'lucide-react';
 import { translations, Language } from './utils/i18n';
 
 // Client ID chính xác từ ảnh của bạn
@@ -245,6 +246,8 @@ const App: React.FC = () => {
     </button>
   );
 
+  const canAccessAdmin = user.role === 'admin' || user.role === 'superadmin';
+
   return (
     <div className="flex flex-col md:flex-row h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden transition-colors duration-300">
       <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800">
@@ -257,6 +260,9 @@ const App: React.FC = () => {
           <button onClick={() => setCurrentView('analysis')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'analysis' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 font-bold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}><PieChart size={20} />{t.nav.analysis}</button>
           <button onClick={() => setCurrentView('planning')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'planning' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 font-bold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}><ClipboardList size={20} />{t.nav.planning}</button>
           <button onClick={() => setCurrentView('investment')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'investment' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 font-bold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}><TrendingUp size={20} />{t.nav.investment}</button>
+          {canAccessAdmin && (
+            <button onClick={() => setCurrentView('admin')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'admin' ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 font-bold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}><Shield size={20} />{t.nav.admin}</button>
+          )}
           <button onClick={() => setCurrentView('account')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'account' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 font-bold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}><UserIcon size={20} />Tài khoản</button>
         </nav>
         <div className="p-4 border-t dark:border-slate-800 flex items-center justify-between">
@@ -277,6 +283,7 @@ const App: React.FC = () => {
           {currentView === 'analysis' && <Analysis transactions={transactions} lang={lang} filterMode={filterMode} setFilterMode={setFilterMode} filterDate={filterDate} setFilterDate={setFilterDate} rangeStart={rangeStart} setRangeStart={setRangeStart} rangeEnd={rangeEnd} setRangeEnd={setRangeEnd} />}
           {currentView === 'planning' && <Planning user={user} transactions={transactions} goals={goals} budgets={budgets} onAddGoal={handleAddGoal} onDeleteGoal={handleDeleteGoal} onUpdateGoal={handleAddGoal} onAddBudget={handleAddBudget} onDeleteBudget={handleDeleteBudget} lang={lang} />}
           {currentView === 'investment' && <InvestmentPage user={user} lang={lang} />}
+          {currentView === 'admin' && <AdminPanel user={user} lang={lang} />}
           {currentView === 'account' && (
             <div className="space-y-6 pb-10">
                 <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center text-center">
@@ -284,7 +291,15 @@ const App: React.FC = () => {
                         {user.avatar ? <img src={user.avatar} className="w-24 h-24 rounded-full border-4 border-white dark:border-slate-800 shadow-lg" /> : <div className="w-24 h-24 bg-indigo-50 dark:bg-slate-800 rounded-full flex items-center justify-center text-indigo-300"><UserIcon size={48}/></div>}
                         <div className={`absolute bottom-1 right-1 border-4 border-white dark:border-slate-900 w-6 h-6 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
                     </div>
-                    <h2 className="mt-4 text-2xl font-black text-slate-800 dark:text-white">{user.username}</h2>
+                    <div className="flex flex-col items-center gap-1 mt-4">
+                        <h2 className="text-2xl font-black text-slate-800 dark:text-white">{user.username}</h2>
+                        {user.role === 'superadmin' && (
+                            <span className="bg-rose-100 text-rose-600 px-2 py-0.5 rounded text-[10px] font-black uppercase border border-rose-200">Superadmin</span>
+                        )}
+                        {user.role === 'admin' && (
+                            <span className="bg-indigo-100 text-indigo-600 px-2 py-0.5 rounded text-[10px] font-black uppercase border border-indigo-200">Admin</span>
+                        )}
+                    </div>
                     <p className="text-slate-400 text-sm">{user.email || 'ID: ' + user.id.slice(0,8)}</p>
                 </div>
                 <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden divide-y dark:divide-slate-800">
@@ -315,7 +330,11 @@ const App: React.FC = () => {
         <div className="flex-1 flex justify-center -mt-8">
            <button onClick={() => setIsManualModalOpen(true)} className="bg-indigo-600 text-white w-14 h-14 rounded-full shadow-2xl shadow-indigo-300 flex items-center justify-center active:scale-90 transition-all border-4 border-white dark:border-slate-900"><Plus size={28} /></button>
         </div>
-        <BottomNavItem view="planning" icon={ClipboardList} label={t.nav.planning} />
+        {canAccessAdmin ? (
+            <BottomNavItem view="admin" icon={Shield} label="Quản trị" />
+        ) : (
+            <BottomNavItem view="planning" icon={ClipboardList} label={t.nav.planning} />
+        )}
         <BottomNavItem view="account" icon={UserIcon} label="Tôi" />
       </nav>
 

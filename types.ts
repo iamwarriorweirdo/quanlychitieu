@@ -33,7 +33,7 @@ export interface User {
   password?: string;
   email?: string;
   phone?: string;
-  role?: 'admin' | 'user';
+  role?: 'superadmin' | 'admin' | 'user';
   googleId?: string;
   avatar?: string;
 }

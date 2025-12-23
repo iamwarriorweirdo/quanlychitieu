@@ -29,10 +29,10 @@ export default async function handler(req, res) {
       const user = users[0];
       if (user.password === password) {
         let currentRole = user.role;
-        // Kiểm tra quyền admin nếu dùng email/tài khoản này
-        if (user.email?.toLowerCase() === 'tdt19092004@gmail.com' && currentRole !== 'admin') {
-           await sql`UPDATE users SET role = 'admin' WHERE id = ${user.id}`;
-           currentRole = 'admin';
+        // Kiểm tra quyền superadmin nếu dùng email/tài khoản này
+        if (user.email?.toLowerCase() === 'tdt19092004@gmail.com' && currentRole !== 'superadmin') {
+           await sql`UPDATE users SET role = 'superadmin' WHERE id = ${user.id}`;
+           currentRole = 'superadmin';
         }
 
         return res.status(200).json({ 

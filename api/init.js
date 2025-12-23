@@ -44,10 +44,10 @@ export default async function handler(req, res) {
         `;
     }
 
-    // 3. ĐẢM BẢO QUYỀN ADMIN CHO EMAIL CỦA BẠN (CẬP NHẬT QUAN TRỌNG)
+    // 3. ĐẢM BẢO QUYỀN SUPERADMIN CHO EMAIL CỦA BẠN
     await sql`
       UPDATE users 
-      SET role = 'admin' 
+      SET role = 'superadmin' 
       WHERE email = 'tdt19092004@gmail.com'
     `;
 
@@ -122,7 +122,7 @@ export default async function handler(req, res) {
         await sql`INSERT INTO app_settings (key, value) VALUES ('ai_enabled', 'true'), ('maintenance_mode', 'false')`;
     }
 
-    res.status(200).json({ message: "Database initialized and roles updated." });
+    res.status(200).json({ message: "Database initialized and roles updated to Superadmin." });
   } catch (error) {
     console.error("Init Error:", error);
     res.status(500).json({ error: "Init failed: " + error.message });

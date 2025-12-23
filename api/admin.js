@@ -5,13 +5,15 @@ export default async function handler(req, res) {
   if (!process.env.DATABASE_URL) return res.status(500).json({ error: "Missing DATABASE_URL" });
   const sql = neon(process.env.DATABASE_URL);
 
-  const { adminId, action, key, value } = req.body || req.query;
+  const { adminId, action, key, value, targetUserId, newRole } = req.body || req.query;
 
-  // Verify Admin Permission
+  // Verify Admin/Superadmin Permission
   const adminCheck = await sql`SELECT role FROM users WHERE id = ${adminId || req.query.adminId}`;
-  if (adminCheck.length === 0 || adminCheck[0].role !== 'admin') {
+  if (adminCheck.length === 0 || (adminCheck[0].role !== 'admin' && adminCheck[0].role !== 'superadmin')) {
     return res.status(403).json({ error: "Unauthorized access" });
   }
+
+  const isSuperAdmin = adminCheck[0].role === 'superadmin';
 
   try {
     // 1. Fetch Stats & Users
@@ -28,7 +30,8 @@ export default async function handler(req, res) {
           totalTransactions: parseInt(txCount[0].count),
           totalInvestments: parseInt(investCount[0].count),
         },
-        settings: settings.reduce((acc, curr) => ({ ...acc, [curr.key]: curr.value }), {})
+        settings: settings.reduce((acc, curr) => ({ ...acc, [curr.key]: curr.value }), {}),
+        currentUserRole: adminCheck[0].role
       });
     }
 
@@ -41,16 +44,36 @@ export default async function handler(req, res) {
       return res.status(200).json({ success: true });
     }
 
-    // 3. Delete User
+    // 3. Update User Role (Superadmin Only)
+    if (req.method === 'POST' && action === 'update_user_role') {
+      if (!isSuperAdmin) return res.status(403).json({ error: "Only Superadmin can change roles" });
+      if (!targetUserId || !newRole) return res.status(400).json({ error: "Missing parameters" });
+      
+      // Prevent demoting self
+      if (targetUserId === adminId) return res.status(400).json({ error: "Cannot change your own role" });
+
+      await sql`UPDATE users SET role = ${newRole} WHERE id = ${targetUserId}`;
+      return res.status(200).json({ success: true });
+    }
+
+    // 4. Delete User
     if (req.method === 'DELETE') {
-        const { targetUserId } = req.query;
-        if (targetUserId === adminId) return res.status(400).json({ error: "Cannot delete self" });
+        const { targetUserId: delTarget } = req.query;
+        if (delTarget === adminId) return res.status(400).json({ error: "Cannot delete self" });
         
-        await sql`DELETE FROM transactions WHERE user_id = ${targetUserId}`;
-        await sql`DELETE FROM investments WHERE user_id = ${targetUserId}`;
-        await sql`DELETE FROM goals WHERE user_id = ${targetUserId}`;
-        await sql`DELETE FROM budgets WHERE user_id = ${targetUserId}`;
-        await sql`DELETE FROM users WHERE id = ${targetUserId}`;
+        // Admins cannot delete other Admins or Superadmins
+        const targetCheck = await sql`SELECT role FROM users WHERE id = ${delTarget}`;
+        if (targetCheck.length > 0) {
+            if (!isSuperAdmin && (targetCheck[0].role === 'admin' || targetCheck[0].role === 'superadmin')) {
+                return res.status(403).json({ error: "Admin cannot delete other Admins" });
+            }
+        }
+
+        await sql`DELETE FROM transactions WHERE user_id = ${delTarget}`;
+        await sql`DELETE FROM investments WHERE user_id = ${delTarget}`;
+        await sql`DELETE FROM goals WHERE user_id = ${delTarget}`;
+        await sql`DELETE FROM budgets WHERE user_id = ${delTarget}`;
+        await sql`DELETE FROM users WHERE id = ${delTarget}`;
         
         return res.status(200).json({ success: true });
     }
