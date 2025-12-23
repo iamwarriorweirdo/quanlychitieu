@@ -99,38 +99,23 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
-          
-          // TỐI ƯU HÓA: Đặt mặc định 480p theo yêu cầu để tối ưu token/tốc độ.
           const MAX = 480; 
-          
-          // Logic Resize
           if (width > MAX || height > MAX) {
-            if (width > height) { 
-                height *= MAX / width; 
-                width = MAX; 
-            } else { 
-                width *= MAX / height; 
-                height = MAX; 
-            }
-          } 
-          // Logic Upscale: Nếu ảnh quá nhỏ (vd < 300px), upscale nhẹ lên 480p để AI dễ đọc hơn
-          else if (width < 300 && height < 300) {
+            if (width > height) { height *= MAX / width; width = MAX; } 
+            else { width *= MAX / height; height = MAX; }
+          } else if (width < 300 && height < 300) {
              const scale = MAX / Math.max(width, height);
              width *= scale;
              height *= scale;
           }
-
           canvas.width = width; 
           canvas.height = height;
-          
-          // Sử dụng chất lượng cao (0.95) để bù lại độ phân giải thấp, giữ nét chữ
           const ctx = canvas.getContext('2d');
           if (ctx) {
               ctx.imageSmoothingEnabled = true;
               ctx.imageSmoothingQuality = 'high';
               ctx.drawImage(img, 0, 0, width, height);
           }
-          
           resolve(canvas.toDataURL('image/jpeg', 0.95));
         };
         img.src = e.target?.result as string;
@@ -184,7 +169,6 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
         if (imageFile) compressedBase64 = await resizeImage(imageFile);
         else compressedBase64 = selectedImage;
         try {
-          // Tesseract vẫn chạy để lấy text phụ trợ
           const { data: { text } } = await Tesseract.recognize(compressedBase64!, 'eng+vie');
           ocrTextResult = text;
         } catch (e) {}
@@ -211,7 +195,6 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
         </div>
 
         <div className="p-6 space-y-4 overflow-y-auto">
-          {/* AI Disclosure for Google Play Policy */}
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex gap-3 items-start">
              <Info size={16} className="text-amber-600 shrink-0 mt-0.5" />
              <p className="text-[10px] text-amber-800 font-medium">

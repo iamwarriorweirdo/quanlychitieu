@@ -9,24 +9,31 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Finance Manager" />
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2910/2910224.png" />
-    <link rel="manifest" href="/manifest.json" />
+    
+    <!-- FIX: Dùng đường dẫn tương đối để App tải được file -->
+    <link rel="manifest" href="manifest.json" />
+    
     <title>Finance Manager Pro</title>
-    <!-- Thư viện Google GSI -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
-    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Cấu hình Tailwind trước khi load script -->
     <script>
-      tailwind.config = {
-        darkMode: 'class',
-        theme: {
-          extend: {
-            padding: {
-              'safe': 'env(safe-area-inset-bottom)',
-              'safe-top': 'env(safe-area-inset-top)',
+      tailwind = {
+        config: {
+          darkMode: 'class',
+          theme: {
+            extend: {
+              padding: {
+                'safe': 'env(safe-area-inset-bottom)',
+                'safe-top': 'env(safe-area-inset-top)',
+              }
             }
           }
         }
       }
     </script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
       :root {
@@ -80,6 +87,7 @@
   </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
+    <!-- FIX: Dùng đường dẫn tương đối ./ -->
+    <script type="module" src="./index.tsx"></script>
   </body>
 </html>
