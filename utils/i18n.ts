@@ -23,7 +23,9 @@ export const translations = {
       language: 'Ngôn ngữ',
       darkMode: 'Chế độ tối',
       logout: 'Đăng xuất',
-      profile: 'Hồ sơ người dùng'
+      profile: 'Hồ sơ người dùng',
+      currency: 'Đơn vị tiền tệ',
+      timezone: 'Múi giờ'
     },
     admin: {
       title: 'Hệ thống Quản trị',
@@ -260,7 +262,9 @@ export const translations = {
       language: 'Language',
       darkMode: 'Dark Mode',
       logout: 'Logout',
-      profile: 'User Profile'
+      profile: 'User Profile',
+      currency: 'Currency',
+      timezone: 'Timezone'
     },
     admin: {
       title: 'Admin System',
@@ -497,7 +501,9 @@ export const translations = {
       language: '语言',
       darkMode: '深色模式',
       logout: '退出登录',
-      profile: '用户资料'
+      profile: '用户资料',
+      currency: '货币',
+      timezone: '时区'
     },
     admin: {
       title: '管理系统',

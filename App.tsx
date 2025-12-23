@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { getCurrentSession, loginUser, registerUser, setCurrentSession, initDB, getTransactions, saveTransaction, deleteTransaction, getGoals, saveGoal, deleteGoal, getBudgets, saveBudget, deleteBudget, loginWithGoogle, syncOfflineData } from './services/storageService';
 import { User, Transaction, ParsedTransactionData, Goal, Budget } from './types';
@@ -10,13 +9,14 @@ import { AIParserModal } from './components/AIParserModal';
 import { ManualTransactionModal } from './components/ManualTransactionModal';
 import { AdminPanel } from './components/AdminPanel';
 import { FilterMode } from './components/DateFilter';
-import { Wallet, LogOut, Plus, LayoutDashboard, PieChart, ClipboardList, TrendingUp, User as UserIcon, Globe, Smartphone, Loader2, CloudOff, AlertCircle, Shield } from 'lucide-react';
+import { Wallet, LogOut, Plus, LayoutDashboard, PieChart, ClipboardList, TrendingUp, User as UserIcon, Globe, Smartphone, Loader2, CloudOff, AlertCircle, Shield, Clock, Banknote } from 'lucide-react';
 import { translations, Language } from './utils/i18n';
 
 // Client ID chính xác từ ảnh của bạn
 const GOOGLE_CLIENT_ID = "598430888470-bnchhoarr75hoas2rjbgn0ue54ud4i7k.apps.googleusercontent.com";
 
 type View = 'dashboard' | 'analysis' | 'planning' | 'investment' | 'admin' | 'settings' | 'account';
+export type Currency = 'VND' | 'USD' | 'EUR' | 'JPY' | 'CNY' | 'KRW' | 'GBP';
 
 const App: React.FC = () => {
   const [user, setUser] = useState<User | null>(null);
@@ -39,6 +39,8 @@ const App: React.FC = () => {
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
   const [lang, setLang] = useState<Language>('vi');
+  const [currency, setCurrency] = useState<Currency>(() => (localStorage.getItem('currency') as Currency) || 'VND');
+  const [timezone, setTimezone] = useState<string>(() => localStorage.getItem('timezone') || Intl.DateTimeFormat().resolvedOptions().timeZone);
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [aiModalMode, setAiModalMode] = useState<'text' | 'image'>('text');
@@ -61,6 +63,14 @@ const App: React.FC = () => {
   }, [isDarkMode]);
 
   useEffect(() => {
+    localStorage.setItem('currency', currency);
+  }, [currency]);
+
+  useEffect(() => {
+    localStorage.setItem('timezone', timezone);
+  }, [timezone]);
+
+  useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
       if (user?.id) syncOfflineData(user.id);
@@ -76,6 +86,17 @@ const App: React.FC = () => {
   }, [user?.id]);
 
   const t = translations[lang];
+
+  // Helper function to format currency
+  const formatCurrency = (amount: number) => {
+    const localeMap: Record<Currency, string> = {
+      VND: 'vi-VN', USD: 'en-US', EUR: 'de-DE', JPY: 'ja-JP', CNY: 'zh-CN', KRW: 'ko-KR', GBP: 'en-GB'
+    };
+    return new Intl.NumberFormat(localeMap[currency], {
+      style: 'currency',
+      currency: currency
+    }).format(amount);
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -239,7 +260,7 @@ const App: React.FC = () => {
   const BottomNavItem = ({ view, icon: Icon, label }: { view: View, icon: any, label: string }) => (
     <button 
       onClick={() => { setCurrentView(view); }} 
-      className={`flex flex-col items-center gap-1 flex-1 py-2 transition-all ${currentView === view ? 'text-indigo-600' : 'text-slate-400'}`}
+      className={`flex flex-col items-center gap-1 flex-1 py-2 transition-all ${currentView === view ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'}`}
     >
       <Icon size={20} className={currentView === view ? 'scale-110' : ''} />
       <span className="text-[10px] font-black tracking-tight">{label}</span>
@@ -249,8 +270,8 @@ const App: React.FC = () => {
   const canAccessAdmin = user.role === 'admin' || user.role === 'superadmin';
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden transition-colors duration-300">
-      <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800">
+    <div className="flex flex-col md:flex-row h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden transition-colors duration-300 text-slate-800 dark:text-white">
+      <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-colors">
         <div className="p-6 flex items-center gap-3 border-b dark:border-slate-800">
           <div className="bg-indigo-600 text-white p-2 rounded-lg"><Wallet /></div>
           <h1 className="font-bold text-lg dark:text-white leading-tight">{t.app.title}</h1>
@@ -279,10 +300,10 @@ const App: React.FC = () => {
                 <p className="text-xs font-bold text-amber-800 dark:text-amber-400 uppercase tracking-wider">{t.app.offlineMode}</p>
              </div>
           )}
-          {currentView === 'dashboard' && <Dashboard user={user} transactions={transactions} isLoading={isLoadingTx} onDelete={handleDelete} onTransactionsUpdated={setTransactions} lang={lang} openAiScan={(m) => { setAiModalMode(m); setIsAiModalOpen(true); }} openManualModal={() => setIsManualModalOpen(true)} filterMode={filterMode} setFilterMode={setFilterMode} filterDate={filterDate} setFilterDate={setFilterDate} rangeStart={rangeStart} setRangeStart={setRangeStart} rangeEnd={rangeEnd} setRangeEnd={setRangeEnd} />}
-          {currentView === 'analysis' && <Analysis transactions={transactions} lang={lang} filterMode={filterMode} setFilterMode={setFilterMode} filterDate={filterDate} setFilterDate={setFilterDate} rangeStart={rangeStart} setRangeStart={setRangeStart} rangeEnd={rangeEnd} setRangeEnd={setRangeEnd} />}
-          {currentView === 'planning' && <Planning user={user} transactions={transactions} goals={goals} budgets={budgets} onAddGoal={handleAddGoal} onDeleteGoal={handleDeleteGoal} onUpdateGoal={handleAddGoal} onAddBudget={handleAddBudget} onDeleteBudget={handleDeleteBudget} lang={lang} />}
-          {currentView === 'investment' && <InvestmentPage user={user} lang={lang} />}
+          {currentView === 'dashboard' && <Dashboard user={user} transactions={transactions} isLoading={isLoadingTx} onDelete={handleDelete} onTransactionsUpdated={setTransactions} lang={lang} openAiScan={(m) => { setAiModalMode(m); setIsAiModalOpen(true); }} openManualModal={() => setIsManualModalOpen(true)} filterMode={filterMode} setFilterMode={setFilterMode} filterDate={filterDate} setFilterDate={setFilterDate} rangeStart={rangeStart} setRangeStart={setRangeStart} rangeEnd={rangeEnd} setRangeEnd={setRangeEnd} formatCurrency={formatCurrency} currency={currency} timezone={timezone} />}
+          {currentView === 'analysis' && <Analysis transactions={transactions} lang={lang} filterMode={filterMode} setFilterMode={setFilterMode} filterDate={filterDate} setFilterDate={setFilterDate} rangeStart={rangeStart} setRangeStart={setRangeStart} rangeEnd={rangeEnd} setRangeEnd={setRangeEnd} formatCurrency={formatCurrency} />}
+          {currentView === 'planning' && <Planning user={user} transactions={transactions} goals={goals} budgets={budgets} onAddGoal={handleAddGoal} onDeleteGoal={handleDeleteGoal} onUpdateGoal={handleAddGoal} onAddBudget={handleAddBudget} onDeleteBudget={handleDeleteBudget} lang={lang} formatCurrency={formatCurrency} />}
+          {currentView === 'investment' && <InvestmentPage user={user} lang={lang} formatCurrency={formatCurrency} />}
           {currentView === 'admin' && <AdminPanel user={user} lang={lang} />}
           {currentView === 'account' && (
             <div className="space-y-6 pb-10">
@@ -308,7 +329,7 @@ const App: React.FC = () => {
                             <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-lg"><Globe size={18} /></div>
                             <span className="text-sm font-bold dark:text-slate-300">{t.settings.language}</span>
                         </div>
-                        <select value={lang} onChange={e => setLang(e.target.value as Language)} className="text-sm font-black text-indigo-600 bg-transparent outline-none">
+                        <select value={lang} onChange={e => setLang(e.target.value as Language)} className="text-sm font-black text-indigo-600 dark:text-indigo-400 bg-transparent outline-none cursor-pointer">
                           <option value="vi">Tiếng Việt</option>
                           <option value="en">English</option>
                           <option value="zh">中文</option>
@@ -320,6 +341,36 @@ const App: React.FC = () => {
                             <span className="text-sm font-bold dark:text-slate-300">{t.settings.darkMode}</span>
                         </div>
                         <button onClick={() => setIsDarkMode(!isDarkMode)} className={`w-10 h-6 rounded-full relative transition-all ${isDarkMode ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-slate-700'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${isDarkMode ? 'left-5' : 'left-1'}`}></div></button>
+                    </div>
+                    <div className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-amber-50 dark:bg-amber-900/20 text-amber-600 rounded-lg"><Banknote size={18} /></div>
+                            <span className="text-sm font-bold dark:text-slate-300">{t.settings.currency}</span>
+                        </div>
+                        <select value={currency} onChange={e => setCurrency(e.target.value as Currency)} className="text-sm font-black text-indigo-600 dark:text-indigo-400 bg-transparent outline-none cursor-pointer">
+                          <option value="VND">VND (₫)</option>
+                          <option value="USD">USD ($)</option>
+                          <option value="EUR">EUR (€)</option>
+                          <option value="JPY">JPY (¥)</option>
+                          <option value="CNY">CNY (¥)</option>
+                          <option value="KRW">KRW (₩)</option>
+                          <option value="GBP">GBP (£)</option>
+                        </select>
+                    </div>
+                    <div className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                        <div className="flex items-center gap-3">
+                            <div className="p-2 bg-violet-50 dark:bg-violet-900/20 text-violet-600 rounded-lg"><Clock size={18} /></div>
+                            <span className="text-sm font-bold dark:text-slate-300">{t.settings.timezone}</span>
+                        </div>
+                        <select value={timezone} onChange={e => setTimezone(e.target.value)} className="text-sm font-black text-indigo-600 dark:text-indigo-400 bg-transparent outline-none cursor-pointer max-w-[150px]">
+                          <option value="Asia/Ho_Chi_Minh">Vietnam (GMT+7)</option>
+                          <option value="UTC">UTC (GMT+0)</option>
+                          <option value="America/New_York">New York (EST)</option>
+                          <option value="Europe/London">London (GMT)</option>
+                          <option value="Asia/Tokyo">Tokyo (JST)</option>
+                          <option value="Asia/Seoul">Seoul (KST)</option>
+                          <option value="Asia/Shanghai">Shanghai (CST)</option>
+                        </select>
                     </div>
                 </div>
                 <button onClick={handleLogout} className="w-full p-5 bg-white dark:bg-slate-900 border border-rose-100 dark:border-rose-900/30 text-rose-500 rounded-3xl font-black shadow-sm flex items-center justify-center gap-2 transition-all active:scale-95"><LogOut size={20} /> {t.settings.logout}</button>

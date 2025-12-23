@@ -17,11 +17,12 @@ interface Props {
   setRangeStart: (date: string) => void;
   rangeEnd: string;
   setRangeEnd: (date: string) => void;
+  formatCurrency: (amount: number) => string;
 }
 
 export const Analysis: React.FC<Props> = ({ 
   transactions, lang, filterMode, setFilterMode, 
-  filterDate, setFilterDate, rangeStart, setRangeStart, rangeEnd, setRangeEnd 
+  filterDate, setFilterDate, rangeStart, setRangeStart, rangeEnd, setRangeEnd, formatCurrency 
 }) => {
   const t = translations[lang];
 
@@ -98,7 +99,7 @@ export const Analysis: React.FC<Props> = ({
   return (
     <div className="space-y-6 pb-20 md:pb-0">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <h2 className="text-2xl font-bold text-slate-800">{t.analysis.title}</h2>
+        <h2 className="text-2xl font-bold text-slate-800 dark:text-white">{t.analysis.title}</h2>
         <DateFilter 
           mode={filterMode} setMode={setFilterMode}
           date={filterDate} setDate={setFilterDate}
@@ -109,44 +110,44 @@ export const Analysis: React.FC<Props> = ({
       </div>
 
       {filteredTransactions.length === 0 ? (
-        <div className="bg-white rounded-2xl p-12 text-center border border-dashed border-slate-200">
-           <PieIcon className="w-16 h-16 mx-auto text-slate-300 mb-4" />
-           <p className="text-slate-500">{t.analysis.noData}</p>
+        <div className="bg-white dark:bg-slate-900 rounded-2xl p-12 text-center border border-dashed border-slate-200 dark:border-slate-800">
+           <PieIcon className="w-16 h-16 mx-auto text-slate-300 dark:text-slate-600 mb-4" />
+           <p className="text-slate-500 dark:text-slate-400">{t.analysis.noData}</p>
         </div>
       ) : (
         <>
           {/* Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-slate-500 font-medium">{t.dashboard.income}</span>
-                <div className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg"><TrendingUp size={16}/></div>
+                <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">{t.dashboard.income}</span>
+                <div className="p-1.5 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-lg"><TrendingUp size={16}/></div>
               </div>
-              <p className="text-xl font-bold text-emerald-600">+{stats.income.toLocaleString('vi-VN')} ₫</p>
+              <p className="text-xl font-bold text-emerald-600 dark:text-emerald-400">+{formatCurrency(stats.income)}</p>
             </div>
             
-            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-slate-500 font-medium">{t.dashboard.expense}</span>
-                <div className="p-1.5 bg-rose-50 text-rose-600 rounded-lg"><TrendingDown size={16}/></div>
+                <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">{t.dashboard.expense}</span>
+                <div className="p-1.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 rounded-lg"><TrendingDown size={16}/></div>
               </div>
-              <p className="text-xl font-bold text-rose-600">-{stats.expense.toLocaleString('vi-VN')} ₫</p>
+              <p className="text-xl font-bold text-rose-600 dark:text-rose-400">-{formatCurrency(stats.expense)}</p>
             </div>
 
-            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-slate-500 font-medium">{t.analysis.netIncome}</span>
-                <div className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg"><Wallet size={16}/></div>
+                <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">{t.analysis.netIncome}</span>
+                <div className="p-1.5 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 rounded-lg"><Wallet size={16}/></div>
               </div>
-              <p className={`text-xl font-bold ${stats.balance >= 0 ? 'text-indigo-600' : 'text-rose-600'}`}>
-                {stats.balance.toLocaleString('vi-VN')} ₫
+              <p className={`text-xl font-bold ${stats.balance >= 0 ? 'text-indigo-600 dark:text-indigo-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                {formatCurrency(stats.balance)}
               </p>
             </div>
 
-            <div className="bg-white p-5 rounded-xl shadow-sm border border-slate-100">
+            <div className="bg-white dark:bg-slate-900 p-5 rounded-xl shadow-sm border border-slate-100 dark:border-slate-800">
               <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-slate-500 font-medium">{t.analysis.savingsRate}</span>
-                <div className="p-1.5 bg-amber-50 text-amber-600 rounded-lg"><PiggyBank size={16}/></div>
+                <span className="text-sm text-slate-500 dark:text-slate-400 font-medium">{t.analysis.savingsRate}</span>
+                <div className="p-1.5 bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 rounded-lg"><PiggyBank size={16}/></div>
               </div>
               <p className={`text-xl font-bold ${stats.savingsRate > 20 ? 'text-emerald-500' : stats.savingsRate > 0 ? 'text-amber-500' : 'text-rose-500'}`}>
                 {stats.savingsRate.toFixed(1)}%
@@ -155,11 +156,11 @@ export const Analysis: React.FC<Props> = ({
           </div>
 
           {/* Ratio Bar */}
-          <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-            <h3 className="text-sm font-semibold text-slate-700 mb-4">{t.analysis.expenseRatio}</h3>
-            <div className="h-6 w-full bg-emerald-100 rounded-full overflow-hidden flex relative">
+          <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+            <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4">{t.analysis.expenseRatio}</h3>
+            <div className="h-6 w-full bg-emerald-100 dark:bg-emerald-900/20 rounded-full overflow-hidden flex relative">
                {stats.income === 0 && stats.expense === 0 ? (
-                 <div className="w-full bg-slate-100"></div>
+                 <div className="w-full bg-slate-100 dark:bg-slate-800"></div>
                ) : (
                  <>
                    <div style={{ width: `${100 - stats.expenseRatio}%` }} className="h-full bg-emerald-500"></div>
@@ -168,8 +169,8 @@ export const Analysis: React.FC<Props> = ({
                )}
             </div>
             <div className="flex justify-between mt-2 text-xs font-medium">
-               <span className="text-emerald-600">{t.dashboard.income} ({Math.max(0, 100 - stats.expenseRatio).toFixed(1)}%)</span>
-               <span className="text-rose-600">{t.dashboard.expense} ({Math.min(100, stats.expenseRatio).toFixed(1)}%)</span>
+               <span className="text-emerald-600 dark:text-emerald-400">{t.dashboard.income} ({Math.max(0, 100 - stats.expenseRatio).toFixed(1)}%)</span>
+               <span className="text-rose-600 dark:text-rose-400">{t.dashboard.expense} ({Math.min(100, stats.expenseRatio).toFixed(1)}%)</span>
             </div>
           </div>
 
@@ -177,8 +178,8 @@ export const Analysis: React.FC<Props> = ({
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             
             {/* Expense Breakdown */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-96">
-               <h3 className="font-semibold text-slate-800 mb-4">{t.analysis.expenseBreakdown}</h3>
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 h-96">
+               <h3 className="font-semibold text-slate-800 dark:text-white mb-4">{t.analysis.expenseBreakdown}</h3>
                {expenseData.length > 0 ? (
                  <ResponsiveContainer width="100%" height="100%">
                    <PieChart>
@@ -187,16 +188,16 @@ export const Analysis: React.FC<Props> = ({
                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                        ))}
                      </Pie>
-                     <ReTooltip formatter={(value) => `${Number(value).toLocaleString('vi-VN')} ₫`} />
+                     <ReTooltip formatter={(value) => formatCurrency(Number(value))} contentStyle={{backgroundColor: '#1e293b', border: 'none', color: '#fff'}} />
                      <Legend verticalAlign="bottom" height={36}/>
                    </PieChart>
                  </ResponsiveContainer>
-               ) : <div className="h-full flex items-center justify-center text-slate-400">{t.analysis.noExpenseData}</div>}
+               ) : <div className="h-full flex items-center justify-center text-slate-400 dark:text-slate-500">{t.analysis.noExpenseData}</div>}
             </div>
 
             {/* Income Breakdown */}
-            <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 h-96">
-               <h3 className="font-semibold text-slate-800 mb-4">{t.analysis.incomeBreakdown}</h3>
+            <div className="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 h-96">
+               <h3 className="font-semibold text-slate-800 dark:text-white mb-4">{t.analysis.incomeBreakdown}</h3>
                {incomeData.length > 0 ? (
                  <ResponsiveContainer width="100%" height="100%">
                    <PieChart>
@@ -205,11 +206,11 @@ export const Analysis: React.FC<Props> = ({
                          <Cell key={`cell-${index}`} fill={COLORS[(index + 4) % COLORS.length]} />
                        ))}
                      </Pie>
-                     <ReTooltip formatter={(value) => `${Number(value).toLocaleString('vi-VN')} ₫`} />
+                     <ReTooltip formatter={(value) => formatCurrency(Number(value))} contentStyle={{backgroundColor: '#1e293b', border: 'none', color: '#fff'}} />
                      <Legend verticalAlign="bottom" height={36}/>
                    </PieChart>
                  </ResponsiveContainer>
-               ) : <div className="h-full flex items-center justify-center text-slate-400">{t.analysis.noIncomeData}</div>}
+               ) : <div className="h-full flex items-center justify-center text-slate-400 dark:text-slate-500">{t.analysis.noIncomeData}</div>}
             </div>
 
           </div>
