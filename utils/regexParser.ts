@@ -11,44 +11,64 @@ function normalizeText(str: string): string {
 }
 
 export const parseWithRegex = (text: string): ParsedTransactionData => {
-  const normalized = normalizeText(text);
   const lines = text.split('\n');
+  const normalizedText = normalizeText(text);
   
-  let amount = 0;
+  let subtotal = 0;
+  let tax = 0;
+  let discount = 0;
+  let finalAmount = 0;
+  
   let type = TransactionType.EXPENSE;
   let category = Category.OTHER;
   let description = "Chi tiêu (Quét Offline)";
-  
-  // Từ khóa tìm kiếm số tiền
-  const keywords = ['tong', 'thanh toan', 'thanh tien', 'gia tri', 'total', 'net'];
 
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i];
+  // 1. Tìm các con số có khả năng là tiền (từ 4 chữ số trở lên)
+  const findMoney = (line: string) => {
+    const matches = line.match(/[\d.,]{4,15}/g);
+    if (!matches) return 0;
+    const lastMatch = matches[matches.length - 1];
+    return parseInt(lastMatch.replace(/[.,]/g, '')) || 0;
+  };
+
+  // 2. Duyệt từng dòng để tìm từ khóa
+  for (let line of lines) {
     const normLine = normalizeText(line);
+    const value = findMoney(line);
 
-    if (keywords.some(k => normLine.includes(k))) {
-      // Tìm số tiền trong dòng này hoặc 2 dòng tiếp theo
-      const checkBlock = lines.slice(i, i + 3).join(' ');
-      const moneyMatches = checkBlock.match(/[\d.,]{5,12}/g);
-      
-      if (moneyMatches) {
-        // Lấy số cuối cùng trong cụm từ khóa (thường là kết quả tổng)
-        const lastMatch = moneyMatches[moneyMatches.length - 1];
-        const val = parseInt(lastMatch.replace(/[.,]/g, ''));
-        if (!isNaN(val) && val > amount && val < 100000000) {
-          amount = val;
-        }
-      }
+    if (value === 0) continue;
+
+    if (normLine.includes('tong tien') || normLine.includes('thanh toan') || normLine.includes('tong cong')) {
+        if (value > finalAmount) finalAmount = value;
+    }
+    
+    if (normLine.includes('giam gia') || normLine.includes('khuyen mai') || normLine.includes('uudai')) {
+        discount = value;
+    }
+
+    if (normLine.includes('vat') || normLine.includes('thue')) {
+        // Chỉ lấy nếu không phải là % (ví dụ 8%)
+        if (!normLine.includes('%')) tax = value;
     }
   }
 
-  // Fallback: Nếu vẫn bằng 0, lấy số lớn nhất hợp lệ
-  if (amount === 0) {
-    const allNumbers = text.match(/\b\d{1,3}(?:[.,]\d{3})+\b|\b\d{5,9}\b/g);
-    if (allNumbers) {
-      const vals = allNumbers.map(n => parseInt(n.replace(/[.,]/g, ''))).filter(v => v < 50000000);
-      amount = vals.length > 0 ? Math.max(...vals) : 0;
-    }
+  // 3. Logic tính toán cuối cùng (nếu finalAmount chưa chuẩn)
+  // Nếu tìm thấy các món hàng riêng lẻ mà không thấy tổng, hãy cộng dồn
+  if (finalAmount === 0) {
+      const allValues = lines.map(l => findMoney(l)).filter(v => v > 1000 && v < 50000000);
+      if (allValues.length > 0) {
+          finalAmount = Math.max(...allValues); // Tạm lấy số lớn nhất
+      }
+  }
+
+  // 4. Ưu tiên số tiền lớn nhất tìm được nếu nó hợp lý
+  const allPossibleAmounts = normalizedText.match(/\b\d{1,3}(?:[.,]\d{3})+\b|\b\d{5,10}\b/g);
+  if (allPossibleAmounts) {
+      const vals = allPossibleAmounts.map(n => parseInt(n.replace(/[.,]/g, ''))).filter(v => v < 100000000);
+      if (vals.length > 0) {
+          const maxVal = Math.max(...vals);
+          if (maxVal > finalAmount) finalAmount = maxVal;
+      }
   }
 
   // Tìm ngày
@@ -60,5 +80,17 @@ export const parseWithRegex = (text: string): ParsedTransactionData => {
     if (!isNaN(d.getTime())) dateStr = d.toISOString();
   }
 
-  return { amount, type, category, description, date: dateStr };
+  // Nếu là hóa đơn Co.op, thường category là Food
+  if (normalizedText.includes('co.op') || normalizedText.includes('saigon co')) {
+      category = Category.FOOD;
+      description = "Hóa đơn Co.opmart";
+  }
+
+  return { 
+    amount: finalAmount, 
+    type, 
+    category, 
+    description, 
+    date: dateStr 
+  };
 };
