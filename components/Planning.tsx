@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { User, Transaction, Goal, Budget, Category, TransactionType } from '../types';
 import { translations, Language } from '../utils/i18n';
@@ -125,7 +126,7 @@ export const Planning: React.FC<Props> = ({
                  </div>
                  <div className="flex justify-between items-center">
                     <span className={`text-xs font-medium px-2 py-1 rounded-full ${days < 0 ? 'bg-rose-50 text-rose-600' : 'bg-slate-100 text-slate-600'}`}>
-                      {days < 0 ? 'Expired' : `${days} ${t.planning.daysLeft}`}
+                      {days < 0 ? t.planning.expired : `${days} ${t.planning.daysLeft}`}
                     </span>
                     <button 
                       onClick={() => {
@@ -206,7 +207,7 @@ export const Planning: React.FC<Props> = ({
              </div>
            ) : (
              <div className="p-8 text-center text-slate-400 text-sm">
-                No active budgets for this month.
+                {t.planning.noBudgets}
              </div>
            )}
         </div>

@@ -89,7 +89,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
   }, [isLocked, user.id]);
 
   const handleInitialSetup = async () => {
-    if (!passwordInput) return setError("Vui lòng nhập mật khẩu cấp 2.");
+    if (!passwordInput) return setError(t.investment.errors.requirePass);
     await setupSecurity(user.id, passwordInput);
     setHasSetup(true);
     setPasswordInput('');
@@ -108,10 +108,10 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
                 try {
                    await requestOtp(user.id);
                    setOtpSent(true);
-                   alert(`Mã OTP đã được gửi đến email ${status.email}.`);
+                   alert(`${t.investment.errors.otpSentTo} ${status.email}.`);
                 } catch (err: any) {
                    setError(err.message);
-                   if (err.message && (err.message.includes("cấu hình") || err.message.includes("xác thực"))) {
+                   if (err.message && (err.message.includes("cấu hình") || err.message.includes("xác thực") || err.message.includes("config"))) {
                        setIsSecurityModalOpen(true);
                        setShowSmtpConfig(true);
                    }
@@ -122,7 +122,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
                 setIsLocked(false);
             }
         } else {
-            setError("Mật khẩu cấp 2 không chính xác.");
+            setError(t.investment.errors.wrongPass);
         }
         return;
     }
@@ -132,45 +132,45 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
         const isValidOtp = await verifyOtp(user.id, otpInput);
         setSecurityLoading(false);
         if (isValidOtp) setIsLocked(false);
-        else setError("Mã OTP không chính xác.");
+        else setError(t.investment.errors.wrongOtp);
     }
   };
 
   const handleSendLinkOtp = async () => {
-    if (!linkEmailInput || !linkEmailInput.includes('@')) return alert("Vui lòng nhập Email hợp lệ.");
+    if (!linkEmailInput || !linkEmailInput.includes('@')) return alert(t.investment.errors.invalidEmail);
     setIsLinkingEmail(true);
     try {
         const res = await requestOtp(user.id, linkEmailInput);
         if (res.success) {
             setIsWaitingOtp(true);
-            alert("Mã xác thực đã được gửi!");
+            alert(t.investment.otpSent);
         } else {
-            alert(res.error || "Gửi mã thất bại.");
+            alert(res.error || t.investment.errors.sendFail);
         }
     } catch(e: any) { alert(e.message); }
     finally { setIsLinkingEmail(false); }
   };
 
   const handleVerifyLinkOtp = async () => {
-    if (!linkOtpInput) return alert("Vui lòng nhập mã OTP.");
+    if (!linkOtpInput) return alert(t.investment.errors.wrongOtp);
     try {
         const ok = await verifyOtp(user.id, linkOtpInput);
         if (ok) {
             await setupSecurity(user.id, '', linkEmailInput);
-            alert("Liên kết thành công!");
+            alert(t.investment.errors.linkSuccess);
             setIsWaitingOtp(false);
             setLinkOtpInput('');
             checkStatus();
         } else {
-            alert("Mã OTP không chính xác.");
+            alert(t.investment.errors.wrongOtp);
         }
     } catch(e: any) { alert(e.message); }
   };
 
   const handleSaveSmtp = async () => {
       const cleanPass = smtpPass.trim().replace(/\s/g, '');
-      if(!smtpEmail || !cleanPass) return alert("Vui lòng nhập đầy đủ Email và Mật khẩu ứng dụng.");
-      if(cleanPass.length !== 16) return alert("Lỗi: Mật khẩu ứng dụng Google phải có đúng 16 ký tự viết liền.");
+      if(!smtpEmail || !cleanPass) return alert(t.investment.errors.missingSmtp);
+      if(cleanPass.length !== 16) return alert(t.investment.errors.smtpLength);
 
       try {
         const res = await fetch(`${API_URL}/security`, {
@@ -179,30 +179,27 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
             body: JSON.stringify({ action: 'setup_smtp', userId: user.id, smtpEmail, smtpPassword: cleanPass })
         });
         if(!res.ok) throw new Error("Failed to save");
-        alert("Cấu hình thành công!");
+        alert(t.investment.errors.configSuccess);
         setShowSmtpConfig(false);
         checkStatus();
-      } catch(e) { alert("Lưu thất bại."); }
+      } catch(e) { alert(t.investment.errors.saveFail); }
   };
 
   const handleSave = async () => {
-    // Validation: 
-    // Stocks and Crypto MUST have symbol
-    // Gold and Education Fund only need Name
     const isTickerRequired = form.type === 'Stock' || form.type === 'Crypto' || form.type === 'Fund';
     
     if (isTickerRequired && !form.symbol) {
-      alert("Loại tài sản này bắt buộc phải có Mã tài sản.");
+      alert(t.investment.errors.missingTicker);
       return;
     }
     
     if (!form.name && !form.symbol) {
-      alert("Vui lòng nhập tên hoặc mã tài sản.");
+      alert(t.investment.errors.missingName);
       return;
     }
     
     if (!form.quantity || !form.buyPrice) {
-      alert("Vui lòng nhập đầy đủ số lượng và giá mua.");
+      alert(t.investment.errors.missingInfo);
       return;
     }
     
@@ -224,14 +221,14 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
       setInvestments(updated);
       setIsModalOpen(false);
       setForm({ symbol: '', name: '', type: 'Stock', quantity: 0, buyPrice: 0, currentPrice: 0, unit: '' });
-      alert("Đã lưu tài sản.");
+      alert(t.investment.errors.assetSaved);
     } catch (e) {
-      alert("Không thể lưu tài sản.");
+      alert(t.investment.errors.saveFail);
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (confirm("Xóa tài sản này khỏi danh mục?")) {
+    if (confirm(t.investment.errors.deleteConfirm)) {
       const updated = await deleteInvestment(user.id, id);
       setInvestments(updated);
     }
@@ -253,9 +250,9 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
        for (const inv of updatedInvestments) {
           if (inv.symbol && prices[inv.symbol]) await saveInvestment(user.id, inv);
        }
-       alert("Cập nhật giá thành công!");
+       alert(t.investment.errors.updateSuccess);
     } catch (err) {
-       alert("Không thể cập nhật giá tự động.");
+       alert(t.investment.errors.updateFail);
     } finally {
        setIsUpdatingPrices(false);
     }
@@ -266,7 +263,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
   const totalProfit = totalValue - totalCost;
   const profitPercent = totalCost > 0 ? (totalProfit / totalCost) * 100 : 0;
 
-  if (securityLoading) return <div className="p-10 text-center"><RefreshCw className="animate-spin mx-auto text-indigo-600 mb-2"/> <p className="text-slate-500 text-sm">Đang xác thực bảo mật...</p></div>;
+  if (securityLoading) return <div className="p-10 text-center"><RefreshCw className="animate-spin mx-auto text-indigo-600 mb-2"/> <p className="text-slate-500 text-sm">{t.investment.verifying}</p></div>;
 
   if (isLocked) {
     return (
@@ -283,7 +280,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
              )}
              {hasSetup && otpSent && (
                <div className="animate-in fade-in slide-in-from-bottom-2">
-                 <p className="text-sm text-slate-500 mb-2">Nhập mã xác thực đã gửi đến: <br/><span className="font-bold text-slate-700">{currentEmail}</span></p>
+                 <p className="text-sm text-slate-500 mb-2">{t.investment.enterCode} <br/><span className="font-bold text-slate-700">{currentEmail}</span></p>
                  <input title="OTP Input" className="w-full p-3 border border-slate-200 rounded-lg bg-slate-50 text-center tracking-widest text-lg outline-none focus:ring-2 focus:ring-emerald-500" placeholder="000000" value={otpInput} onChange={e => setOtpInput(e.target.value)} maxLength={6} />
                </div>
              )}
@@ -306,7 +303,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
              <Activity size={14} className={isUpdatingPrices ? "text-indigo-500 animate-spin" : "text-emerald-500"} />
              <span>{t.investment.marketUpdate}: </span>
              <button onClick={handleUpdatePrices} disabled={isUpdatingPrices} className="font-semibold text-indigo-600 hover:underline">
-               {isUpdatingPrices ? "Đang cập nhật..." : t.investment.updatePrices} <CloudLightning size={14} className="inline ml-1" />
+               {isUpdatingPrices ? t.investment.updating : t.investment.updatePrices} <CloudLightning size={14} className="inline ml-1" />
              </button>
           </div>
         </div>
@@ -328,7 +325,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
             <p className="text-slate-400 text-sm mb-1">{t.investment.totalValue}</p>
             <h3 className="text-3xl font-bold">{totalValue.toLocaleString('vi-VN')} ₫</h3>
             <div className="mt-4 flex gap-4">
-               <div><span className="text-xs text-slate-400">Vốn đầu tư</span><p className="font-semibold">{totalCost.toLocaleString('vi-VN')}</p></div>
+               <div><span className="text-xs text-slate-400">{t.common.capital}</span><p className="font-semibold">{totalCost.toLocaleString('vi-VN')}</p></div>
                <div><span className="text-xs text-slate-400">P/L %</span><p className={`font-semibold ${profitPercent >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>{profitPercent > 0 ? '+' : ''}{profitPercent.toFixed(2)}%</p></div>
             </div>
          </div>
@@ -338,7 +335,6 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
          </div>
       </div>
 
-      {/* Asset Table */}
       <div className="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -347,7 +343,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
                 <th className="p-4 text-xs font-semibold text-slate-500 uppercase">{t.investment.symbol}</th>
                 <th className="p-4 text-xs font-semibold text-slate-500 uppercase">{t.investment.quantity}</th>
                 <th className="p-4 text-xs font-semibold text-slate-500 uppercase">{t.investment.currentPrice}</th>
-                <th className="p-4 text-xs font-semibold text-slate-500 uppercase">Giá trị</th>
+                <th className="p-4 text-xs font-semibold text-slate-500 uppercase">{t.investment.totalValue}</th>
                 <th className="p-4 text-xs font-semibold text-slate-500 uppercase">P/L</th>
                 <th className="p-4"></th>
               </tr>
@@ -382,7 +378,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
               })}
               {investments.length === 0 && (
                 <tr>
-                    <td colSpan={6} className="p-10 text-center text-slate-400 italic">Chưa có tài sản trong danh mục.</td>
+                    <td colSpan={6} className="p-10 text-center text-slate-400 italic">...</td>
                 </tr>
               )}
             </tbody>
@@ -390,7 +386,6 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
         </div>
       </div>
 
-      {/* MODAL: ADD ASSET (UPGRADED) */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
            <div className="bg-white rounded-3xl w-full max-w-md p-6 shadow-2xl animate-in zoom-in border border-slate-100 overflow-y-auto max-h-[90vh]">
@@ -406,7 +401,7 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
               
               <div className="space-y-4">
                  <div>
-                    <label className="text-[10px] font-bold text-slate-500 uppercase ml-1 block mb-1">Loại tài sản</label>
+                    <label className="text-[10px] font-bold text-slate-500 uppercase ml-1 block mb-1">{t.manual.category}</label>
                     <select className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 bg-white" value={form.type} onChange={e => {
                         const newType = e.target.value as any;
                         let unit = '';
@@ -422,32 +417,30 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
                  </div>
 
                  <div className="grid grid-cols-2 gap-3">
-                    {/* Only show Ticker for specific types */}
                     {(form.type === 'Stock' || form.type === 'Crypto' || form.type === 'Fund') ? (
                        <div>
-                          <label className="text-[10px] font-bold text-slate-500 uppercase ml-1 block mb-1">Mã (VIC, BTC...)</label>
+                          <label className="text-[10px] font-bold text-slate-500 uppercase ml-1 block mb-1">{t.investment.symbol} (VIC, BTC...)</label>
                           <input className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="VD: VIC" value={form.symbol} onChange={e => setForm({...form, symbol: e.target.value})} />
                        </div>
                     ) : null}
                     
                     <div className={(form.type === 'Stock' || form.type === 'Crypto' || form.type === 'Fund') ? "" : "col-span-2"}>
                        <label className="text-[10px] font-bold text-slate-500 uppercase ml-1 block mb-1">
-                          {form.type === 'Gold' ? 'Tên loại vàng (SJC, 9999...)' : 
-                           form.type === 'EducationFund' ? 'Tên quỹ / Ngân hàng' : 'Tên tài sản'}
+                          {t.investment.name}
                        </label>
-                       <input className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder={form.type === 'Gold' ? "VD: SJC" : "VD: VinGroup"} value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
+                       <input className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="VD: VinGroup" value={form.name} onChange={e => setForm({...form, name: e.target.value})} />
                     </div>
                  </div>
 
                  <div className="grid grid-cols-2 gap-3">
                     <div>
                        <label className="text-[10px] font-bold text-slate-500 uppercase ml-1 block mb-1">
-                          {form.type === 'EducationFund' ? 'Số tiền đóng góp' : 'Số lượng'}
+                          {t.investment.quantity}
                        </label>
                        <input type="number" className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="0" value={form.quantity || ''} onChange={e => setForm({...form, quantity: Number(e.target.value)})} />
                     </div>
                     <div>
-                       <label className="text-[10px] font-bold text-slate-500 uppercase ml-1 block mb-1">Đơn vị</label>
+                       <label className="text-[10px] font-bold text-slate-500 uppercase ml-1 block mb-1">{t.investment.unit}</label>
                        {form.type === 'Gold' ? (
                            <select className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 bg-white" value={form.unit} onChange={e => setForm({...form, unit: e.target.value})}>
                                <option value="Chỉ">Chỉ</option>
@@ -461,41 +454,39 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
 
                  <div>
                     <label className="text-[10px] font-bold text-slate-500 uppercase ml-1 block mb-1">
-                       {form.type === 'EducationFund' ? 'Giá trị hiện tại' : 'Giá mua trung bình (VNĐ)'}
+                       {t.investment.buyPrice}
                     </label>
                     <input type="number" className="w-full p-3 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="0" value={form.buyPrice || ''} onChange={e => setForm({...form, buyPrice: Number(e.target.value)})} />
                  </div>
 
                  <button onClick={handleSave} className="w-full bg-indigo-600 text-white py-4 rounded-xl font-bold shadow-xl shadow-indigo-100 hover:bg-indigo-700 transition-all active:scale-95">
-                    {form.type === 'EducationFund' ? 'Tạo quỹ tích lũy' : 'Thêm vào danh mục'}
+                    {t.common.add}
                  </button>
               </div>
            </div>
         </div>
       )}
 
-      {/* SECURITY CENTER MODAL (No changes here) */}
       {isSecurityModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
           <div className="bg-white rounded-3xl w-full max-w-lg p-6 max-h-[90vh] overflow-y-auto shadow-2xl animate-in zoom-in border border-white/20">
             <div className="flex justify-between items-center mb-6 border-b pb-4">
-              <h3 className="text-xl font-extrabold flex items-center gap-2"><ShieldCheck className="text-indigo-600" /> Trung tâm bảo mật</h3>
+              <h3 className="text-xl font-extrabold flex items-center gap-2"><ShieldCheck className="text-indigo-600" /> {t.investment.securityCenter}</h3>
               <button onClick={() => setIsSecurityModalOpen(false)} className="bg-slate-100 p-2 rounded-full text-slate-400 hover:text-slate-600"><X size={20}/></button>
             </div>
             
             <div className="space-y-6">
-              {/* LIÊN KẾT EMAIL */}
               <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-sm">
                  <div className="flex items-center gap-3 mb-4">
                     <div className={`p-3 rounded-xl ${currentEmail ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-500'}`}><Mail size={22} /></div>
                     <div className="flex-1">
-                        <h4 className="text-sm font-bold">Email nhận mã OTP</h4>
-                        <p className="text-xs text-slate-500 font-medium truncate max-w-[200px]">{currentEmail || 'Chưa liên kết'}</p>
+                        <h4 className="text-sm font-bold">{t.investment.emailLink}</h4>
+                        <p className="text-xs text-slate-500 font-medium truncate max-w-[200px]">{currentEmail || t.investment.notLinked}</p>
                     </div>
                  </div>
                  <div className="space-y-3">
                     <div className="flex gap-2">
-                       <input title="Link Email" className="flex-1 p-3 text-sm border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 bg-white" placeholder="Địa chỉ Gmail của bạn" value={linkEmailInput} onChange={e => setLinkEmailInput(e.target.value)} />
+                       <input title="Link Email" className="flex-1 p-3 text-sm border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500 bg-white" placeholder={t.investment.enterGmail} value={linkEmailInput} onChange={e => setLinkEmailInput(e.target.value)} />
                        <button onClick={handleSendLinkOtp} disabled={isLinkingEmail} className="bg-indigo-600 text-white px-4 py-3 rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-100">
                          {isLinkingEmail ? <RefreshCw className="animate-spin w-5 h-5"/> : <Send size={20} />}
                        </button>
@@ -503,20 +494,19 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
                     {isWaitingOtp && (
                         <div className="space-y-3 animate-in slide-in-from-top-2">
                            <input title="Link OTP" className="w-full p-3 text-center text-lg border border-slate-200 rounded-xl tracking-[0.5em] font-black focus:ring-2 focus:ring-emerald-500" placeholder="000000" value={linkOtpInput} onChange={e => setLinkOtpInput(e.target.value)} maxLength={6} />
-                           <button onClick={handleVerifyLinkOtp} className="w-full bg-emerald-600 text-white py-3 rounded-xl text-sm font-bold shadow-xl shadow-emerald-100 hover:bg-emerald-700">Xác thực & Lưu</button>
+                           <button onClick={handleVerifyLinkOtp} className="w-full bg-emerald-600 text-white py-3 rounded-xl text-sm font-bold shadow-xl shadow-emerald-100 hover:bg-emerald-700">{t.investment.verifyAndLink}</button>
                         </div>
                     )}
                  </div>
               </div>
               
-              {/* SMTP Config */}
               <div className={`p-5 rounded-2xl border transition-all shadow-sm ${showSmtpConfig ? 'bg-indigo-50 border-indigo-200' : 'bg-slate-50 border-slate-200'}`}>
                  <button onClick={() => setShowSmtpConfig(!showSmtpConfig)} className="flex items-center justify-between w-full">
                     <div className="flex items-center gap-3">
                         <div className={`p-3 rounded-xl ${hasSmtp ? 'bg-indigo-100 text-indigo-600' : 'bg-slate-200 text-slate-500'}`}><Server size={22} /></div>
                         <div className="text-left">
-                            <h4 className="text-sm font-bold">Cấu hình Email gửi</h4>
-                            <p className="text-[10px] text-slate-500 font-medium">{hasSmtp ? 'Đã cấu hình' : 'Dùng Gmail để gửi mã xác thực'}</p>
+                            <h4 className="text-sm font-bold">{t.investment.smtpConfig}</h4>
+                            <p className="text-[10px] text-slate-500 font-medium">{hasSmtp ? t.investment.configured : t.investment.useGmail}</p>
                         </div>
                     </div>
                     <Settings size={18} className={`text-slate-400 transition-transform ${showSmtpConfig ? 'rotate-90' : ''}`} />
@@ -525,13 +515,13 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
                  {showSmtpConfig && (
                      <div className="mt-5 space-y-4 animate-in slide-in-from-top-4">
                         <div className="bg-white p-4 rounded-xl border border-indigo-100 shadow-sm space-y-3">
-                            <div className="flex items-center gap-2 text-indigo-700 border-b pb-2 mb-2 text-xs font-bold">Hướng dẫn:</div>
-                            <p className="text-[11px] text-slate-600">Bật <b>Xác minh 2 bước</b> trong Tài khoản Google {'>'} Tạo <b>Mật khẩu ứng dụng</b>.</p>
-                            <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full py-2 bg-slate-800 text-white text-[11px] font-bold rounded-lg"><ExternalLink size={12} /> Link trang mật khẩu ứng dụng</a>
+                            <div className="flex items-center gap-2 text-indigo-700 border-b pb-2 mb-2 text-xs font-bold">{t.investment.smtpInstruction.split('>')[0]}</div>
+                            <p className="text-[11px] text-slate-600" dangerouslySetInnerHTML={{__html: t.investment.smtpInstruction}}></p>
+                            <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full py-2 bg-slate-800 text-white text-[11px] font-bold rounded-lg"><ExternalLink size={12} /> {t.investment.appPassLink}</a>
                         </div>
-                        <input title="SMTP Email" className="w-full p-3 text-sm border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Gmail của bạn" value={smtpEmail} onChange={e => setSmtpEmail(e.target.value)} />
-                        <input type="password" title="SMTP Pass" className="w-full p-3 text-sm border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Mật khẩu ứng dụng (16 ký tự)" value={smtpPass} onChange={e => setSmtpPass(e.target.value)} />
-                        <button onClick={handleSaveSmtp} className="w-full bg-indigo-600 text-white py-3 rounded-xl text-sm font-black shadow-xl shadow-indigo-200 hover:bg-indigo-700">Lưu cấu hình</button>
+                        <input title="SMTP Email" className="w-full p-3 text-sm border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder={t.investment.yourGmail} value={smtpEmail} onChange={e => setSmtpEmail(e.target.value)} />
+                        <input type="password" title="SMTP Pass" className="w-full p-3 text-sm border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500" placeholder={t.investment.appPassPlaceholder} value={smtpPass} onChange={e => setSmtpPass(e.target.value)} />
+                        <button onClick={handleSaveSmtp} className="w-full bg-indigo-600 text-white py-3 rounded-xl text-sm font-black shadow-xl shadow-indigo-200 hover:bg-indigo-700">{t.investment.saveConfig}</button>
                      </div>
                  )}
               </div>

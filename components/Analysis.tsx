@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { Transaction, TransactionType } from '../types';
 import { translations, Language } from '../utils/i18n';
@@ -190,7 +191,7 @@ export const Analysis: React.FC<Props> = ({
                      <Legend verticalAlign="bottom" height={36}/>
                    </PieChart>
                  </ResponsiveContainer>
-               ) : <div className="h-full flex items-center justify-center text-slate-400">No Expense Data</div>}
+               ) : <div className="h-full flex items-center justify-center text-slate-400">{t.analysis.noExpenseData}</div>}
             </div>
 
             {/* Income Breakdown */}
@@ -208,7 +209,7 @@ export const Analysis: React.FC<Props> = ({
                      <Legend verticalAlign="bottom" height={36}/>
                    </PieChart>
                  </ResponsiveContainer>
-               ) : <div className="h-full flex items-center justify-center text-slate-400">No Income Data</div>}
+               ) : <div className="h-full flex items-center justify-center text-slate-400">{t.analysis.noIncomeData}</div>}
             </div>
 
           </div>

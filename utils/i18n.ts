@@ -7,6 +7,7 @@ export const translations = {
       title: 'Quản lý thu nhập',
       subtitle: 'Theo dõi tài chính thông minh',
       connecting: 'Đang kết nối cơ sở dữ liệu...',
+      offlineMode: 'Chế độ Ngoại tuyến',
     },
     nav: {
       dashboard: 'Tổng quan',
@@ -14,7 +15,15 @@ export const translations = {
       planning: 'Lập kế hoạch',
       investment: 'Đầu tư',
       settings: 'Cài đặt',
-      admin: 'Quản trị'
+      admin: 'Quản trị',
+      account: 'Tài khoản',
+      me: 'Tôi'
+    },
+    settings: {
+      language: 'Ngôn ngữ',
+      darkMode: 'Chế độ tối',
+      logout: 'Đăng xuất',
+      profile: 'Hồ sơ người dùng'
     },
     admin: {
       title: 'Hệ thống Quản trị',
@@ -45,8 +54,11 @@ export const translations = {
       errorUser: 'Vui lòng nhập thông tin tài khoản và mật khẩu.',
       errorPass: 'Mật khẩu phải chứa ít nhất 1 chữ hoa và 1 số.',
       errorLogin: 'Thông tin đăng nhập không chính xác.',
+      loginSuccess: 'Đăng nhập thành công!',
+      networkError: 'Cần mạng để đăng nhập.'
     },
     dashboard: {
+      hello: 'Xin chào',
       search: 'Tìm giao dịch...',
       scanQR: 'Quét Hóa Đơn',
       linkBank: 'Liên kết NH',
@@ -62,6 +74,7 @@ export const translations = {
       noTx: 'Không tìm thấy giao dịch',
       noTxSub: 'Bắt đầu bằng cách thêm thủ công hoặc quét AI.',
       aiScan: 'Quét AI',
+      manualAdd: 'Thêm thủ công',
       loading: 'Đang tải...',
       filteredBalance: 'Số dư (Lọc)',
       available: 'Khả dụng',
@@ -88,6 +101,10 @@ export const translations = {
       upload: 'Nhấn để chọn hoặc kéo thả ảnh vào đây',
       remove: 'Gỡ bỏ ảnh',
       extract: 'Phân tích dữ liệu',
+      manualScan: 'Quét thủ công',
+      aiAnalyzing: 'AI đang phân tích...',
+      recognizing: 'Đang nhận diện...',
+      aiNotice: 'Tính năng này sử dụng <b>Google Gemini AI</b> để hỗ trợ trích xuất dữ liệu. Vui lòng kiểm tra lại kết quả trước khi lưu.',
       error: 'Có lỗi xảy ra khi xử lý dữ liệu.',
     },
     manual: {
@@ -105,6 +122,8 @@ export const translations = {
     analysis: {
       title: 'Phân tích tài chính',
       noData: 'Chưa có dữ liệu để phân tích trong khoảng thời gian này.',
+      noExpenseData: 'Chưa có dữ liệu Chi tiêu',
+      noIncomeData: 'Chưa có dữ liệu Thu nhập',
       netIncome: 'Thu nhập ròng',
       savingsRate: 'Tỷ lệ tiết kiệm',
       expenseRatio: 'Tỷ lệ Chi tiêu / Thu nhập',
@@ -123,6 +142,8 @@ export const translations = {
       modalGoalTitle: 'Mục tiêu mới',
       goalName: 'Tên mục tiêu (VD: Mua xe, Du lịch...)',
       modalBudgetTitle: 'Thiết lập ngân sách tháng',
+      noBudgets: 'Chưa có ngân sách nào cho tháng này.',
+      expired: 'Đã hết hạn'
     },
     investment: {
       locked: 'Khu vực bảo mật',
@@ -135,6 +156,7 @@ export const translations = {
       title: 'Danh mục đầu tư',
       marketUpdate: 'Cập nhật thị trường',
       updatePrices: 'Cập nhật giá',
+      updating: 'Đang cập nhật...',
       addAsset: 'Thêm tài sản',
       totalValue: 'Tổng giá trị tài sản',
       totalProfit: 'Tổng lợi nhuận (P/L)',
@@ -159,9 +181,42 @@ export const translations = {
       buyPrice: 'Giá mua',
       conversion: 'Quy đổi',
       manageSecurity: 'Quản lý bảo mật',
+      securityCenter: 'Trung tâm bảo mật',
       linkGmail: 'Liên kết Gmail nhận OTP',
       otpSent: 'Mã OTP đã được gửi!',
       verifyAndLink: 'Xác thực & Liên kết',
+      emailLink: 'Email nhận mã OTP',
+      notLinked: 'Chưa liên kết',
+      enterGmail: 'Địa chỉ Gmail của bạn',
+      smtpConfig: 'Cấu hình Email gửi',
+      configured: 'Đã cấu hình',
+      useGmail: 'Dùng Gmail để gửi mã xác thực',
+      smtpInstruction: 'Bật <b>Xác minh 2 bước</b> trong Tài khoản Google > Tạo <b>Mật khẩu ứng dụng</b>.',
+      appPassLink: 'Link trang mật khẩu ứng dụng',
+      yourGmail: 'Gmail của bạn',
+      appPassPlaceholder: 'Mật khẩu ứng dụng (16 ký tự)',
+      saveConfig: 'Lưu cấu hình',
+      verifying: 'Đang xác thực bảo mật...',
+      errors: {
+        requirePass: 'Vui lòng nhập mật khẩu cấp 2.',
+        wrongPass: 'Mật khẩu cấp 2 không chính xác.',
+        otpSentTo: 'Mã OTP đã được gửi đến email',
+        wrongOtp: 'Mã OTP không chính xác.',
+        invalidEmail: 'Vui lòng nhập Email hợp lệ.',
+        sendFail: 'Gửi mã thất bại.',
+        linkSuccess: 'Liên kết thành công!',
+        missingSmtp: 'Vui lòng nhập đầy đủ Email và Mật khẩu ứng dụng.',
+        smtpLength: 'Lỗi: Mật khẩu ứng dụng Google phải có đúng 16 ký tự viết liền.',
+        configSuccess: 'Cấu hình thành công!',
+        saveFail: 'Lưu thất bại.',
+        missingTicker: 'Loại tài sản này bắt buộc phải có Mã tài sản.',
+        missingName: 'Vui lòng nhập tên hoặc mã tài sản.',
+        missingInfo: 'Vui lòng nhập đầy đủ số lượng và giá mua.',
+        assetSaved: 'Đã lưu tài sản.',
+        deleteConfirm: 'Xóa tài sản này khỏi danh mục?',
+        updateSuccess: 'Cập nhật giá thành công!',
+        updateFail: 'Không thể cập nhật giá tự động.'
+      }
     },
     categories: {
       'Food & Dining': 'Ăn uống',
@@ -175,11 +230,13 @@ export const translations = {
       'Other': 'Khác',
     },
     common: {
-      deleteConfirm: 'Bạn có chắc chắn muốn xóa giao dịch này?',
+      deleteConfirm: 'Bạn có chắc chắn muốn xóa mục này?',
       deleteFailed: 'Xóa thất bại',
       saveFailed: 'Lưu thất bại',
       enterDesc: 'Nhập nội dung giao dịch:',
       enterAmount: 'Nhập số tiền:',
+      capital: 'Vốn đầu tư',
+      add: 'Thêm'
     }
   },
   en: {
@@ -187,6 +244,7 @@ export const translations = {
       title: 'Income Manager',
       subtitle: 'Smart Financial Tracking',
       connecting: 'Connecting to database...',
+      offlineMode: 'Offline Mode',
     },
     nav: {
       dashboard: 'Dashboard',
@@ -194,7 +252,15 @@ export const translations = {
       planning: 'Planning',
       investment: 'Investment',
       settings: 'Settings',
-      admin: 'Admin'
+      admin: 'Admin',
+      account: 'Account',
+      me: 'Me'
+    },
+    settings: {
+      language: 'Language',
+      darkMode: 'Dark Mode',
+      logout: 'Logout',
+      profile: 'User Profile'
     },
     admin: {
       title: 'Admin System',
@@ -225,8 +291,11 @@ export const translations = {
       errorUser: 'Please enter account info and password.',
       errorPass: 'Password must contain at least 1 uppercase letter and 1 number.',
       errorLogin: 'Invalid login credentials.',
+      loginSuccess: 'Login successful!',
+      networkError: 'Network required for login.'
     },
     dashboard: {
+      hello: 'Hello',
       search: 'Search transactions...',
       scanQR: 'Scan Receipt',
       linkBank: 'Link Bank',
@@ -242,6 +311,7 @@ export const translations = {
       noTx: 'No transactions found',
       noTxSub: 'Start by adding one manually or scanning with AI.',
       aiScan: 'AI Scan',
+      manualAdd: 'Manual Add',
       loading: 'Loading...',
       filteredBalance: 'Filtered Balance',
       available: 'Available',
@@ -268,6 +338,10 @@ export const translations = {
       upload: 'Click to upload or drag & drop image',
       remove: 'Remove image',
       extract: 'Extract Data',
+      manualScan: 'Manual Scan',
+      aiAnalyzing: 'AI is analyzing...',
+      recognizing: 'Recognizing...',
+      aiNotice: 'This feature uses <b>Google Gemini AI</b> to extract data. Please verify results before saving.',
       error: 'Error processing transaction data.',
     },
     manual: {
@@ -285,6 +359,8 @@ export const translations = {
     analysis: {
       title: 'Financial Analysis',
       noData: 'No data available for the selected period.',
+      noExpenseData: 'No Expense Data',
+      noIncomeData: 'No Income Data',
       netIncome: 'Net Income',
       savingsRate: 'Savings Rate',
       expenseRatio: 'Expense to Income Ratio',
@@ -303,6 +379,8 @@ export const translations = {
       modalGoalTitle: 'New Goal',
       goalName: 'Goal Name (e.g. New Car, Travel)',
       modalBudgetTitle: 'Set Monthly Budget',
+      noBudgets: 'No budgets set for this month.',
+      expired: 'Expired'
     },
     investment: {
       locked: 'Secure Area',
@@ -315,6 +393,7 @@ export const translations = {
       title: 'Investment Portfolio',
       marketUpdate: 'Market Update',
       updatePrices: 'Update Prices',
+      updating: 'Updating...',
       addAsset: 'Add Asset',
       totalValue: 'Total Asset Value',
       totalProfit: 'Total Profit/Loss',
@@ -339,9 +418,42 @@ export const translations = {
       buyPrice: 'Buy Price',
       conversion: 'Conversion',
       manageSecurity: 'Security Settings',
+      securityCenter: 'Security Center',
       linkGmail: 'Link Gmail for OTP',
       otpSent: 'OTP Sent!',
       verifyAndLink: 'Verify & Link',
+      emailLink: 'OTP Email',
+      notLinked: 'Not Linked',
+      enterGmail: 'Your Gmail Address',
+      smtpConfig: 'SMTP Configuration',
+      configured: 'Configured',
+      useGmail: 'Use Gmail to send verification codes',
+      smtpInstruction: 'Enable <b>2-Step Verification</b> in Google Account > Create <b>App Password</b>.',
+      appPassLink: 'App Passwords Link',
+      yourGmail: 'Your Gmail',
+      appPassPlaceholder: 'App Password (16 chars)',
+      saveConfig: 'Save Configuration',
+      verifying: 'Verifying security...',
+      errors: {
+        requirePass: 'Please enter secondary password.',
+        wrongPass: 'Incorrect secondary password.',
+        otpSentTo: 'OTP sent to email',
+        wrongOtp: 'Incorrect OTP.',
+        invalidEmail: 'Please enter a valid Email.',
+        sendFail: 'Failed to send OTP.',
+        linkSuccess: 'Linked successfully!',
+        missingSmtp: 'Please enter both Email and App Password.',
+        smtpLength: 'Error: Google App Password must be exactly 16 chars without spaces.',
+        configSuccess: 'Configuration saved!',
+        saveFail: 'Failed to save.',
+        missingTicker: 'Ticker symbol is required for this asset type.',
+        missingName: 'Please enter asset name or symbol.',
+        missingInfo: 'Please enter quantity and buy price.',
+        assetSaved: 'Asset saved.',
+        deleteConfirm: 'Remove this asset from portfolio?',
+        updateSuccess: 'Prices updated successfully!',
+        updateFail: 'Failed to auto-update prices.'
+      }
     },
     categories: {
       'Food & Dining': 'Food & Dining',
@@ -355,11 +467,13 @@ export const translations = {
       'Other': 'Other',
     },
     common: {
-      deleteConfirm: 'Are you sure you want to delete this transaction?',
+      deleteConfirm: 'Are you sure you want to delete this item?',
       deleteFailed: 'Delete failed.',
       saveFailed: 'Failed to save transaction.',
       enterDesc: 'Enter transaction description:',
       enterAmount: 'Enter amount:',
+      capital: 'Capital',
+      add: 'Add'
     }
   },
   zh: {
@@ -367,6 +481,7 @@ export const translations = {
       title: '收入管理',
       subtitle: '智能财务追踪',
       connecting: '正在连接数据库...',
+      offlineMode: '离线模式',
     },
     nav: {
       dashboard: '仪表盘',
@@ -374,7 +489,15 @@ export const translations = {
       planning: '计划',
       investment: '投资',
       settings: '设置',
-      admin: '行政'
+      admin: '行政',
+      account: '账户',
+      me: '我的'
+    },
+    settings: {
+      language: '语言',
+      darkMode: '深色模式',
+      logout: '退出登录',
+      profile: '用户资料'
     },
     admin: {
       title: '管理系统',
@@ -405,8 +528,11 @@ export const translations = {
       errorUser: '请输入账户信息和密码。',
       errorPass: '密码必须包含至少1个大写字母和1个数字。',
       errorLogin: '登录凭据无效。',
+      loginSuccess: '登录成功！',
+      networkError: '需要网络才能登录。'
     },
     dashboard: {
+      hello: '你好',
       search: '搜索交易...',
       scanQR: '扫描收据',
       linkBank: '关联银行',
@@ -422,6 +548,7 @@ export const translations = {
       noTx: '未找到交易',
       noTxSub: '尝试手动添加或使用AI扫描。',
       aiScan: 'AI 扫描',
+      manualAdd: '手动添加',
       loading: '加载中...',
       filteredBalance: '余额 (筛选)',
       available: '可用',
@@ -448,6 +575,10 @@ export const translations = {
       upload: '点击上传或拖放图片',
       remove: '移除图片',
       extract: '提取数据',
+      manualScan: '手动扫描',
+      aiAnalyzing: 'AI 正在分析...',
+      recognizing: '正在识别...',
+      aiNotice: '此功能使用 <b>Google Gemini AI</b> 提取数据。请在保存前核对结果。',
       error: '处理交易数据时出错。',
     },
     manual: {
@@ -465,6 +596,8 @@ export const translations = {
     analysis: {
       title: '财务分析',
       noData: '所选期间内无可用数据。',
+      noExpenseData: '无支出数据',
+      noIncomeData: '无收入数据',
       netIncome: '净收入',
       savingsRate: '储蓄率',
       expenseRatio: '支出收入比',
@@ -483,6 +616,8 @@ export const translations = {
       modalGoalTitle: '新目标',
       goalName: '目标名称 (例如：买车、旅游)',
       modalBudgetTitle: '设置每月预算',
+      noBudgets: '本月暂无预算设置。',
+      expired: '已过期'
     },
     investment: {
       locked: '安全区域',
@@ -495,6 +630,7 @@ export const translations = {
       title: '投资组合',
       marketUpdate: '行情更新',
       updatePrices: '更新价格',
+      updating: '更新中...',
       addAsset: '添加资产',
       totalValue: '资产总值',
       totalProfit: '总盈亏 (P/L)',
@@ -519,9 +655,42 @@ export const translations = {
       buyPrice: '买入价',
       conversion: '换算',
       manageSecurity: '安全设置',
+      securityCenter: '安全中心',
       linkGmail: '绑定 Gmail 接收 OTP',
       otpSent: '验证码已发送！',
       verifyAndLink: '验证并绑定',
+      emailLink: 'OTP 邮箱',
+      notLinked: '未绑定',
+      enterGmail: '您的 Gmail 地址',
+      smtpConfig: 'SMTP 配置',
+      configured: '已配置',
+      useGmail: '使用 Gmail 发送验证码',
+      smtpInstruction: '在 Google 账户中启用 <b>两步验证</b> > 创建 <b>应用专用密码</b>。',
+      appPassLink: '应用密码链接',
+      yourGmail: '您的 Gmail',
+      appPassPlaceholder: '应用密码 (16位)',
+      saveConfig: '保存配置',
+      verifying: '正在验证安全...',
+      errors: {
+        requirePass: '请输入二级密码。',
+        wrongPass: '二级密码不正确。',
+        otpSentTo: 'OTP 已发送至邮箱',
+        wrongOtp: 'OTP 错误。',
+        invalidEmail: '请输入有效的邮箱地址。',
+        sendFail: '发送失败。',
+        linkSuccess: '绑定成功！',
+        missingSmtp: '请输入邮箱和应用密码。',
+        smtpLength: '错误：Google 应用密码必须是无空格的16个字符。',
+        configSuccess: '配置已保存！',
+        saveFail: '保存失败。',
+        missingTicker: '此资产类型必须填写代码。',
+        missingName: '请输入资产名称或代码。',
+        missingInfo: '请输入数量和买入价。',
+        assetSaved: '资产已保存。',
+        deleteConfirm: '从组合中移除此资产？',
+        updateSuccess: '价格更新成功！',
+        updateFail: '无法自动更新价格。'
+      }
     },
     categories: {
       'Food & Dining': '餐饮',
@@ -535,11 +704,13 @@ export const translations = {
       'Other': '其他',
     },
     common: {
-      deleteConfirm: '确定要删除此交易吗？',
+      deleteConfirm: '确定要删除此项目吗？',
       deleteFailed: '删除失败。',
       saveFailed: '保存失败。',
       enterDesc: '输入交易描述：',
       enterAmount: '输入金额：',
+      capital: '本金',
+      add: '添加'
     }
   }
 };

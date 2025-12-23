@@ -78,7 +78,7 @@ export const Dashboard: React.FC<Props> = ({
     try {
       const newList = await saveTransaction(user.id, updatedTx);
       onTransactionsUpdated(newList);
-    } catch (error) { alert("Cập nhật thất bại."); }
+    } catch (error) { alert(t.common.saveFailed); }
   };
 
   return (
@@ -86,23 +86,23 @@ export const Dashboard: React.FC<Props> = ({
       <div className="flex justify-between items-center mb-2 md:mb-4 px-1">
          <div>
             <h2 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight">{t.dashboard.overview}</h2>
-            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">Xin chào, {user.username}</p>
+            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">{t.dashboard.hello}, {user.username}</p>
          </div>
          <div className="flex gap-2">
             <button 
               onClick={() => openAiScan('image')} 
               className="bg-indigo-100 text-indigo-600 p-2.5 rounded-xl active:scale-90 transition-all hover:bg-indigo-600 hover:text-white flex items-center gap-2"
-              title="Quét AI"
+              title={t.dashboard.aiScan}
             >
                <Wand2 size={20} />
-               <span className="hidden md:inline text-xs font-bold">Quét AI</span>
+               <span className="hidden md:inline text-xs font-bold">{t.dashboard.aiScan}</span>
             </button>
             <button 
               onClick={openManualModal}
               className="hidden md:flex bg-slate-100 text-slate-700 p-2.5 rounded-xl active:scale-90 transition-all hover:bg-slate-200 items-center gap-2"
             >
                <Plus size={20} />
-               <span className="text-xs font-bold">Thêm thủ công</span>
+               <span className="text-xs font-bold">{t.dashboard.manualAdd}</span>
             </button>
          </div>
       </div>

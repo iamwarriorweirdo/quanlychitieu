@@ -137,7 +137,7 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
   const handleOfflineExtract = async () => {
       setIsLoading(true);
       setError(null);
-      setStatusText("Đang nhận diện...");
+      setStatusText(t.modal.recognizing);
       try {
           let textToParse = inputText;
           if ((mode === 'image' || mode === 'camera') && (imageFile || selectedImage)) {
@@ -151,7 +151,7 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
           onSuccess([result]);
           onClose();
       } catch (err: any) {
-          setError("Lỗi: " + err.message);
+          setError(err.message);
       } finally {
           setIsLoading(false);
       }
@@ -160,7 +160,7 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
   const handleProcess = async () => {
     setIsLoading(true);
     setError(null);
-    setStatusText("AI đang phân tích...");
+    setStatusText(t.modal.aiAnalyzing);
     try {
       let ocrTextResult = inputText;
       let compressedBase64 = null;
@@ -197,9 +197,7 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
         <div className="p-6 space-y-4 overflow-y-auto">
           <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex gap-3 items-start">
              <Info size={16} className="text-amber-600 shrink-0 mt-0.5" />
-             <p className="text-[10px] text-amber-800 font-medium">
-               Tính năng này sử dụng <b>Google Gemini AI</b> để hỗ trợ trích xuất dữ liệu. Vui lòng kiểm tra lại kết quả trước khi lưu.
-             </p>
+             <p className="text-[10px] text-amber-800 font-medium" dangerouslySetInnerHTML={{__html: t.modal.aiNotice}}></p>
           </div>
 
           {error && <div className="p-3 bg-rose-50 text-rose-600 text-xs rounded-xl flex items-center gap-2 border border-rose-100"><AlertCircle size={14}/> {error}</div>}
@@ -256,10 +254,10 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
           <div className="space-y-3 shrink-0">
              <button onClick={handleProcess} disabled={isLoading || (mode !== 'text' && !selectedImage && !imageFile)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-100 hover:bg-indigo-700 disabled:opacity-50 disabled:shadow-none transition-all flex items-center justify-center gap-2">
                 {isLoading ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle size={20} />}
-                {isLoading ? "Đang xử lý..." : t.modal.extract}
+                {isLoading ? statusText : t.modal.extract}
              </button>
              <button onClick={handleOfflineExtract} disabled={isLoading || (mode !== 'text' && !selectedImage && !imageFile)} className="w-full py-3 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 disabled:opacity-50 transition-all flex items-center justify-center gap-2 text-sm">
-                <Zap size={16} className="text-amber-500" /> Quét thủ công
+                <Zap size={16} className="text-amber-500" /> {t.modal.manualScan}
              </button>
           </div>
         </div>
