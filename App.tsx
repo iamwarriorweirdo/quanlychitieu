@@ -47,7 +47,7 @@ const App: React.FC = () => {
 
   // --- PERSISTENT SETTINGS LOGIC ---
 
-  // 1. Language Persistence
+  // 1. Language Persistence (Fixed: Now actually reads/writes to localStorage)
   const [lang, setLang] = useState<Language>(() => {
     const saved = localStorage.getItem('app_lang');
     return (saved === 'en' || saved === 'zh' || saved === 'vi') ? saved : 'vi';
@@ -75,13 +75,11 @@ const App: React.FC = () => {
     localStorage.setItem('timezone', timezone);
   }, [timezone]);
 
-  // 4. Dark Mode Persistence (Fixed Logic)
+  // 4. Dark Mode Persistence
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const savedTheme = localStorage.getItem('theme');
-    // Nếu có lưu 'dark' thì return true, 'light' return false
     if (savedTheme === 'dark') return true;
     if (savedTheme === 'light') return false;
-    // Nếu chưa lưu, check cài đặt hệ thống
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
 
@@ -247,11 +245,11 @@ const App: React.FC = () => {
   const handleAddBudget = async (b: Budget) => { if (user) setBudgets(await saveBudget(user.id, b)); };
   const handleDeleteBudget = async (id: string) => { if (user && confirm(t.common.deleteConfirm)) setBudgets(await deleteBudget(user.id, id)); };
 
-  if (isInitializing) return <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center"><Loader2 className="animate-spin text-indigo-600 w-10 h-10" /></div>;
+  if (isInitializing) return <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center"><Loader2 className="animate-spin text-indigo-600 w-10 h-10" /></div>;
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4 transition-colors duration-300">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4 transition-colors duration-300">
         <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-slate-100 dark:border-slate-800">
           <div className="bg-indigo-600 p-8 text-center text-white relative">
             {!isOnline && <div className="absolute top-4 right-4 text-white/50"><CloudOff size={16}/></div>}
@@ -298,7 +296,7 @@ const App: React.FC = () => {
   const canAccessAdmin = user.role === 'admin' || user.role === 'superadmin';
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-slate-50 dark:bg-slate-950 overflow-hidden transition-colors duration-300 text-slate-800 dark:text-white">
+    <div className="flex flex-col md:flex-row h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden transition-colors duration-300 text-slate-800 dark:text-white">
       <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-colors">
         <div className="p-6 flex items-center gap-3 border-b dark:border-slate-800">
           <div className="bg-indigo-600 text-white p-2 rounded-lg"><Wallet /></div>

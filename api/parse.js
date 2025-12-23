@@ -15,35 +15,15 @@ export default async function handler(req, res) {
   const { ocrText, imageBase64 } = req.body;
 
   try {
-    // CẬP NHẬT SYSTEM PROMPT CHO ĐA HÓA ĐƠN VÀ THỜI GIAN CHÍNH XÁC
-    const systemPrompt = `
-      Bạn là chuyên gia OCR hóa đơn thông minh.
-      
-      NHIỆM VỤ 1: PHÁT HIỆN NHIỀU HÓA ĐƠN (MULTI-RECEIPT DETECTION)
-      - Phân tích bố cục hình ảnh. Nếu có nhiều hóa đơn, hãy tách biệt nội dung của từng hóa đơn.
-      - Tạo ra một đối tượng giao dịch riêng biệt cho MỖI hóa đơn tìm thấy.
-
-      NHIỆM VỤ 2: TRÍCH XUẤT DỮ LIỆU CHÍNH XÁC (ĐẶC BIỆT LÀ THỜI GIAN)
-      - Tên cửa hàng: Dòng đầu tiên hoặc dòng có font chữ lớn nhất.
-      - Tổng tiền: Tìm số tiền lớn nhất đi kèm từ khóa "Tổng", "Total", "Thành tiền".
-      - THỜI GIAN (QUAN TRỌNG): 
-        + Hãy tìm kỹ "Giờ:Phút" (HH:mm) in trên hóa đơn (VD: 14:30, 09:45 PM, 18:20).
-        + Tìm "Ngày/Tháng/Năm".
-        + KẾT HỢP Ngày + Giờ tìm được để tạo ra chuỗi ISO Date chính xác. 
-        + CHỈ dùng thời gian hiện tại nếu trên hóa đơn HOÀN TOÀN KHÔNG in giờ.
-
-      ĐỊNH DẠNG TRẢ VỀ: Mảng JSON.
-      [
-        {
-          "amount": 180000, 
-          "description": "Tên Quán", 
-          "date": "2023-10-25T18:30:00.000Z" // Ưu tiên giờ trên hóa đơn (18:30)
-        }
-      ]
-    `;
+    // TỐI ƯU SYSTEM PROMPT: Ngắn gọn, súc tích để tiết kiệm token.
+    const systemPrompt = `Analyze receipt image.
+    1. Identify Store Name, Total Amount, and Date/Time (HH:mm).
+    2. Combine Date + Time into precise ISO String.
+    3. If multiple receipts, split them.
+    4. Return JSON array.`;
 
     const parts = [];
-    if (ocrText) parts.push({ text: `Văn bản OCR (tham khảo): \n${ocrText}` });
+    if (ocrText) parts.push({ text: `OCR: \n${ocrText}` });
     
     if (imageBase64 && imageBase64.startsWith('data:')) {
        const matches = imageBase64.match(/^data:([a-zA-Z0-9]+\/[a-zA-Z0-9-.+]+);base64,(.+)$/);
@@ -66,14 +46,14 @@ export default async function handler(req, res) {
           items: {
             type: Type.OBJECT,
             properties: {
-              amount: { type: Type.NUMBER, description: "Final amount paid" },
+              amount: { type: Type.NUMBER, description: "Total" },
               type: { type: Type.STRING, enum: ["INCOME", "EXPENSE"] },
               category: { 
                 type: Type.STRING, 
                 enum: ["Food & Dining", "Transportation", "Utilities", "Shopping", "Salary", "Transfer", "Entertainment", "Health & Fitness", "Other"]
               },
-              description: { type: Type.STRING, description: "Store Name + Type" },
-              date: { type: Type.STRING, description: "ISO Date String combined from Date and Time found on receipt" }
+              description: { type: Type.STRING },
+              date: { type: Type.STRING, description: "ISO Date" }
             },
             required: ["amount", "type", "category", "description", "date"],
           }

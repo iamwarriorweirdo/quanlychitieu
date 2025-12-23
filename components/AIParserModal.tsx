@@ -76,7 +76,7 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
     const ctx = canvas.getContext('2d');
     if (ctx) {
       ctx.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
-      const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+      const dataUrl = canvas.toDataURL('image/jpeg', 0.6); // Low quality for preview/processing
       setSelectedImage(dataUrl);
       fetch(dataUrl)
         .then(res => res.blob())
@@ -99,24 +99,23 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
-          const MAX = 480; 
+          // OPTIMIZATION: Giảm kích thước ảnh xuống 384px để tiết kiệm token
+          // Kích thước này đủ để đọc hóa đơn nhưng nhỏ hơn nhiều so với ảnh gốc
+          const MAX = 384; 
           if (width > MAX || height > MAX) {
             if (width > height) { height *= MAX / width; width = MAX; } 
             else { width *= MAX / height; height = MAX; }
-          } else if (width < 300 && height < 300) {
-             const scale = MAX / Math.max(width, height);
-             width *= scale;
-             height *= scale;
           }
           canvas.width = width; 
           canvas.height = height;
           const ctx = canvas.getContext('2d');
           if (ctx) {
               ctx.imageSmoothingEnabled = true;
-              ctx.imageSmoothingQuality = 'high';
+              ctx.imageSmoothingQuality = 'medium'; // Giảm quality vẽ
               ctx.drawImage(img, 0, 0, width, height);
           }
-          resolve(canvas.toDataURL('image/jpeg', 0.95));
+          // OPTIMIZATION: Nén JPEG xuống 60% chất lượng
+          resolve(canvas.toDataURL('image/jpeg', 0.6));
         };
         img.src = e.target?.result as string;
       };
@@ -134,29 +133,6 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
     }
   };
 
-  const handleOfflineExtract = async () => {
-      setIsLoading(true);
-      setError(null);
-      setStatusText(t.modal.recognizing);
-      try {
-          let textToParse = inputText;
-          if ((mode === 'image' || mode === 'camera') && (imageFile || selectedImage)) {
-              let compressed;
-              if (imageFile) compressed = await resizeImage(imageFile);
-              else compressed = selectedImage!;
-              const { data: { text } } = await Tesseract.recognize(compressed, 'eng+vie');
-              textToParse = text;
-          }
-          const result = parseWithRegex(textToParse);
-          onSuccess([result]);
-          onClose();
-      } catch (err: any) {
-          setError(err.message);
-      } finally {
-          setIsLoading(false);
-      }
-  };
-
   const handleProcess = async () => {
     setIsLoading(true);
     setError(null);
@@ -167,10 +143,14 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
 
       if ((mode === 'image' || mode === 'camera') && (imageFile || selectedImage)) {
         if (imageFile) compressedBase64 = await resizeImage(imageFile);
-        else compressedBase64 = selectedImage;
+        else compressedBase64 = selectedImage; // Should ideally also be resized if directly set
+        
+        // Chỉ chạy Tesseract nếu cần fallback, nhưng với AI thì ta gửi ảnh trực tiếp
+        // Nếu muốn tiết kiệm request AI thì dùng Tesseract làm ocrTextResult
         try {
-          const { data: { text } } = await Tesseract.recognize(compressedBase64!, 'eng+vie');
-          ocrTextResult = text;
+           // Tắt Tesseract tạm thời để tăng tốc UX, AI sẽ tự đọc ảnh
+           // const { data: { text } } = await Tesseract.recognize(compressedBase64!, 'eng+vie');
+           // ocrTextResult = text;
         } catch (e) {}
       }
       const results = await parseBankNotification(ocrTextResult, compressedBase64);
@@ -255,9 +235,6 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
              <button onClick={handleProcess} disabled={isLoading || (mode !== 'text' && !selectedImage && !imageFile)} className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black shadow-xl shadow-indigo-100 hover:bg-indigo-700 disabled:opacity-50 disabled:shadow-none transition-all flex items-center justify-center gap-2">
                 {isLoading ? <Loader2 className="animate-spin" size={20} /> : <CheckCircle size={20} />}
                 {isLoading ? statusText : t.modal.extract}
-             </button>
-             <button onClick={handleOfflineExtract} disabled={isLoading || (mode !== 'text' && !selectedImage && !imageFile)} className="w-full py-3 bg-slate-100 text-slate-600 rounded-2xl font-bold hover:bg-slate-200 disabled:opacity-50 transition-all flex items-center justify-center gap-2 text-sm">
-                <Zap size={16} className="text-amber-500" /> {t.modal.manualScan}
              </button>
           </div>
         </div>
