@@ -1,8 +1,10 @@
 
 import { ParsedTransactionData } from '../types';
 import { parseWithRegex } from '../utils/regexParser';
+import { Capacitor } from '@capacitor/core';
 
-const API_URL = '/api';
+const PRODUCTION_DOMAIN = 'https://quanlychitieu-dusky.vercel.app';
+const API_URL = Capacitor.isNativePlatform() ? `${PRODUCTION_DOMAIN}/api` : '/api';
 
 export const parseBankNotification = async (
   ocrText: string, 

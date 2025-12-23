@@ -1,7 +1,15 @@
 
 import { Transaction, User, Goal, Budget, Investment, InvestmentSecurity } from '../types';
+import { Capacitor } from '@capacitor/core';
 
-const API_URL = '/api';
+// CẤU HÌNH DOMAIN CHÍNH
+const PRODUCTION_DOMAIN = 'https://quanlychitieu-dusky.vercel.app';
+
+// Logic: Nếu là App (Native) -> Gọi full URL. Nếu là Web -> Gọi path relative (/api) để tránh CORS.
+const API_URL = Capacitor.isNativePlatform() 
+  ? `${PRODUCTION_DOMAIN}/api` 
+  : '/api';
+
 const CURRENT_USER_KEY = 'fintrack_current_user';
 const LOCAL_TX_CACHE = 'fintrack_tx_cache_';
 const OFFLINE_QUEUE = 'fintrack_offline_queue_';
@@ -215,11 +223,13 @@ export const checkSecurityStatus = async (userId: string): Promise<InvestmentSec
 };
 
 export const setupSecurity = async (userId: string, password: string, email?: string): Promise<void> => {
+  try {
     await fetch(`${API_URL}/security`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ action: 'setup', userId, password, email })
     }).then(handleResponse);
+  } catch (e: any) { throw e; }
 };
 
 export const verifySecondaryPassword = async (userId: string, password: string): Promise<boolean> => {

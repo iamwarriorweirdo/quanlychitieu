@@ -7,6 +7,7 @@ import {
   checkSecurityStatus, setupSecurity, verifySecondaryPassword, requestOtp, verifyOtp,
   getInvestments, saveInvestment, deleteInvestment, fetchMarketPrices 
 } from '../services/storageService';
+import { Capacitor } from '@capacitor/core';
 
 interface Props {
   user: User;
@@ -52,9 +53,8 @@ export const InvestmentPage: React.FC<Props> = ({ user, lang }) => {
     symbol: '', name: '', type: 'Stock', quantity: 0, buyPrice: 0, currentPrice: 0, unit: ''
   });
 
-  const BASE_URL = (import.meta as any).env?.BASE_URL || '/';
-  const CLEAN_BASE_URL = BASE_URL.endsWith('/') ? BASE_URL.slice(0, -1) : BASE_URL;
-  const API_URL = `${CLEAN_BASE_URL}/api`;
+  const PRODUCTION_DOMAIN = 'https://quanlychitieu-dusky.vercel.app';
+  const API_URL = Capacitor.isNativePlatform() ? `${PRODUCTION_DOMAIN}/api` : '/api';
 
   const checkStatus = async () => {
     try {
