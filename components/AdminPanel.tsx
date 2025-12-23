@@ -196,7 +196,7 @@ export const AdminPanel: React.FC<Props> = ({ user, lang }) => {
                      </div>
                      <div>
                        <div className="font-bold text-slate-800 text-sm">{t.admin.aiToggle}</div>
-                       <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Gemini 3 Flash</div>
+                       <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">Gemini 3.0 Pro</div>
                      </div>
                    </div>
                    <button 
@@ -232,7 +232,7 @@ export const AdminPanel: React.FC<Props> = ({ user, lang }) => {
               <h4 className="font-black text-sm uppercase tracking-widest mb-3">Thông tin hạ tầng</h4>
               <ul className="text-xs space-y-2 text-indigo-100 font-medium">
                 <li className="flex items-center gap-2"><div className="w-1 h-1 bg-white rounded-full"></div> DB: Neon PostgreSQL (Serverless)</li>
-                <li className="flex items-center gap-2"><div className="w-1 h-1 bg-white rounded-full"></div> AI Engine: Gemini 3.0 Flash</li>
+                <li className="flex items-center gap-2"><div className="w-1 h-1 bg-white rounded-full"></div> AI Engine: Gemini 3.0 Pro</li>
                 <li className="flex items-center gap-2"><div className="w-1 h-1 bg-white rounded-full"></div> Framework: React 19 + Tailwind</li>
                 <li className="flex items-center gap-2"><div className="w-1 h-1 bg-white rounded-full"></div> Runtime: Vercel Edge</li>
               </ul>

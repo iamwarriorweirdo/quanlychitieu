@@ -99,12 +99,14 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
           const canvas = document.createElement('canvas');
           let width = img.width;
           let height = img.height;
-          const MAX = 1600; 
+          // TỐI ƯU HÓA: Chỉ resize tối đa 480p để tiết kiệm token và tăng tốc độ
+          const MAX = 480; 
           if (width > MAX || height > MAX) {
             if (width > height) { height *= MAX / width; width = MAX; }
             else { width *= MAX / height; height = MAX; }
           }
           canvas.width = width; canvas.height = height;
+          // Sử dụng chất lượng 0.95 để bù đắp cho độ phân giải thấp
           canvas.getContext('2d')?.drawImage(img, 0, 0, width, height);
           resolve(canvas.toDataURL('image/jpeg', 0.95));
         };
@@ -159,6 +161,7 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
         if (imageFile) compressedBase64 = await resizeImage(imageFile);
         else compressedBase64 = selectedImage;
         try {
+          // Tesseract vẫn chạy để lấy text phụ trợ
           const { data: { text } } = await Tesseract.recognize(compressedBase64!, 'eng+vie');
           ocrTextResult = text;
         } catch (e) {}

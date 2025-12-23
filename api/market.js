@@ -10,10 +10,11 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: "Missing symbols list" });
   }
 
-  // Fix: Trim API Key to avoid MetadataLookupWarning
-  const apiKey = process.env.API_KEY ? process.env.API_KEY.trim() : null;
+  // Hỗ trợ fallback sang CLIENT_KEY nếu API_KEY chưa được set
+  const apiKey = (process.env.API_KEY || process.env.CLIENT_KEY || "").trim();
+  
   if (!apiKey) {
-      return res.status(500).json({ error: "Server Error: Missing API_KEY" });
+      return res.status(500).json({ error: "Server Error: Missing API_KEY/CLIENT_KEY" });
   }
 
   const ai = new GoogleGenAI({ apiKey: apiKey });
@@ -33,21 +34,18 @@ export default async function handler(req, res) {
       Example: { "VIC": 42500, "BTC": 1500000000, "VNM": 68000 }
     `;
 
-    // Always use ai.models.generateContent to query GenAI with both the model name and prompt.
+    // SỬ DỤNG MODEL GEMINI 3 PRO VỚI CÔNG CỤ SEARCH
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3-pro-preview',
       contents: prompt,
       config: {
-        tools: [{ googleSearch: {} }], // Enable Google Search grounding
-        // Note: responseMimeType and responseSchema are NOT allowed when using googleSearch tool
+        tools: [{ googleSearch: {} }], 
       }
     });
 
-    // The GenerateContentResponse object features a text property (not a method) that directly returns the string output.
     let resultText = response.text;
     if (!resultText) throw new Error("No data returned from AI");
     
-    // Clean up potential markdown formatting if model ignores instruction
     resultText = resultText.trim();
     if (resultText.startsWith('```json')) {
       resultText = resultText.replace(/^```json/, '').replace(/```$/, '');
@@ -55,7 +53,6 @@ export default async function handler(req, res) {
       resultText = resultText.replace(/^```/, '').replace(/```$/, '');
     }
 
-    // Parse JSON manually
     let prices = {};
     try {
         prices = JSON.parse(resultText);
@@ -64,7 +61,6 @@ export default async function handler(req, res) {
         throw new Error("AI returned invalid JSON format.");
     }
     
-    // Return prices and sources if available
     const sources = response.candidates?.[0]?.groundingMetadata?.groundingChunks || [];
     
     res.status(200).json({ prices, sources });
