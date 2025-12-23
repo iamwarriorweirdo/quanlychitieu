@@ -15,26 +15,30 @@ export default async function handler(req, res) {
   const { ocrText, imageBase64 } = req.body;
 
   try {
-    // CẬP NHẬT SYSTEM PROMPT CHO ĐA HÓA ĐƠN
+    // CẬP NHẬT SYSTEM PROMPT CHO ĐA HÓA ĐƠN VÀ THỜI GIAN CHÍNH XÁC
     const systemPrompt = `
       Bạn là chuyên gia OCR hóa đơn thông minh.
       
-      NHIỆM VỤ ĐẶC BIỆT: PHÁT HIỆN NHIỀU HÓA ĐƠN (MULTI-RECEIPT DETECTION)
-      1. Phân tích bố cục hình ảnh. Có thể có 2 hoặc nhiều hóa đơn nằm cạnh nhau (trái/phải) hoặc trên/dưới.
-      2. Hãy tách biệt nội dung của từng hóa đơn dựa trên khoảng trắng và sự căn chỉnh văn bản.
-      3. Với MỖI hóa đơn tìm được, hãy tạo ra một đối tượng giao dịch riêng biệt trong mảng kết quả.
+      NHIỆM VỤ 1: PHÁT HIỆN NHIỀU HÓA ĐƠN (MULTI-RECEIPT DETECTION)
+      - Phân tích bố cục hình ảnh. Nếu có nhiều hóa đơn, hãy tách biệt nội dung của từng hóa đơn.
+      - Tạo ra một đối tượng giao dịch riêng biệt cho MỖI hóa đơn tìm thấy.
 
-      QUY TẮC TRÍCH XUẤT CHO TỪNG HÓA ĐƠN:
-      - Tên cửa hàng (Store Name): Thường ở dòng đầu tiên của mỗi cụm hóa đơn.
-      - Tổng tiền (Total Amount): Tìm dòng "Tổng cộng", "Thành tiền", "Total" lớn nhất trong cụm đó.
-      - Thời gian: Tìm ngày/giờ trên cụm đó (nếu không có, dùng thời gian hiện tại).
-      - Logic Toán học: Nếu không tìm thấy chữ "Tổng cộng", hãy cộng dồn các dòng giá tiền lớn trong cụm đó.
+      NHIỆM VỤ 2: TRÍCH XUẤT DỮ LIỆU CHÍNH XÁC (ĐẶC BIỆT LÀ THỜI GIAN)
+      - Tên cửa hàng: Dòng đầu tiên hoặc dòng có font chữ lớn nhất.
+      - Tổng tiền: Tìm số tiền lớn nhất đi kèm từ khóa "Tổng", "Total", "Thành tiền".
+      - THỜI GIAN (QUAN TRỌNG): 
+        + Hãy tìm kỹ "Giờ:Phút" (HH:mm) in trên hóa đơn (VD: 14:30, 09:45 PM, 18:20).
+        + Tìm "Ngày/Tháng/Năm".
+        + KẾT HỢP Ngày + Giờ tìm được để tạo ra chuỗi ISO Date chính xác. 
+        + CHỈ dùng thời gian hiện tại nếu trên hóa đơn HOÀN TOÀN KHÔNG in giờ.
 
-      ĐỊNH DẠNG TRẢ VỀ: Mảng JSON chứa các object.
-      Ví dụ ảnh có 2 hóa đơn:
+      ĐỊNH DẠNG TRẢ VỀ: Mảng JSON.
       [
-        {"amount": 180000, "description": "Quán Khói - Ăn uống", "category": "Food & Dining", ...},
-        {"amount": 117000, "description": "Ốc Vàng - Ăn uống", "category": "Food & Dining", ...}
+        {
+          "amount": 180000, 
+          "description": "Tên Quán", 
+          "date": "2023-10-25T18:30:00.000Z" // Ưu tiên giờ trên hóa đơn (18:30)
+        }
       ]
     `;
 
@@ -62,14 +66,14 @@ export default async function handler(req, res) {
           items: {
             type: Type.OBJECT,
             properties: {
-              amount: { type: Type.NUMBER, description: "Final amount paid for this specific receipt" },
+              amount: { type: Type.NUMBER, description: "Final amount paid" },
               type: { type: Type.STRING, enum: ["INCOME", "EXPENSE"] },
               category: { 
                 type: Type.STRING, 
                 enum: ["Food & Dining", "Transportation", "Utilities", "Shopping", "Salary", "Transfer", "Entertainment", "Health & Fitness", "Other"]
               },
               description: { type: Type.STRING, description: "Store Name + Type" },
-              date: { type: Type.STRING, description: "ISO Date found on this receipt" }
+              date: { type: Type.STRING, description: "ISO Date String combined from Date and Time found on receipt" }
             },
             required: ["amount", "type", "category", "description", "date"],
           }

@@ -71,13 +71,38 @@ export const parseWithRegex = (text: string): ParsedTransactionData => {
       }
   }
 
-  // Tìm ngày
-  let dateStr = new Date().toISOString();
+  // 5. XỬ LÝ NGÀY VÀ GIỜ (QUAN TRỌNG)
+  const now = new Date();
+  let dateObj = now; // Mặc định là hiện tại
+
+  // Regex tìm ngày: DD/MM/YYYY hoặc DD-MM-YYYY
   const dateRegex = /(\d{1,2})[/-](\d{1,2})[/-](\d{4})/;
   const dateMatch = text.match(dateRegex);
+  
   if (dateMatch) {
-    const d = new Date(`${dateMatch[3]}-${dateMatch[2].padStart(2, '0')}-${dateMatch[1].padStart(2, '0')}`);
-    if (!isNaN(d.getTime())) dateStr = d.toISOString();
+    const day = parseInt(dateMatch[1]);
+    const month = parseInt(dateMatch[2]) - 1; // Month 0-11
+    const year = parseInt(dateMatch[3]);
+    
+    // Tạo ngày với giờ mặc định (ví dụ 12:00 trưa nếu không tìm thấy giờ)
+    dateObj = new Date(year, month, day, 12, 0, 0); 
+  }
+
+  // Regex tìm giờ: HH:MM hoặc HHgMM (VD: 14:30, 09:15, 14g30)
+  // \b bắt đầu từ biên từ, ([0-1]?[0-9]|2[0-3]) bắt giờ 0-23, [:hg] bắt dấu phân cách, ([0-5][0-9]) bắt phút
+  const timeRegex = /\b([0-1]?[0-9]|2[0-3])\s*[:hg]\s*([0-5][0-9])\b/;
+  const timeMatch = text.match(timeRegex);
+
+  if (timeMatch) {
+      const hours = parseInt(timeMatch[1]);
+      const minutes = parseInt(timeMatch[2]);
+      // Cập nhật giờ phút cho đối tượng ngày
+      dateObj.setHours(hours);
+      dateObj.setMinutes(minutes);
+      dateObj.setSeconds(0);
+  } else if (!dateMatch) {
+      // Nếu không tìm thấy cả ngày lẫn giờ, giữ nguyên thời gian hiện tại (now)
+      dateObj = now;
   }
 
   // Nếu là hóa đơn Co.op, thường category là Food
@@ -91,6 +116,6 @@ export const parseWithRegex = (text: string): ParsedTransactionData => {
     type, 
     category, 
     description, 
-    date: dateStr 
+    date: dateObj.toISOString() 
   };
 };
