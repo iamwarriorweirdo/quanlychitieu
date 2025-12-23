@@ -38,37 +38,65 @@ const App: React.FC = () => {
   const [error, setError] = useState('');
   const [isAuthLoading, setIsAuthLoading] = useState(false);
   const [isInitializing, setIsInitializing] = useState(true);
-  const [lang, setLang] = useState<Language>('vi');
-  const [currency, setCurrency] = useState<Currency>(() => (localStorage.getItem('currency') as Currency) || 'VND');
-  const [timezone, setTimezone] = useState<string>(() => localStorage.getItem('timezone') || Intl.DateTimeFormat().resolvedOptions().timeZone);
+  
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [isAiModalOpen, setIsAiModalOpen] = useState(false);
   const [aiModalMode, setAiModalMode] = useState<'text' | 'image'>('text');
   const [isManualModalOpen, setIsManualModalOpen] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
 
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    return localStorage.getItem('theme') === 'dark' || 
-           (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
+  // --- PERSISTENT SETTINGS LOGIC ---
+
+  // 1. Language Persistence
+  const [lang, setLang] = useState<Language>(() => {
+    const saved = localStorage.getItem('app_lang');
+    return (saved === 'en' || saved === 'zh' || saved === 'vi') ? saved : 'vi';
   });
 
   useEffect(() => {
-    if (isDarkMode) {
-      document.documentElement.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [isDarkMode]);
+    localStorage.setItem('app_lang', lang);
+  }, [lang]);
+
+  // 2. Currency Persistence
+  const [currency, setCurrency] = useState<Currency>(() => 
+    (localStorage.getItem('currency') as Currency) || 'VND'
+  );
 
   useEffect(() => {
     localStorage.setItem('currency', currency);
   }, [currency]);
 
+  // 3. Timezone Persistence
+  const [timezone, setTimezone] = useState<string>(() => 
+    localStorage.getItem('timezone') || Intl.DateTimeFormat().resolvedOptions().timeZone
+  );
+
   useEffect(() => {
     localStorage.setItem('timezone', timezone);
   }, [timezone]);
+
+  // 4. Dark Mode Persistence (Fixed Logic)
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    const savedTheme = localStorage.getItem('theme');
+    // Nếu có lưu 'dark' thì return true, 'light' return false
+    if (savedTheme === 'dark') return true;
+    if (savedTheme === 'light') return false;
+    // Nếu chưa lưu, check cài đặt hệ thống
+    return window.matchMedia('(prefers-color-scheme: dark)').matches;
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (isDarkMode) {
+      root.classList.add('dark');
+      localStorage.setItem('theme', 'dark');
+    } else {
+      root.classList.remove('dark');
+      localStorage.setItem('theme', 'light');
+    }
+  }, [isDarkMode]);
+
+  // --- END SETTINGS LOGIC ---
 
   useEffect(() => {
     const handleOnline = () => {
@@ -223,7 +251,7 @@ const App: React.FC = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex items-center justify-center p-4 transition-colors duration-300">
         <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-slate-100 dark:border-slate-800">
           <div className="bg-indigo-600 p-8 text-center text-white relative">
             {!isOnline && <div className="absolute top-4 right-4 text-white/50"><CloudOff size={16}/></div>}
@@ -233,7 +261,7 @@ const App: React.FC = () => {
           </div>
           <div className="p-8 space-y-4">
             {error && (
-              <div className="p-3 bg-rose-50 text-rose-600 text-xs rounded-xl flex gap-2 items-center border border-rose-100">
+              <div className="p-3 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 text-xs rounded-xl flex gap-2 items-center border border-rose-100 dark:border-rose-800">
                 <AlertCircle size={14} className="shrink-0" />
                 <span className="leading-tight">{error}</span>
               </div>
@@ -250,7 +278,7 @@ const App: React.FC = () => {
               <span className="bg-white dark:bg-slate-900 px-3 text-[10px] text-slate-400 font-bold uppercase tracking-widest relative z-10">hoặc</span>
             </div>
             <div id="googleBtn" className="flex justify-center min-h-[44px]"></div>
-            <button onClick={() => setIsLoginView(!isLoginView)} className="w-full text-center text-indigo-600 text-sm font-bold hover:underline py-2">{isLoginView ? t.auth.newHere : t.auth.haveAccount}</button>
+            <button onClick={() => setIsLoginView(!isLoginView)} className="w-full text-center text-indigo-600 dark:text-indigo-400 text-sm font-bold hover:underline py-2">{isLoginView ? t.auth.newHere : t.auth.haveAccount}</button>
           </div>
         </div>
       </div>
