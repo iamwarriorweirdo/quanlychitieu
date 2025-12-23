@@ -101,7 +101,6 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
           let height = img.height;
           
           // TỐI ƯU HÓA: Đặt mặc định 480p theo yêu cầu để tối ưu token/tốc độ.
-          // Mức này rất thấp, giúp gửi request cực nhanh và tốn ít token nhất.
           const MAX = 480; 
           
           // Logic Resize
@@ -282,5 +281,6 @@ export const AIParserModal: React.FC<Props> = ({ isOpen, onClose, onSuccess, ini
           </div>
         </div>
       </div>
-    );
-  };
+    </div>
+  );
+};
