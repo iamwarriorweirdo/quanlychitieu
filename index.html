@@ -9,16 +9,14 @@
     <meta name="apple-mobile-web-app-title" content="Finance Manager" />
     <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2910/2910224.png" />
     
-    <!-- FIX: Dùng đường dẫn tương đối để App tải được file -->
     <link rel="manifest" href="manifest.json" />
     
     <title>Finance Manager Pro</title>
     
-    <!-- Cấu hình Tailwind trước khi load script -->
     <script>
       tailwind = {
         config: {
-          darkMode: 'class',
+          // Xóa darkMode: 'class' để vô hiệu hóa tính năng này
           theme: {
             extend: {
               padding: {
@@ -42,19 +40,12 @@
       body {
         font-family: 'Inter', sans-serif;
         background-color: #f8fafc;
-        color: #1e293b; /* Slate-800 text default */
+        color: #1e293b;
         transition: background-color 0.3s, color 0.3s;
         overscroll-behavior-y: none;
         margin: 0;
       }
-      /* Quan trọng: sử dụng html.dark body để có độ ưu tiên cao hơn */
-      html.dark body {
-        background-color: #0f172a; /* Slate-900 */
-        color: #f8fafc; /* White text for dark mode */
-      }
-      html.dark {
-        color-scheme: dark; /* Bắt buộc trình duyệt chuyển scrollbar, form controls sang tối */
-      }
+      /* Xóa các thuộc tính liên quan đến dark mode */
       #googleBtn {
         min-height: 44px;
         display: flex;
@@ -92,7 +83,6 @@
   </head>
   <body>
     <div id="root"></div>
-    <!-- FIX: Dùng đường dẫn tương đối ./ -->
     <script type="module" src="./index.tsx"></script>
   </body>
 </html>

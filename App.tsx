@@ -47,7 +47,7 @@ const App: React.FC = () => {
 
   // --- PERSISTENT SETTINGS LOGIC ---
 
-  // 1. Language Persistence (Fixed: Now actually reads/writes to localStorage)
+  // 1. Language Persistence
   const [lang, setLang] = useState<Language>(() => {
     const saved = localStorage.getItem('app_lang');
     return (saved === 'en' || saved === 'zh' || saved === 'vi') ? saved : 'vi';
@@ -75,24 +75,7 @@ const App: React.FC = () => {
     localStorage.setItem('timezone', timezone);
   }, [timezone]);
 
-  // 4. Dark Mode Persistence
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    const savedTheme = localStorage.getItem('theme');
-    if (savedTheme === 'dark') return true;
-    if (savedTheme === 'light') return false;
-    return window.matchMedia('(prefers-color-scheme: dark)').matches;
-  });
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (isDarkMode) {
-      root.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      root.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [isDarkMode]);
+  // Đã xóa logic Dark Mode để ứng dụng luôn ở chế độ sáng (Light Mode)
 
   // --- END SETTINGS LOGIC ---
 
@@ -245,12 +228,12 @@ const App: React.FC = () => {
   const handleAddBudget = async (b: Budget) => { if (user) setBudgets(await saveBudget(user.id, b)); };
   const handleDeleteBudget = async (id: string) => { if (user && confirm(t.common.deleteConfirm)) setBudgets(await deleteBudget(user.id, id)); };
 
-  if (isInitializing) return <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center"><Loader2 className="animate-spin text-indigo-600 w-10 h-10" /></div>;
+  if (isInitializing) return <div className="min-h-screen bg-slate-50 flex items-center justify-center"><Loader2 className="animate-spin text-indigo-600 w-10 h-10" /></div>;
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center p-4 transition-colors duration-300">
-        <div className="bg-white dark:bg-slate-900 w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-slate-100 dark:border-slate-800">
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4 transition-colors duration-300">
+        <div className="bg-white w-full max-w-md rounded-2xl shadow-xl overflow-hidden border border-slate-100">
           <div className="bg-indigo-600 p-8 text-center text-white relative">
             {!isOnline && <div className="absolute top-4 right-4 text-white/50"><CloudOff size={16}/></div>}
             <div className="bg-white/20 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 backdrop-blur-sm"><Wallet className="w-8 h-8" /></div>
@@ -259,24 +242,24 @@ const App: React.FC = () => {
           </div>
           <div className="p-8 space-y-4">
             {error && (
-              <div className="p-3 bg-rose-50 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 text-xs rounded-xl flex gap-2 items-center border border-rose-100 dark:border-rose-800">
+              <div className="p-3 bg-rose-50 text-rose-600 text-xs rounded-xl flex gap-2 items-center border border-rose-100">
                 <AlertCircle size={14} className="shrink-0" />
                 <span className="leading-tight">{error}</span>
               </div>
             )}
             <form onSubmit={handleAuth} className="space-y-4">
-              <input type="text" value={usernameInput} onChange={e => setUsernameInput(e.target.value)} className="w-full px-4 py-3 rounded-lg border dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder={t.auth.username} />
-              <input type="password" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} className="w-full px-4 py-3 rounded-lg border dark:border-slate-700 dark:bg-slate-800 dark:text-white focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder={t.auth.password} />
+              <input type="text" value={usernameInput} onChange={e => setUsernameInput(e.target.value)} className="w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder={t.auth.username} />
+              <input type="password" value={passwordInput} onChange={e => setPasswordInput(e.target.value)} className="w-full px-4 py-3 rounded-lg border focus:ring-2 focus:ring-indigo-500 outline-none transition-all" placeholder={t.auth.password} />
               <button type="submit" disabled={isAuthLoading} className="w-full bg-indigo-600 text-white font-bold py-4 rounded-xl hover:bg-indigo-700 flex justify-center transition-all active:scale-[0.98]">
                 {isAuthLoading ? <Loader2 className="animate-spin" /> : (isLoginView ? t.auth.login : t.auth.createAccount)}
               </button>
             </form>
             <div className="relative py-2 flex items-center justify-center">
-              <div className="border-t border-slate-200 dark:border-slate-800 w-full absolute"></div>
-              <span className="bg-white dark:bg-slate-900 px-3 text-[10px] text-slate-400 font-bold uppercase tracking-widest relative z-10">hoặc</span>
+              <div className="border-t border-slate-200 w-full absolute"></div>
+              <span className="bg-white px-3 text-[10px] text-slate-400 font-bold uppercase tracking-widest relative z-10">hoặc</span>
             </div>
             <div id="googleBtn" className="flex justify-center min-h-[44px]"></div>
-            <button onClick={() => setIsLoginView(!isLoginView)} className="w-full text-center text-indigo-600 dark:text-indigo-400 text-sm font-bold hover:underline py-2">{isLoginView ? t.auth.newHere : t.auth.haveAccount}</button>
+            <button onClick={() => setIsLoginView(!isLoginView)} className="w-full text-center text-indigo-600 text-sm font-bold hover:underline py-2">{isLoginView ? t.auth.newHere : t.auth.haveAccount}</button>
           </div>
         </div>
       </div>
@@ -286,7 +269,7 @@ const App: React.FC = () => {
   const BottomNavItem = ({ view, icon: Icon, label }: { view: View, icon: any, label: string }) => (
     <button 
       onClick={() => { setCurrentView(view); }} 
-      className={`flex flex-col items-center gap-1 flex-1 py-2 transition-all ${currentView === view ? 'text-indigo-600 dark:text-indigo-400' : 'text-slate-400 dark:text-slate-500'}`}
+      className={`flex flex-col items-center gap-1 flex-1 py-2 transition-all ${currentView === view ? 'text-indigo-600' : 'text-slate-400'}`}
     >
       <Icon size={20} className={currentView === view ? 'scale-110' : ''} />
       <span className="text-[10px] font-black tracking-tight">{label}</span>
@@ -296,24 +279,24 @@ const App: React.FC = () => {
   const canAccessAdmin = user.role === 'admin' || user.role === 'superadmin';
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-slate-50 dark:bg-slate-900 overflow-hidden transition-colors duration-300 text-slate-800 dark:text-white">
-      <aside className="hidden md:flex flex-col w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transition-colors">
-        <div className="p-6 flex items-center gap-3 border-b dark:border-slate-800">
+    <div className="flex flex-col md:flex-row h-screen bg-slate-50 overflow-hidden transition-colors duration-300 text-slate-800">
+      <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 transition-colors">
+        <div className="p-6 flex items-center gap-3 border-b">
           <div className="bg-indigo-600 text-white p-2 rounded-lg"><Wallet /></div>
-          <h1 className="font-bold text-lg dark:text-white leading-tight">{t.app.title}</h1>
+          <h1 className="font-bold text-lg leading-tight">{t.app.title}</h1>
         </div>
         <nav className="flex-1 p-4 space-y-1">
-          <button onClick={() => setCurrentView('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'dashboard' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 font-bold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}><LayoutDashboard size={20} />{t.nav.dashboard}</button>
-          <button onClick={() => setCurrentView('analysis')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'analysis' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 font-bold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}><PieChart size={20} />{t.nav.analysis}</button>
-          <button onClick={() => setCurrentView('planning')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'planning' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 font-bold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}><ClipboardList size={20} />{t.nav.planning}</button>
-          <button onClick={() => setCurrentView('investment')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'investment' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 font-bold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}><TrendingUp size={20} />{t.nav.investment}</button>
+          <button onClick={() => setCurrentView('dashboard')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'dashboard' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}><LayoutDashboard size={20} />{t.nav.dashboard}</button>
+          <button onClick={() => setCurrentView('analysis')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'analysis' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}><PieChart size={20} />{t.nav.analysis}</button>
+          <button onClick={() => setCurrentView('planning')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'planning' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}><ClipboardList size={20} />{t.nav.planning}</button>
+          <button onClick={() => setCurrentView('investment')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'investment' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}><TrendingUp size={20} />{t.nav.investment}</button>
           {canAccessAdmin && (
-            <button onClick={() => setCurrentView('admin')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'admin' ? 'bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-400 font-bold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}><Shield size={20} />{t.nav.admin}</button>
+            <button onClick={() => setCurrentView('admin')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'admin' ? 'bg-rose-50 text-rose-700 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}><Shield size={20} />{t.nav.admin}</button>
           )}
-          <button onClick={() => setCurrentView('account')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'account' ? 'bg-indigo-50 dark:bg-indigo-900/20 text-indigo-700 dark:text-indigo-400 font-bold' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'}`}><UserIcon size={20} />{t.nav.account}</button>
+          <button onClick={() => setCurrentView('account')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'account' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}><UserIcon size={20} />{t.nav.account}</button>
         </nav>
-        <div className="p-4 border-t dark:border-slate-800 flex items-center justify-between">
-          <div className="flex items-center gap-2 overflow-hidden">{user.avatar ? <img src={user.avatar} className="w-8 h-8 rounded-full" alt="avatar" /> : <UserIcon size={16}/>}<span className="text-sm font-bold truncate text-slate-700 dark:text-slate-300">{user.username}</span></div>
+        <div className="p-4 border-t flex items-center justify-between">
+          <div className="flex items-center gap-2 overflow-hidden">{user.avatar ? <img src={user.avatar} className="w-8 h-8 rounded-full" alt="avatar" /> : <UserIcon size={16}/>}<span className="text-sm font-bold truncate text-slate-700">{user.username}</span></div>
           <button onClick={handleLogout} className="text-slate-400 hover:text-rose-500"><LogOut size={20} /></button>
         </div>
       </aside>
@@ -321,9 +304,9 @@ const App: React.FC = () => {
       <main className="flex-1 overflow-y-auto pb-24 md:p-8 pt-[env(safe-area-inset-top)]">
         <div className="max-w-5xl mx-auto px-4 sm:px-0">
           {!isOnline && (
-             <div className="mb-4 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 p-4 rounded-2xl flex items-center gap-3">
+             <div className="mb-4 bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-center gap-3">
                 <CloudOff className="text-amber-600" size={20} />
-                <p className="text-xs font-bold text-amber-800 dark:text-amber-400 uppercase tracking-wider">{t.app.offlineMode}</p>
+                <p className="text-xs font-bold text-amber-800 uppercase tracking-wider">{t.app.offlineMode}</p>
              </div>
           )}
           {currentView === 'dashboard' && <Dashboard user={user} transactions={transactions} isLoading={isLoadingTx} onDelete={handleDelete} onTransactionsUpdated={setTransactions} lang={lang} openAiScan={(m) => { setAiModalMode(m); setIsAiModalOpen(true); }} openManualModal={() => setIsManualModalOpen(true)} filterMode={filterMode} setFilterMode={setFilterMode} filterDate={filterDate} setFilterDate={setFilterDate} rangeStart={rangeStart} setRangeStart={setRangeStart} rangeEnd={rangeEnd} setRangeEnd={setRangeEnd} formatCurrency={formatCurrency} currency={currency} timezone={timezone} />}
@@ -333,13 +316,13 @@ const App: React.FC = () => {
           {currentView === 'admin' && <AdminPanel user={user} lang={lang} />}
           {currentView === 'account' && (
             <div className="space-y-6 pb-10">
-                <div className="bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 flex flex-col items-center text-center">
+                <div className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 flex flex-col items-center text-center">
                     <div className="relative">
-                        {user.avatar ? <img src={user.avatar} className="w-24 h-24 rounded-full border-4 border-white dark:border-slate-800 shadow-lg" /> : <div className="w-24 h-24 bg-indigo-50 dark:bg-slate-800 rounded-full flex items-center justify-center text-indigo-300"><UserIcon size={48}/></div>}
-                        <div className={`absolute bottom-1 right-1 border-4 border-white dark:border-slate-900 w-6 h-6 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
+                        {user.avatar ? <img src={user.avatar} className="w-24 h-24 rounded-full border-4 border-white shadow-lg" /> : <div className="w-24 h-24 bg-indigo-50 rounded-full flex items-center justify-center text-indigo-300"><UserIcon size={48}/></div>}
+                        <div className={`absolute bottom-1 right-1 border-4 border-white w-6 h-6 rounded-full ${isOnline ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
                     </div>
                     <div className="flex flex-col items-center gap-1 mt-4">
-                        <h2 className="text-2xl font-black text-slate-800 dark:text-white">{user.username}</h2>
+                        <h2 className="text-2xl font-black text-slate-800">{user.username}</h2>
                         {user.role === 'superadmin' && (
                             <span className="bg-rose-100 text-rose-600 px-2 py-0.5 rounded text-[10px] font-black uppercase border border-rose-200">Superadmin</span>
                         )}
@@ -349,31 +332,25 @@ const App: React.FC = () => {
                     </div>
                     <p className="text-slate-400 text-sm">{user.email || 'ID: ' + user.id.slice(0,8)}</p>
                 </div>
-                <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden divide-y dark:divide-slate-800">
-                    <div className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden divide-y">
+                    <div className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 rounded-lg"><Globe size={18} /></div>
-                            <span className="text-sm font-bold dark:text-slate-300">{t.settings.language}</span>
+                            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg"><Globe size={18} /></div>
+                            <span className="text-sm font-bold">{t.settings.language}</span>
                         </div>
-                        <select value={lang} onChange={e => setLang(e.target.value as Language)} className="text-sm font-black text-indigo-600 dark:text-indigo-400 bg-transparent outline-none cursor-pointer">
+                        <select value={lang} onChange={e => setLang(e.target.value as Language)} className="text-sm font-black text-indigo-600 bg-transparent outline-none cursor-pointer">
                           <option value="vi">Tiếng Việt</option>
                           <option value="en">English</option>
                           <option value="zh">中文</option>
                         </select>
                     </div>
-                    <div className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                    {/* Đã xóa lựa chọn Chế độ tối (Dark Mode) */}
+                    <div className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-lg"><Smartphone size={18} /></div>
-                            <span className="text-sm font-bold dark:text-slate-300">{t.settings.darkMode}</span>
+                            <div className="p-2 bg-amber-50 text-amber-600 rounded-lg"><Banknote size={18} /></div>
+                            <span className="text-sm font-bold">{t.settings.currency}</span>
                         </div>
-                        <button onClick={() => setIsDarkMode(!isDarkMode)} className={`w-10 h-6 rounded-full relative transition-all ${isDarkMode ? 'bg-indigo-600' : 'bg-slate-200 dark:bg-slate-700'}`}><div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all ${isDarkMode ? 'left-5' : 'left-1'}`}></div></button>
-                    </div>
-                    <div className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
-                        <div className="flex items-center gap-3">
-                            <div className="p-2 bg-amber-50 dark:bg-amber-900/20 text-amber-600 rounded-lg"><Banknote size={18} /></div>
-                            <span className="text-sm font-bold dark:text-slate-300">{t.settings.currency}</span>
-                        </div>
-                        <select value={currency} onChange={e => setCurrency(e.target.value as Currency)} className="text-sm font-black text-indigo-600 dark:text-indigo-400 bg-transparent outline-none cursor-pointer">
+                        <select value={currency} onChange={e => setCurrency(e.target.value as Currency)} className="text-sm font-black text-indigo-600 bg-transparent outline-none cursor-pointer">
                           <option value="VND">VND (₫)</option>
                           <option value="USD">USD ($)</option>
                           <option value="EUR">EUR (€)</option>
@@ -383,12 +360,12 @@ const App: React.FC = () => {
                           <option value="GBP">GBP (£)</option>
                         </select>
                     </div>
-                    <div className="p-4 flex items-center justify-between hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+                    <div className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 bg-violet-50 dark:bg-violet-900/20 text-violet-600 rounded-lg"><Clock size={18} /></div>
-                            <span className="text-sm font-bold dark:text-slate-300">{t.settings.timezone}</span>
+                            <div className="p-2 bg-violet-50 text-violet-600 rounded-lg"><Clock size={18} /></div>
+                            <span className="text-sm font-bold">{t.settings.timezone}</span>
                         </div>
-                        <select value={timezone} onChange={e => setTimezone(e.target.value)} className="text-sm font-black text-indigo-600 dark:text-indigo-400 bg-transparent outline-none cursor-pointer max-w-[150px]">
+                        <select value={timezone} onChange={e => setTimezone(e.target.value)} className="text-sm font-black text-indigo-600 bg-transparent outline-none cursor-pointer max-w-[150px]">
                           <option value="Asia/Ho_Chi_Minh">Vietnam (GMT+7)</option>
                           <option value="UTC">UTC (GMT+0)</option>
                           <option value="America/New_York">New York (EST)</option>
@@ -399,17 +376,17 @@ const App: React.FC = () => {
                         </select>
                     </div>
                 </div>
-                <button onClick={handleLogout} className="w-full p-5 bg-white dark:bg-slate-900 border border-rose-100 dark:border-rose-900/30 text-rose-500 rounded-3xl font-black shadow-sm flex items-center justify-center gap-2 transition-all active:scale-95"><LogOut size={20} /> {t.settings.logout}</button>
+                <button onClick={handleLogout} className="w-full p-5 bg-white border border-rose-100 text-rose-500 rounded-3xl font-black shadow-sm flex items-center justify-center gap-2 transition-all active:scale-95"><LogOut size={20} /> {t.settings.logout}</button>
             </div>
           )}
         </div>
       </main>
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 dark:bg-slate-900/90 backdrop-blur-xl border-t border-slate-100 dark:border-slate-800 px-2 flex items-center justify-around z-50 pb-[env(safe-area-inset-bottom)] h-[calc(64px+env(safe-area-inset-bottom))] transition-colors">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-slate-100 px-2 flex items-center justify-around z-50 pb-[env(safe-area-inset-bottom)] h-[calc(64px+env(safe-area-inset-bottom))] transition-colors">
         <BottomNavItem view="dashboard" icon={LayoutDashboard} label={t.nav.dashboard} />
         <BottomNavItem view="analysis" icon={PieChart} label={t.nav.analysis} />
         <div className="flex-1 flex justify-center -mt-8">
-           <button onClick={() => setIsManualModalOpen(true)} className="bg-indigo-600 text-white w-14 h-14 rounded-full shadow-2xl shadow-indigo-300 flex items-center justify-center active:scale-90 transition-all border-4 border-white dark:border-slate-900"><Plus size={28} /></button>
+           <button onClick={() => setIsManualModalOpen(true)} className="bg-indigo-600 text-white w-14 h-14 rounded-full shadow-2xl shadow-indigo-300 flex items-center justify-center active:scale-90 transition-all border-4 border-white"><Plus size={28} /></button>
         </div>
         {canAccessAdmin ? (
             <BottomNavItem view="admin" icon={Shield} label={t.nav.admin} />
