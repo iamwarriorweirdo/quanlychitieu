@@ -28,6 +28,7 @@ export const TransactionItem: React.FC<Props> = ({ transaction, onDelete, onUpda
             timeZone: timezone,
             day: '2-digit',
             month: '2-digit',
+            year: 'numeric', // Đã thêm hiển thị năm
             hour: '2-digit',
             minute: '2-digit'
         }).format(d);
