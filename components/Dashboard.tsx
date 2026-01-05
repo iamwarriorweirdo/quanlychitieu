@@ -89,13 +89,13 @@ export const Dashboard: React.FC<Props> = ({
     <div className="space-y-6">
       <div className="flex justify-between items-center mb-2 md:mb-4 px-1">
          <div>
-            <h2 className="text-xl md:text-2xl font-black text-slate-800 dark:text-white tracking-tight">{t.dashboard.overview}</h2>
-            <p className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-wider">{t.dashboard.hello}, {user.username}</p>
+            <h2 className="text-xl md:text-2xl font-black text-slate-800 tracking-tight">{t.dashboard.overview}</h2>
+            <p className="text-slate-500 text-[10px] font-bold uppercase tracking-wider">{t.dashboard.hello}, {user.username}</p>
          </div>
          <div className="flex gap-2">
             <button 
               onClick={() => openAiScan('image')} 
-              className="bg-indigo-100 dark:bg-indigo-900/50 text-indigo-600 dark:text-indigo-300 p-2.5 rounded-xl active:scale-90 transition-all hover:bg-indigo-600 hover:text-white flex items-center gap-2"
+              className="bg-indigo-50 text-indigo-600 border border-indigo-100 p-2.5 rounded-xl active:scale-90 transition-all hover:bg-indigo-600 hover:text-white flex items-center gap-2"
               title={t.dashboard.aiScan}
             >
                <Wand2 size={20} />
@@ -103,7 +103,7 @@ export const Dashboard: React.FC<Props> = ({
             </button>
             <button 
               onClick={openManualModal}
-              className="hidden md:flex bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 p-2.5 rounded-xl active:scale-90 transition-all hover:bg-slate-200 dark:hover:bg-slate-700 items-center gap-2"
+              className="hidden md:flex bg-white border border-slate-200 text-slate-700 p-2.5 rounded-xl active:scale-90 transition-all hover:bg-slate-50 items-center gap-2"
             >
                <Plus size={20} />
                <span className="text-xs font-bold">{t.dashboard.manualAdd}</span>
@@ -111,17 +111,17 @@ export const Dashboard: React.FC<Props> = ({
          </div>
       </div>
 
-      <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-3xl p-6 text-white shadow-2xl shadow-indigo-100/50 dark:shadow-none relative overflow-hidden mx-1">
+      <div className="bg-gradient-to-br from-indigo-600 to-violet-700 rounded-3xl p-6 text-white shadow-xl shadow-indigo-100 relative overflow-hidden mx-1">
         <div className="absolute top-0 right-0 p-4 opacity-10"><Wallet size={120} /></div>
         <p className="text-indigo-100 text-[10px] uppercase font-bold tracking-widest mb-1">{t.dashboard.balance}</p>
         <h3 className="text-2xl md:text-3xl font-black tracking-tight truncate">
           {formatCurrency(stats.balance)}
         </h3>
         <div className="mt-6 flex flex-wrap gap-2 items-center">
-          <div className="bg-white/10 px-3 py-1.5 rounded-full text-[10px] font-bold backdrop-blur-md flex items-center gap-1.5 border border-white/10">
+          <div className="bg-white/10 px-3 py-1.5 rounded-full text-[10px] font-bold backdrop-blur-md flex items-center gap-1.5 border border-white/10 shadow-sm">
             <TrendingUp size={12} className="text-emerald-400" /> <span className="text-emerald-50">+{formatCurrency(stats.income)}</span>
           </div>
-          <div className="bg-white/10 px-3 py-1.5 rounded-full text-[10px] font-bold backdrop-blur-md flex items-center gap-1.5 border border-white/10">
+          <div className="bg-white/10 px-3 py-1.5 rounded-full text-[10px] font-bold backdrop-blur-md flex items-center gap-1.5 border border-white/10 shadow-sm">
             <TrendingDown size={12} className="text-rose-400" /> <span className="text-rose-50">-{formatCurrency(stats.expense)}</span>
           </div>
         </div>
@@ -130,14 +130,14 @@ export const Dashboard: React.FC<Props> = ({
       <div className="flex flex-col gap-3 px-1">
         <div className="relative group">
           <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-            <Search size={16} className="text-slate-400 dark:text-slate-500 group-focus-within:text-indigo-500 transition-colors" />
+            <Search size={16} className="text-slate-400 group-focus-within:text-indigo-500 transition-colors" />
           </div>
           <input 
             type="text" 
             placeholder={t.dashboard.search}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-10 pr-4 py-3.5 bg-white dark:bg-slate-900 shadow-sm border border-slate-200 dark:border-slate-800 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-slate-800 dark:text-white text-sm font-medium placeholder:text-slate-400"
+            className="w-full pl-10 pr-4 py-3.5 bg-white shadow-sm border border-slate-200 rounded-2xl focus:ring-2 focus:ring-indigo-500 outline-none transition-all text-slate-800 text-sm font-medium placeholder:text-slate-400"
           />
         </div>
         <div className="flex overflow-x-auto pb-2 no-scrollbar gap-2 -mx-1 px-1">
@@ -153,9 +153,9 @@ export const Dashboard: React.FC<Props> = ({
 
       <div className="space-y-4 px-1 pb-10">
         <div className="flex justify-between items-center">
-          <h3 className="font-black text-slate-800 dark:text-white text-xs uppercase tracking-widest flex items-center gap-2">
+          <h3 className="font-black text-slate-800 text-xs uppercase tracking-widest flex items-center gap-2">
              {t.dashboard.history}
-             <span className="text-[10px] bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 px-2.5 py-1 rounded-full">{filteredTransactions.length}</span>
+             <span className="text-[10px] bg-indigo-50 text-indigo-600 px-2.5 py-1 rounded-full border border-indigo-100">{filteredTransactions.length}</span>
           </h3>
         </div>
         {isLoading ? (
@@ -167,10 +167,10 @@ export const Dashboard: React.FC<Props> = ({
             ))}
           </div>
         ) : (
-          <div className="bg-white dark:bg-slate-900 rounded-3xl p-10 text-center border border-dashed border-slate-200 dark:border-slate-800">
-            <div className="w-16 h-16 bg-slate-50 dark:bg-slate-800 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300 dark:text-slate-600"><Search size={32} /></div>
-            <h4 className="text-slate-800 dark:text-white font-bold">{t.dashboard.noTx}</h4>
-            <p className="text-slate-400 dark:text-slate-500 text-xs mt-1 font-medium">{t.dashboard.noTxSub}</p>
+          <div className="bg-white rounded-3xl p-10 text-center border border-dashed border-slate-200">
+            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300"><Search size={32} /></div>
+            <h4 className="text-slate-800 font-bold">{t.dashboard.noTx}</h4>
+            <p className="text-slate-400 text-xs mt-1 font-medium">{t.dashboard.noTxSub}</p>
           </div>
         )}
       </div>
