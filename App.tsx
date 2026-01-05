@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { getCurrentSession, loginUser, registerUser, setCurrentSession, initDB, getTransactions, saveTransaction, deleteTransaction, getGoals, saveGoal, deleteGoal, getBudgets, saveBudget, deleteBudget, loginWithGoogle, syncOfflineData } from './services/storageService';
 import { User, Transaction, ParsedTransactionData, Goal, Budget } from './types';
@@ -74,8 +75,6 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem('timezone', timezone);
   }, [timezone]);
-
-  // Đã xóa logic Dark Mode để ứng dụng luôn ở chế độ sáng (Light Mode)
 
   // --- END SETTINGS LOGIC ---
 
@@ -272,7 +271,7 @@ const App: React.FC = () => {
       className={`flex flex-col items-center gap-1 flex-1 py-2 transition-all ${currentView === view ? 'text-indigo-600' : 'text-slate-400'}`}
     >
       <Icon size={20} className={currentView === view ? 'scale-110' : ''} />
-      <span className="text-[10px] font-black tracking-tight">{label}</span>
+      <span className="text-[10px] font-black tracking-tight uppercase">{label}</span>
     </button>
   );
 
@@ -281,7 +280,7 @@ const App: React.FC = () => {
   return (
     <div className="flex flex-col md:flex-row h-screen bg-slate-50 overflow-hidden transition-colors duration-300 text-slate-800">
       <aside className="hidden md:flex flex-col w-64 bg-white border-r border-slate-200 transition-colors">
-        <div className="p-6 flex items-center gap-3 border-b">
+        <div className="p-6 flex items-center gap-3 border-b border-slate-100">
           <div className="bg-indigo-600 text-white p-2 rounded-lg"><Wallet /></div>
           <h1 className="font-bold text-lg leading-tight">{t.app.title}</h1>
         </div>
@@ -295,7 +294,7 @@ const App: React.FC = () => {
           )}
           <button onClick={() => setCurrentView('account')} className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all ${currentView === 'account' ? 'bg-indigo-50 text-indigo-700 font-bold' : 'text-slate-600 hover:bg-slate-50'}`}><UserIcon size={20} />{t.nav.account}</button>
         </nav>
-        <div className="p-4 border-t flex items-center justify-between">
+        <div className="p-4 border-t border-slate-100 flex items-center justify-between">
           <div className="flex items-center gap-2 overflow-hidden">{user.avatar ? <img src={user.avatar} className="w-8 h-8 rounded-full" alt="avatar" /> : <UserIcon size={16}/>}<span className="text-sm font-bold truncate text-slate-700">{user.username}</span></div>
           <button onClick={handleLogout} className="text-slate-400 hover:text-rose-500"><LogOut size={20} /></button>
         </div>
@@ -304,7 +303,7 @@ const App: React.FC = () => {
       <main className="flex-1 overflow-y-auto pb-24 md:p-8 pt-[env(safe-area-inset-top)]">
         <div className="max-w-5xl mx-auto px-4 sm:px-0">
           {!isOnline && (
-             <div className="mb-4 bg-amber-50 border border-amber-200 p-4 rounded-2xl flex items-center gap-3">
+             <div className="mb-4 bg-amber-50 border border-amber-200 p-4 rounded-3xl flex items-center gap-3">
                 <CloudOff className="text-amber-600" size={20} />
                 <p className="text-xs font-bold text-amber-800 uppercase tracking-wider">{t.app.offlineMode}</p>
              </div>
@@ -344,7 +343,6 @@ const App: React.FC = () => {
                           <option value="zh">中文</option>
                         </select>
                     </div>
-                    {/* Đã xóa lựa chọn Chế độ tối (Dark Mode) */}
                     <div className="p-4 flex items-center justify-between hover:bg-slate-50 transition-colors">
                         <div className="flex items-center gap-3">
                             <div className="p-2 bg-amber-50 text-amber-600 rounded-lg"><Banknote size={18} /></div>
@@ -382,7 +380,7 @@ const App: React.FC = () => {
         </div>
       </main>
 
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-xl border-t border-slate-100 px-2 flex items-center justify-around z-50 pb-[env(safe-area-inset-bottom)] h-[calc(64px+env(safe-area-inset-bottom))] transition-colors">
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-md border-t border-slate-200 px-2 flex items-center justify-around z-50 pb-[env(safe-area-inset-bottom)] h-[calc(64px+env(safe-area-inset-bottom))] transition-colors">
         <BottomNavItem view="dashboard" icon={LayoutDashboard} label={t.nav.dashboard} />
         <BottomNavItem view="analysis" icon={PieChart} label={t.nav.analysis} />
         <div className="flex-1 flex justify-center -mt-8">
