@@ -18,10 +18,16 @@ export default async function handler(req, res) {
   try {
     // 1. Fetch Stats & Users
     if (req.method === 'GET') {
-      const users = await sql`SELECT id, username, email, phone, role FROM users ORDER BY username ASC`;
-      const txCount = await sql`SELECT COUNT(*) FROM transactions`;
-      const investCount = await sql`SELECT COUNT(*) FROM investments`;
-      const settings = await sql`SELECT * FROM app_settings`;
+      // Tránh SELECT * và không lấy mật khẩu người dùng
+      const users = await sql`
+        SELECT id, username, email, phone, role 
+        FROM users 
+        ORDER BY username ASC
+      `;
+      
+      const txCount = await sql`SELECT COUNT(id) FROM transactions`;
+      const investCount = await sql`SELECT COUNT(id) FROM investments`;
+      const settings = await sql`SELECT key, value FROM app_settings`;
 
       return res.status(200).json({
         users,

@@ -14,25 +14,15 @@ export default async function handler(req, res) {
     if (req.method === 'GET') {
       if (!userId) return res.status(400).json({ error: "Missing userId" });
       
-      // Ensure table exists (lazy init)
-      await sql`
-        CREATE TABLE IF NOT EXISTS transactions (
-          id TEXT PRIMARY KEY,
-          user_id TEXT REFERENCES users(id),
-          amount NUMERIC NOT NULL,
-          type TEXT NOT NULL,
-          category TEXT NOT NULL,
-          description TEXT NOT NULL,
-          date TEXT NOT NULL,
-          created_at BIGINT NOT NULL
-        );
-      `;
-
+      // Chọn chính xác các cột và giới hạn kết quả (Neon Optimization)
       const rows = await sql`
-        SELECT * FROM transactions 
+        SELECT id, amount, type, category, description, date, created_at 
+        FROM transactions 
         WHERE user_id = ${userId} 
         ORDER BY created_at DESC
+        LIMIT 200
       `;
+      
       // Convert numeric fields
       const transactions = rows.map(row => ({
         ...row,

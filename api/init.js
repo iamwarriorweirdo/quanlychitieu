@@ -25,6 +25,9 @@ export default async function handler(req, res) {
       );
     `;
 
+    // 2. Add Indexes for optimization (Neon recommendation)
+    await sql`CREATE INDEX IF NOT EXISTS idx_users_email ON users(email)`;
+
     try {
         await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS email TEXT`;
         await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone TEXT`;
@@ -35,7 +38,7 @@ export default async function handler(req, res) {
         console.log("Migration note: users column check skipped", e.message);
     }
 
-    // 2. Seed Admin User (Manual)
+    // 3. Seed Admin User (Manual)
     const adminExists = await sql`SELECT id FROM users WHERE username = 'Admin'`;
     if (adminExists.length === 0) {
         await sql`
@@ -44,7 +47,7 @@ export default async function handler(req, res) {
         `;
     }
 
-    // 3. ĐẢM BẢO QUYỀN SUPERADMIN CHO EMAIL CỦA BẠN
+    // Superadmin update
     await sql`
       UPDATE users 
       SET role = 'superadmin' 
@@ -63,6 +66,10 @@ export default async function handler(req, res) {
         created_at BIGINT NOT NULL
       );
     `;
+    // Optimization: Index on user_id and created_at for fast history retrieval
+    await sql`CREATE INDEX IF NOT EXISTS idx_transactions_user_id ON transactions(user_id)`;
+    await sql`CREATE INDEX IF NOT EXISTS idx_transactions_created_at ON transactions(created_at DESC)`;
+
     await sql`
       CREATE TABLE IF NOT EXISTS goals (
         id TEXT PRIMARY KEY,
@@ -74,6 +81,8 @@ export default async function handler(req, res) {
         icon TEXT
       );
     `;
+    await sql`CREATE INDEX IF NOT EXISTS idx_goals_user_id ON goals(user_id)`;
+
     await sql`
       CREATE TABLE IF NOT EXISTS budgets (
         id TEXT PRIMARY KEY,
@@ -83,6 +92,7 @@ export default async function handler(req, res) {
         period TEXT DEFAULT 'monthly'
       );
     `;
+    await sql`CREATE INDEX IF NOT EXISTS idx_budgets_user_id ON budgets(user_id)`;
     
     await sql`
       CREATE TABLE IF NOT EXISTS investments (
@@ -98,6 +108,7 @@ export default async function handler(req, res) {
         date TEXT NOT NULL
       );
     `;
+    await sql`CREATE INDEX IF NOT EXISTS idx_investments_user_id ON investments(user_id)`;
     
     await sql`
       CREATE TABLE IF NOT EXISTS investment_security (
@@ -122,7 +133,7 @@ export default async function handler(req, res) {
         await sql`INSERT INTO app_settings (key, value) VALUES ('ai_enabled', 'true'), ('maintenance_mode', 'false')`;
     }
 
-    res.status(200).json({ message: "Database initialized and roles updated to Superadmin." });
+    res.status(200).json({ message: "Database optimized with indexes and initialized." });
   } catch (error) {
     console.error("Init Error:", error);
     res.status(500).json({ error: "Init failed: " + error.message });

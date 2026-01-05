@@ -1,3 +1,4 @@
+
 import { neon } from '@neondatabase/serverless';
 
 export default async function handler(req, res) {
@@ -11,7 +12,11 @@ export default async function handler(req, res) {
 
     if (req.method === 'GET') {
       if (!userId) return res.status(400).json({ error: "Missing userId" });
-      const rows = await sql`SELECT * FROM budgets WHERE user_id = ${userId}`;
+      const rows = await sql`
+        SELECT id, user_id, category, amount, period 
+        FROM budgets 
+        WHERE user_id = ${userId}
+      `;
       const budgets = rows.map(row => ({
         id: row.id,
         userId: row.user_id,
